@@ -4,17 +4,16 @@ template<typename T>
 T&& declval();
 
 template<int I>
-struct i{
-
-template<int B>
-i<I+B> operator+(i<B> b);
-template<int B>
-i<I-B> operator-(i<B> b);
-template<int B>
-i<I*B> operator*(i<B> b);
-template<int B>
-i<I/B> operator/(i<B> b);
-
+struct i
+{
+        template<int B>
+        i<I+B> operator+(i<B> b);
+        template<int B>
+        i<I-B> operator-(i<B> b);
+        template<int B>
+        i<I*B> operator*(i<B> b);
+        template<int B>
+        i<I/B> operator/(i<B> b);
 };
 template<typename ... > struct ls_{};
 
@@ -44,15 +43,43 @@ typedef T type;
         };
 };
 
+template<typename ...>
+struct add
+{template<typename ... Ts>
+    struct f; 
+    template<typename I, typename P>
+    struct f<I,P> {typedef decltype(declval<I>() + declval<P>() ) type;};
+};
+
 
 template<typename P>
 struct plus
 {template<typename ... Ts>
     struct f; 
     template<typename I>
-    struct f<I> {typedef decltype(I{} + P{} ) type;};
+    struct f<I> {typedef decltype(declval<I>() + declval<P>() ) type;};
 };
-
+template<typename P>
+struct minus
+{template<typename ... Ts>
+    struct f; 
+    template<typename I>
+    struct f<I> {typedef decltype(declval<I>() - declval<P>() ) type;};
+};
+template<typename P>
+struct multiply
+{template<typename ... Ts>
+    struct f; 
+    template<typename I>
+    struct f<I> {typedef decltype(declval<I>() * declval<P>() ) type;};
+};
+template<typename P>
+struct divide
+{template<typename ... Ts>
+    struct f; 
+    template<typename I>
+    struct f<I> {typedef decltype(declval<I>() / declval<P>() ) type;};
+};
 
 template<template<typename ... >class F> struct lift_{
     template<typename ... Ts>
@@ -64,24 +91,25 @@ template<template<typename ... >class F> struct lift_{
 
 template<typename ...>
 struct fold_left_;
-
-
 template<typename F >
 struct fold_left_<F>
 {
+        template<typename ...> struct f
+        {};
+        template<typename A> struct f<A> 
+        {typedef A type;};
 
-template<typename ...> struct f
-{};
-template<typename A> struct f<A> {typedef A type;};
+ template<typename A > struct f<input<A>> 
+        {typedef A type;};
+  template<typename ... As > struct f<input<As...>> 
+        {typedef ls_<As...> type;};
+               
 template<typename A, typename B, typename ... Ts > 
-struct f<A,B,Ts...> : f<typename F::template f<A,B>::type ,Ts... >
-{};
-
-
+        struct f<A,B,Ts...> : f<typename F::template f<A,B>::type ,Ts... >
+        {};
 };
 
 
-fold_left_<lift_<Add>>::template f<i<1>,i<2>,i<3>>::type t = 0;
 
 template<typename ...>
 struct pipe_expr{};
@@ -90,6 +118,13 @@ struct pipe_expr<T,G>
 {
     typedef typename G::template f<T>::type type;
 };
+template<typename ... Ts,typename G>
+struct pipe_expr<input<Ts...>,G>
+{
+    typedef typename G::template f<Ts...>::type type;
+};
+
+
 template<typename ... Cs>
 struct pipe_; 
 template<typename C,typename ... Cs>
@@ -104,15 +139,43 @@ struct pipe_<C,Cs...>
 
 };
 
+template<typename... Cs>
+struct fork_
+{
+    template<typename ... Ts>
+    struct f
+    {
+        typedef input<typename Cs::template f<Ts...>::type...> type;
+    };
+};
 
-pipe_<input<i<3>>,plus<i<1>>, plus<i<2>>>::type tp = 0;
+template<typename A, typename B>
+struct is_same : b<false>{};
+template<typename A>
+struct is_same<A,A> : b<true>{};
+template<typename A, typename B>
+struct is_not_same : b<true>{};
+template<typename A>
+struct is_not_same<A,A> : b<false>{};
 
 
+template<typename ... Ts>
+struct is_
+{
+    template<typename ... Us>
+    struct f
+    {
+        typedef typename is_same<ls_<Ts...>, ls_<Us...> >::type type; 
+    };
+    
+};
+
+static_assert(pipe_<input<i<1>>,fork_<plus<i<1>>, plus<i<2>> >, is_<i<2>, i<3>> >::type::value,"");
 
 template<typename A, typename B>
 struct less : b<(sizeof(A) < sizeof(B))>
 {
-    static_assert(sizeof(A) != sizeof(B), "");
+    
 };
 
 template<typename A>
@@ -137,15 +200,6 @@ template<typename A, typename B>
 struct greater : b<!less<A,B>::value>
 {
 };
-
-template<typename A, typename B>
-struct is_same : b<false>{};
-template<typename A>
-struct is_same<A,A> : b<true>{};
-template<typename A, typename B>
-struct is_not_same : b<true>{};
-template<typename A>
-struct is_not_same<A,A> : b<false>{};
 
 
 template<typename A, typename B>
