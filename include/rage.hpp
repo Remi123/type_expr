@@ -170,7 +170,22 @@ struct is_
     
 };
 
-static_assert(pipe_<input<i<1>>,fork_<plus<i<1>>, plus<i<2>> >, is_<i<2>, i<3>> >::type::value,"");
+// TRANSFORM_
+template<typename F>
+struct transform_
+{
+    template<typename ... Ts>
+    struct f
+    {
+        typedef input<typename F::template f<Ts>::type...> type;
+    };
+};
+
+static_assert(pipe_<input<i<1>,i<2>>, 
+                    transform_<plus<i<3>>>,
+                    is_<i<4>,i<5>>
+                    >::type::value,"");
+
 
 template<typename A, typename B>
 struct less : b<(sizeof(A) < sizeof(B))>

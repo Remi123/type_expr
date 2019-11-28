@@ -27,7 +27,6 @@ int main()
 
         auto pipe_fold_test =  pipe_<input<i<1>,i<4> >,fold_left_<lift_<Add>>>::type{};
         static_assert( std::is_same<decltype(pipe_fold_test), i<5>>::value , "");
-        pipe_fold_test = i<5>{};
 
         auto pipe_pipe_test = pipe_<pipe_< input<i<3>> , plus<i<1>> >,
                                     plus<i<2>> >::type{};
@@ -41,8 +40,22 @@ int main()
 
         auto pipe_is_test_multi = pipe_<input<i<1>,i<2>>, is_<i<1>,i<2>> >::type{};
         static_assert(pipe_is_test_multi.value,"");
-        // This is such a good feature; instead of always comparing with ls_<...> 
+        // This is such a good feature; instead of always listify then compare with ls_<...> 
 
+
+        static_assert(pipe_<input<i<1>,i<2>>, 
+                        transform_<plus<i<3>>>,
+                        is_<i<4>,i<5>>
+                        >::type::value,"");
+        // Transform apply this metafunctor to the types one by one
+        // Can also be called a map_ but I disgress transform_ is a better name
+
+
+        
+        static_assert(pipe_<input<i<1>>,fork_<  plus<i<1>>, 
+                                                plus<i<2>> 
+                                                >   , is_<i<2>, i<3>> >::type::value,"");
+        // pipes and forks in a single expression ? Cool Stuff
 
         return 0;
 }
