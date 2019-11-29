@@ -81,11 +81,21 @@ struct divide
     struct f<I> {typedef decltype(declval<I>() / declval<P>() ) type;};
 };
 
+
+// LIFT_
 template<template<typename ... >class F> struct lift_{
     template<typename ... Ts>
     struct f {
         typedef typename F<Ts...>::type type;
     } ;
+};
+// QUOTE_
+template<template<typename ... >class F>
+ struct quote_{
+    template<typename ... Ts>
+    struct f {
+        typedef F<Ts...> type;
+    };
 };
 
 
@@ -101,8 +111,8 @@ struct fold_left_<F>
 
  template<typename A > struct f<input<A>> 
         {typedef A type;};
-  template<typename ... As > struct f<input<As...>> 
-        {typedef ls_<As...> type;};
+  //template<typename ... As > struct f<input<As...>> 
+        //{typedef ls_<As...> type;};
                
 template<typename A, typename B, typename ... Ts > 
         struct f<A,B,Ts...> : f<typename F::template f<A,B>::type ,Ts... >
@@ -181,10 +191,71 @@ struct transform_
     };
 };
 
-static_assert(pipe_<input<i<1>,i<2>>, 
-                    transform_<plus<i<3>>>,
-                    is_<i<4>,i<5>>
-                    >::type::value,"");
+// LISTIFY_
+struct listify
+{
+    template<typename ... Ts>
+    struct f
+    {   
+        typedef input<ls_<Ts...>> type;
+    };
+};
+
+
+// UNPACK
+struct unpack
+{
+    template<typename ... Ts>
+    struct f;
+    template<template<typename ...> class F, typename ... Ts>
+    struct f<F<Ts...>>
+    {   
+        typedef input<Ts... > type;
+    };
+};
+
+// REVERSE
+struct reverse
+{
+    template<typename ... > struct f_impl;
+    template<template<typename ...> class F,typename... Ts,typename T> 
+    struct f_impl<F<Ts...>,T>
+    {
+        typedef F<T,Ts...> type;
+    };
+
+    template<typename ... Ts>
+    struct f
+    {
+        typedef typename pipe_<input<input<>,Ts...>, fold_left_<lift_<f_impl>> >::type type;
+    };
+};
+
+// MKSEQ_
+// Need optimization but it's for later. I'll do it soon.
+template<typename I>
+struct mkseq_;
+template<int I>
+struct mkseq_<i<I>>
+{
+    template< typename... Is>
+    struct f_impl;
+
+    template<int In, typename... Is>
+    struct f_impl<input<i<0>,Is...>,i<In>  >
+    { typedef input<i<0>,Is...> type; };
+
+    template<int In, typename... Is>
+    struct f_impl<input<Is...>, i<In>  > : f_impl<input<i<In>,Is...>, i<In-1> >
+    { };
+
+    template<typename ...> struct f
+    {
+        typedef typename f_impl<input<i<I-1>>,i<I-2>>::type type;
+    };
+};
+
+
 
 
 template<typename A, typename B>
