@@ -168,16 +168,30 @@ struct is_not_same : b<true>{};
 template<typename A>
 struct is_not_same<A,A> : b<false>{};
 
-
+// IS_
 template<typename ... Ts>
-struct is_
+struct is_;
+template<typename T,typename ... Ts>
+struct is_<T,Ts...>
 {
     template<typename ... Us>
     struct f
     {
-        typedef typename is_same<ls_<Ts...>, ls_<Us...> >::type type; 
+        typedef typename is_same<ls_<T,Ts...>, ls_<Us...> >::type type; 
     };
-    
+};
+
+// ISNT_
+template<typename ... Ts>
+struct isnt_;
+template<typename T,typename ... Ts>
+struct isnt_<T,Ts...>
+{
+    template<typename ... Us>
+    struct f
+    {
+        typedef typename is_not_same<ls_<T,Ts...>, ls_<Us...> >::type type; 
+    };
 };
 
 // TRANSFORM_
@@ -257,6 +271,57 @@ struct mkseq_<i<I>>
 
 
 
+// PUSH_FRONT_
+template<typename ... Ts>
+struct push_front_
+{
+    template<typename ... Inputs>
+    struct f {typedef input<Ts...,Inputs...> type;};
+};
+
+// PUSH_BACK_
+template<typename ... Ts>
+struct push_back_
+{
+    template<typename ... Inputs>
+    struct f {typedef input<Inputs...,Ts...> type;};
+};
+
+// FIRST
+struct first
+{
+    template<typename ... Ts>
+    struct f;
+    template<typename T,typename ... Ts>
+    struct f<T,Ts...>{typedef T type;};
+};
+
+// LAST
+struct last
+{
+    template<typename ... Ts> struct detail_ls_{};
+    struct detail_end;
+
+    template<typename ... As>
+    struct f_impl{} ; 
+
+    template<typename T>
+    struct f_impl<T,detail_end> {typedef T type;};    
+
+    template<typename ... As, typename ... Bs>
+    struct f_impl<detail_ls_<As...>, detail_ls_<Bs...>> : f_impl<As,Bs>...{};    
+
+    template<typename ... Ts>
+    struct f;
+    template<typename T,typename ... Ts>
+    struct f<T,Ts...> : f_impl<detail_ls_<T,Ts...>, detail_ls_<Ts...,detail_end>>
+    {};
+};
+
+
+
+
+//Below is not yet integrated into rage
 
 template<typename A, typename B>
 struct less : b<(sizeof(A) < sizeof(B))>
