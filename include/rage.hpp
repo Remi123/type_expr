@@ -3,6 +3,9 @@
 template<typename T>
 T&& declval();
 
+// Identity
+struct identity;
+
 template<int I>
 struct i
 {
@@ -133,6 +136,11 @@ struct pipe_expr<input<Ts...>,G>
 {
     typedef typename G::template f<Ts...>::type type;
 };
+/*template<typename T>*/
+//struct pipe_expr<T,identity>
+//{
+    //typedef input<T> type;
+//};
 
 
 template<typename ... Cs>
@@ -287,6 +295,7 @@ struct push_back_
     struct f {typedef input<Inputs...,Ts...> type;};
 };
 
+
 // FIRST
 struct first
 {
@@ -317,6 +326,78 @@ struct last
     struct f<T,Ts...> : f_impl<detail_ls_<T,Ts...>, detail_ls_<Ts...,detail_end>>
     {};
 };
+
+
+
+template<typename ...L>
+struct join : join <ls_<>,L...>{};
+template<typename L>
+struct join<L> { typedef L type;}; 
+template<typename ...L, typename ...R>
+struct join<ls_<L...>,ls_<>,R...> : join<ls_<L...>,R...> 
+{};
+template<typename ...L, typename ...R>
+struct join<ls_<L...>,ls_<>,ls_<>,R...> : join<ls_<L...>,R...> 
+{};
+template<typename ...L, typename ...R>
+struct join<ls_<L...>,ls_<>,ls_<>,ls_<>,R...> : join<ls_<L...>,R...> 
+{};
+template<typename ...L, typename T, typename ...R>
+struct join<ls_<L...>,T,R...> : join<ls_<L...,T>,R...> 
+{};
+template<typename ...L, typename ... T, typename ...R>
+struct join<ls_<L...>,ls_<T...>,R...> : join<ls_<L...,T...>,R...> 
+{};
+struct join_list
+{
+    template<typename ... Ts>
+    struct f 
+    {
+        typedef typename pipe_<input<typename join<Ts...>::type>>::type type;
+    };
+};
+struct flatten
+{
+    template<typename ... Ts>
+    struct f 
+    {
+        typedef typename pipe_<input<typename join<Ts...>::type>,unpack>::type type;
+    };
+};
+
+// COND_
+template<typename ... Ts>
+struct conditional;
+template<>
+struct conditional<b<true>>
+{
+   template<typename T, typename F>
+    struct f {typedef T type;}; 
+};
+template<>
+struct conditional<b<false>>
+{
+   template<typename T, typename F>
+    struct f {typedef F type;}; 
+};
+
+template<typename ... Ts>
+struct cond_;
+template<typename P,typename T, typename F>
+struct cond_<P,T,F>
+{
+    template<typename ... Ts>
+    struct f
+    {
+        typedef typename conditional<typename P::template f<Ts...>::type>::template 
+                                    f< typename T::template f<Ts...>::type,
+                                       typename F::template f<Ts...>::type
+                                       >::type type;
+    };
+};
+pipe_<input<int,int,int>,cond_<    is_<int,int>,
+                                input<b<true>>,
+                                input<b<false>> >>::type t = 0;
 
 
 
@@ -366,25 +447,7 @@ struct eager<A,b<true>>
 };
 
 
-template<typename ...L>
-struct join : join <ls_<>,L...>{};
-template<typename L>
-struct join<L> { typedef L type;}; 
-template<typename ...L, typename ...R>
-struct join<ls_<L...>,ls_<>,R...> : join<ls_<L...>,R...> 
-{};
-template<typename ...L, typename ...R>
-struct join<ls_<L...>,ls_<>,ls_<>,R...> : join<ls_<L...>,R...> 
-{};
-template<typename ...L, typename ...R>
-struct join<ls_<L...>,ls_<>,ls_<>,ls_<>,R...> : join<ls_<L...>,R...> 
-{};
-template<typename ...L, typename T, typename ...R>
-struct join<ls_<L...>,T,R...> : join<ls_<L...,T>,R...> 
-{};
-template<typename ...L, typename ... T, typename ...R>
-struct join<ls_<L...>,ls_<T...>,R...> : join<ls_<L...,T...>,R...> 
-{};
+
 template<typename ...Ls>
 struct sort;
 template<typename T>

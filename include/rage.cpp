@@ -57,6 +57,10 @@ int main()
         static_assert(pipe_<input<int,float,ls_<int>>,last, is_<ls_<int>> >::type::value,"");
         //Getting the first and the last.
 
+        static_assert(pipe_<input<int,ls_<int>,int>, join_list,is_<ls_<int,int,int>>>::type::value);;
+        static_assert(pipe_<input<int,ls_<int>,int>, flatten,is_<int,int,int>>::type::value,"");;
+        //Flatten and join_list might be reworked
+
         static_assert(pipe_<input<i<1>,i<2>>, 
                         transform_<plus<i<3>>>,
                         is_<i<4>,i<5>>
