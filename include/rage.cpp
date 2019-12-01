@@ -12,11 +12,13 @@ int main()
                                 , input <i<2> > >::type{};
         static_assert(std::is_same<decltype(input_test) , i<2>>::value, "");
 
-        auto sort_test = sort<i<3>,i<1>,i<3>,i<4>,i<3>,i<1>,i<2>,i<3>,i<5>>::type {};
-        sort_test = ls_<i<1>, i<1>, i<2>, i<3>, i<3>, i<3>, i<3>, i<4>, i<5> >{};
+        auto sort_test = pipe_<input<i<3>,i<1>,i<3>,i<4>,i<3>,i<1>,i<2>,i<3>,i<5>>
+                                ,sort>::type {};
+        sort_test = input<i<1>, i<1>, i<2>, i<3>, i<3>, i<3>, i<3>, i<4>, i<5> >{};
+        
 
-        auto pipe_test = pipe_<input<i<3>>,plus<i<1>>, plus<i<2>>>::type {};
-        static_assert( std::is_same<decltype(pipe_test), i<6>>::value , "");
+        auto pipe_test = pipe_< input<i<3>>, plus<i<1>>, plus<i<2>>>::type {};
+        static_assert( std::is_same<decltype(pipe_test), i<6> >::value , "");
 
         auto fold_test = pipe_< input<i<1>,i<2>,i<3> >
                                 , fold_left_<add<>>
@@ -57,10 +59,16 @@ int main()
         static_assert(pipe_<input<int,float,ls_<int>>,last, is_<ls_<int>> >::type::value,"");
         //Getting the first and the last.
 
-        static_assert(pipe_<input<int,ls_<int>,int>, join_list,is_<ls_<int,int,int>>>::type::value);;
-        static_assert(pipe_<input<int,ls_<int>,int>, flatten,is_<int,int,int>>::type::value,"");;
+        static_assert(pipe_<input<int,ls_<int>,ls_<int,int>>, flatten ,is_<int,int,int,int>>::type::value);;
         //Flatten and join_list might be reworked
 
+static_assert(pipe_<input<int,int,int>,cond_<    is_<int,int>,
+                                input<b<false>>,
+                                is_<int,int,int> >>::type::value,"");
+// Conditional have a predicate and continue with the second or the third function
+
+
+static_assert(pipe_<input<int,float,short>, get_<1>, is_<float>>::type::value,"");
         static_assert(pipe_<input<i<1>,i<2>>, 
                         transform_<plus<i<3>>>,
                         is_<i<4>,i<5>>

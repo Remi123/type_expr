@@ -22,6 +22,8 @@ template<typename ... > struct ls_{};
 
 template<bool B>
 struct b{typedef b type; static const bool value = B;};
+typedef b<true> true_type;
+typedef b<false> false_type;
 
 template<typename ...>
 struct Add;
@@ -53,7 +55,6 @@ struct add
     template<typename I, typename P>
     struct f<I,P> {typedef decltype(declval<I>() + declval<P>() ) type;};
 };
-
 
 template<typename P>
 struct plus
@@ -101,7 +102,7 @@ template<template<typename ... >class F>
     };
 };
 
-
+// FOLD_LEFT_
 template<typename ...>
 struct fold_left_;
 template<typename F >
@@ -114,8 +115,6 @@ struct fold_left_<F>
 
  template<typename A > struct f<input<A>> 
         {typedef A type;};
-  //template<typename ... As > struct f<input<As...>> 
-        //{typedef ls_<As...> type;};
                
 template<typename A, typename B, typename ... Ts > 
         struct f<A,B,Ts...> : f<typename F::template f<A,B>::type ,Ts... >
@@ -136,13 +135,9 @@ struct pipe_expr<input<Ts...>,G>
 {
     typedef typename G::template f<Ts...>::type type;
 };
-/*template<typename T>*/
-//struct pipe_expr<T,identity>
-//{
-    //typedef input<T> type;
-//};
 
-
+// PIPE_ 
+// The Bread and Butter of the library
 template<typename ... Cs>
 struct pipe_; 
 template<typename C,typename ... Cs>
@@ -157,6 +152,8 @@ struct pipe_<C,Cs...>
 
 };
 
+
+// FORK_
 template<typename... Cs>
 struct fork_
 {
@@ -168,13 +165,13 @@ struct fork_
 };
 
 template<typename A, typename B>
-struct is_same : b<false>{};
+struct is_same : false_type{};
 template<typename A>
-struct is_same<A,A> : b<true>{};
+struct is_same<A,A> : true_type{};
 template<typename A, typename B>
-struct is_not_same : b<true>{};
+struct is_not_same : true_type{};
 template<typename A>
-struct is_not_same<A,A> : b<false>{};
+struct is_not_same<A,A> : false_type{};
 
 // IS_
 template<typename ... Ts>
@@ -327,55 +324,71 @@ struct last
     {};
 };
 
-
-
-template<typename ...L>
-struct join : join <ls_<>,L...>{};
-template<typename L>
-struct join<L> { typedef L type;}; 
-template<typename ...L, typename ...R>
-struct join<ls_<L...>,ls_<>,R...> : join<ls_<L...>,R...> 
-{};
-template<typename ...L, typename ...R>
-struct join<ls_<L...>,ls_<>,ls_<>,R...> : join<ls_<L...>,R...> 
-{};
-template<typename ...L, typename ...R>
-struct join<ls_<L...>,ls_<>,ls_<>,ls_<>,R...> : join<ls_<L...>,R...> 
-{};
-template<typename ...L, typename T, typename ...R>
-struct join<ls_<L...>,T,R...> : join<ls_<L...,T>,R...> 
-{};
-template<typename ...L, typename ... T, typename ...R>
-struct join<ls_<L...>,ls_<T...>,R...> : join<ls_<L...,T...>,R...> 
-{};
-struct join_list
+// GET
+template<int I>
+struct get_
 {
     template<typename ... Ts>
-    struct f 
+    struct f_impl{};
+    template<typename T>
+    struct f_impl<true_type, T> 
+    {typedef T type;};
+    template<typename ...Is, typename ... Us>
+    struct f_impl<input<Is...>, input<Us...>>
+         : f_impl<typename is_same<Is,i<I>>::type , Us>...
+        {};
+    template<typename ... Ts>
+    struct f
     {
-        typedef typename pipe_<input<typename join<Ts...>::type>>::type type;
+        static_assert(I <= sizeof...(Ts),"ERROR Index is higher than the size of the type inputs lists");
+    typedef typename mkseq_<i<sizeof...(Ts)>>::template f<>::type indexed_inputs;
+    typedef input<typename f_impl<indexed_inputs,input<Ts...>>::type> type; 
     };
 };
+
+
+template<typename ... Ts>
+struct flat;
+template<typename... Ls>
+struct flat<input<Ls...>>{ typedef input<Ls...> type;};
+template<typename... Ls,typename T,  typename ...Ts>
+struct flat<input<Ls...>, T, Ts...> : flat<input<Ls..., T>, Ts...> {};
+template<template<typename ...> class F,typename... Ls, typename ... Fs, typename ... Ts>
+struct flat<input<Ls...>, F<Fs...>, Ts...> : flat<input<Ls..., Fs...>, Ts...> {};
+template<
+template<typename ...> class F,typename... Fs,
+template<typename ...> class G,typename... Gs,
+ typename ... Ls, typename ... Ts>
+struct flat<input<Ls...>, F<Fs...>,G<Gs...> ,Ts...> : flat<input<Ls..., Fs...,Gs...>, Ts...> {};
+
 struct flatten
 {
     template<typename ... Ts>
     struct f 
     {
-        typedef typename pipe_<input<typename join<Ts...>::type>,unpack>::type type;
+        typedef typename flat<input<>,Ts...>::type type;
     };
+};
+
+struct identity
+{
+    template<typename ... Ts>
+    struct f {typedef input<Ts...> type;};
+    //template<typename T>
+    //struct f<T> {typedef T type;};
 };
 
 // COND_
 template<typename ... Ts>
 struct conditional;
 template<>
-struct conditional<b<true>>
+struct conditional<true_type>
 {
    template<typename T, typename F>
     struct f {typedef T type;}; 
 };
 template<>
-struct conditional<b<false>>
+struct conditional<false_type>
 {
    template<typename T, typename F>
     struct f {typedef F type;}; 
@@ -395,12 +408,33 @@ struct cond_<P,T,F>
                                        >::type type;
     };
 };
-pipe_<input<int,int,int>,cond_<    is_<int,int>,
-                                input<b<true>>,
-                                input<b<false>> >>::type t = 0;
 
+// NOT_
+template<typename...>
+struct not_;
+template<typename P>
+struct not_<P> : pipe_<cond_<P,input<false_type>, input<true_type>>>
+{
+};
 
+// REMOVE_IF_
+template<typename ... >
+struct remove_if_;
+template<typename P>
+struct remove_if_<P> :pipe_<transform_<cond_<P,input<>, identity >> ,flatten, listify>
+{
+};
 
+template<typename ...>
+struct partition_;
+template<typename P>
+struct partition_<P> : pipe_<fork_<
+   remove_if_<not_<P>>, remove_if_<P>    
+
+>>
+                                    {};
+
+pipe_<input<int,float, short>,partition_<is_<int>> >::type t = 0;
 
 //Below is not yet integrated into rage
 
@@ -411,18 +445,18 @@ struct less : b<(sizeof(A) < sizeof(B))>
 };
 
 template<typename A>
-struct less<void , A> : b<true>
+struct less<void , A> : true_type
 {};
 template<typename A>
-struct less< A,void> : b<false>
+struct less< A,void> : false_type
 {};
 template<>
-struct less< void,void> : b<true>
+struct less< void,void> : true_type
 {};
 template<>
-struct less<int, float> : b<true>{}; 
+struct less<int, float> : true_type{}; 
 template<>
-struct less<float, int> : b<false>{}; 
+struct less<float, int> : false_type{}; 
 
 template<int A, int B>
 struct less<i<A>,i<B>> : b<(A<B)>
@@ -437,80 +471,68 @@ struct greater : b<!less<A,B>::value>
 template<typename A, typename B>
 struct eager
 {
-    typedef ls_<> type;
+    typedef input<> type;
 };
 
 template<typename A>
-struct eager<A,b<true>>
+struct eager<A,true_type>
 {
     typedef A type;
 };
 
 
 
-template<typename ...Ls>
-struct sort;
-template<typename T>
-struct sort<T> {typedef ls_<T> type;};
-template<>
-struct sort<ls_<>> {typedef ls_<> type;};
-template<typename ... L>
-struct sort_impl;
-template<typename T>
-struct sort_impl<T>
-{typedef T type;};
+struct sort{
+        template<typename ... L>
+        struct sort_impl;
+        template<typename T>
+        struct sort_impl<T>
+        {typedef T type;};
 
-template<typename ... Ts,typename F>
-struct sort_impl<F,Ts...> {
-   
-    typedef typename  sort<
-        typename join<ls_<>,
-                        typename eager<Ts,typename less<Ts,F>::type
-                        >::type...
-                    >::type>::type Less;
-    typedef  typename  sort<
-        typename join<ls_<>,
-                        typename eager<Ts,typename greater<Ts,F>::type
-                        >::type...
-                    >::type>::type More;
-    typedef typename join<Less,F,More>::type type;
+        template<typename ... Ts,typename F>
+        struct sort_impl<input<F,Ts...>> {
+           
+            typedef typename  sort_impl<
+                typename flat<input<>,
+                                typename eager<Ts,typename less<Ts,F>::type
+                                >::type...
+                            >::type>::type Less;
+            typedef  typename  sort_impl<
+                typename flat<input<>,
+                                typename eager<Ts,typename greater<Ts,F>::type
+                                >::type...
+                            >::type>::type More;
+            typedef typename flat<input<>,Less,F,More>::type type;
+        };
+    template<typename ... Ts>
+    struct f { typedef typename sort_impl<input<Ts...>>::type type;};
 };
 
-template< typename ...Ls>
-struct sort
-{
-    typedef typename sort_impl<Ls...>::type type;
-};
-template<typename ...Ls>
-struct sort<ls_<Ls...>>
-{
-    typedef typename sort_impl<Ls...>::type type;
-};
 
-template<typename ... Ts>
-struct unique
-{
-    typedef typename sort<Ts...>::type sorted;
-    typedef typename unique<sorted>::type type;
-};
+/*template<typename ... Ts>*/
+//struct unique
+//{
+    //typedef typename sort<Ts...>::type sorted;
+    //typedef typename unique<sorted>::type type;
+//};
 
-template<typename  T>
-struct unique<T>
-{typedef ls_<T> type;
+//template<typename  T>
+//struct unique<T>
+//{typedef ls_<T> type;
     
-};
+//};
 
-template<typename ... Ts,typename ... Us>
-struct unique<ls_<Ts...>,ls_<Us...>>
-{
-    typedef typename join<typename eager<Ts,typename is_not_same<Ts,Us>::type>::type ... >::type type;
-};
+//template<typename ... Ts,typename ... Us>
+//struct unique<ls_<Ts...>,ls_<Us...>>
+//{
+    //typedef typename flat<typename eager<Ts,typename is_not_same<Ts,Us>::type>::type ... >::type type;
+//};
 
-template<typename F,typename ... Ts>
-struct unique<ls_<F,Ts...>>
-{
-    typedef typename unique<ls_<F,Ts...>,ls_<Ts...,ls_<>>>::type type;
-};
+//template<typename F,typename ... Ts>
+//struct unique<ls_<F,Ts...>>
+//{
+    //typedef typename unique<ls_<F,Ts...>,ls_<Ts...,ls_<>>>::type type;
+/*};*/
 //int t2 = sort<float,int,int,void,void,float,short,double>::type{};
 // int t1 = unique<i<3>>::type {};
 // int t = unique<i<3>,i<1>,i<3>,i<4>,i<3>,i<1>,i<2>,i<3>,i<5>>::type {};
