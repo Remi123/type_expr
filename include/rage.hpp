@@ -170,23 +170,18 @@ struct reverse {
 };
 
 // CALL_F
-struct call_f
-{
-    template<typename T>
-    struct f : pipe_<T>  { };
+struct call_f {
+  template <typename T> struct f : pipe_<T> {};
 };
-// CONSTRUCT_FS 
-template<typename ... Fs>
-struct construct_fs
-{
-    template<typename ... Ts>
-    struct f : pipe_<input<Ts...>,Fs...,call_f>{};
+// CONSTRUCT_FS
+template <typename... Fs> struct construct_fs {
+  template <typename... Ts> struct f : pipe_<input<Ts...>, Fs..., call_f> {};
 };
 
 // MKSEQ_
 // Need optimization but it's for later. I'll do it soon.
 template <typename Accessor>
-struct mkseq_ : construct_fs<Accessor,quote_<mkseq_>>{};
+struct mkseq_ : construct_fs<Accessor, quote_<mkseq_>> {};
 template <int I> struct mkseq_<i<I>> {
   template <typename... Is> struct f_impl;
 
@@ -203,7 +198,8 @@ template <int I> struct mkseq_<i<I>> {
   };
 };
 
-static_assert(pipe_<input<i<1>>, mkseq_<plus<i<1>>>, is_<i<0>,i<1>> >::type::value,"");
+static_assert(
+    pipe_<input<i<1>>, mkseq_<plus<i<1>>>, is_<i<0>, i<1>>>::type::value, "");
 
 // PUSH_FRONT_
 template <typename... Ts> struct push_front_ {
@@ -284,8 +280,7 @@ struct flatten {
 
 struct identity {
   template <typename... Ts> struct f { typedef input<Ts...> type; };
-  // template<typename T>
-  // struct f<T> {typedef T type;};
+  template <typename T> struct f<T> { typedef T type; };
 };
 
 // COND_
@@ -315,16 +310,47 @@ struct not_<P> : pipe_<cond_<P, input<false_type>, input<true_type>>> {};
 // REMOVE_IF_
 template <typename...> struct remove_if_;
 template <typename P>
-struct remove_if_<P>
-    : pipe_<transform_<cond_<P, input<>, identity>>, flatten, listify> {};
+struct remove_if_<P> : pipe_<transform_<cond_<P, input<>, identity>>, flatten> {
+};
 
 template <typename...> struct partition_;
 template <typename P>
-struct partition_<P> : pipe_<fork_<remove_if_<not_<P>>, remove_if_<P>
+struct partition_<P> : fork_<pipe_<remove_if_<not_<P>>, listify>,
+                             pipe_<remove_if_<P>, listify>> {};
 
-                                   >> {};
+// REPLACE_IF_
+template <typename... Ts> struct replace_if_;
+template <typename P, typename T> struct replace_if_<P, T> {
+  template <typename... Ts> struct f {
+    typedef input<typename conditional<
+        typename P::template f<Ts>::type>::template f<T, Ts>::type...>
+        type;
+  };
+};
 
-// pipe_<input<int,float, short>,partition_<is_<int>> >::type t = 0;
+// PRODUCT
+struct product {
+  template <typename... Ts> struct f;
+  template <typename A, typename... Ts> struct f<ls_<A, ls_<Ts...>>> {
+    typedef input<ls_<A, Ts>...> type;
+  };
+  template <typename... As, typename... Bs>
+  struct f<ls_<As...>, ls_<Bs...>>
+      : pipe_<input<ls_<As, ls_<Bs...>>...>, transform_<product>, flatten> {};
+};
+
+// LENGTH
+struct length {
+  template <typename... Ts> struct f : input<i<sizeof...(Ts)>> {};
+};
+
+// SIZE
+struct size {
+  template <typename... Ts> struct f;
+  template <typename T> struct f<T> : input<i<sizeof(T)>> {};
+};
+
+
 
 // Below is not yet integrated into rage
 
