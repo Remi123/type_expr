@@ -26,7 +26,7 @@ int main() {
                 "");
 
   auto pipe_fold_test =
-      pipe_<input<i<1>, i<4>>, fold_left_<lift_<Add>>>::type{};
+      pipe_<input<i<1>, i<4>>, fold_left_<lift_<Adding>>>::type{};
   static_assert(std::is_same<decltype(pipe_fold_test), i<5>>::value, "");
 
   auto pipe_pipe_test =

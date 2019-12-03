@@ -10,6 +10,7 @@ template <int I> struct i {
   template <int B> i<I - B> operator-(i<B> b);
   template <int B> i<I * B> operator*(i<B> b);
   template <int B> i<I / B> operator/(i<B> b);
+  template <int B> i<I % B> operator%(i<B> b);
 };
 template <typename...> struct ls_ {};
 
@@ -20,8 +21,23 @@ template <bool B> struct b {
 typedef b<true> true_type;
 typedef b<false> false_type;
 
-template <typename...> struct Add;
-template <typename I, typename J> struct Add<I, J> {
+template <typename...> struct Adding;
+template <typename I, typename J> struct Adding<I, J> {
+  typedef decltype(declval<I>() + declval<J>()) type;
+};
+
+template <typename...> struct Substracting;
+template <typename I, typename J> struct Substracting<I, J> {
+  typedef decltype(declval<I>() - declval<J>()) type;
+};
+
+template <typename...> struct Multipling;
+template <typename I, typename J> struct Multipling<I, J> {
+  typedef decltype(declval<I>() * declval<J>()) type;
+};
+
+template <typename...> struct Dividing;
+template <typename I, typename J> struct Dividing<I, J> {
   typedef decltype(declval<I>() + declval<J>()) type;
 };
 
@@ -63,6 +79,12 @@ template <typename P> struct divide {
   template <typename... Ts> struct f;
   template <typename I> struct f<I> {
     typedef decltype(declval<I>() / declval<P>()) type;
+  };
+};
+template <typename P> struct modulo {
+  template <typename... Ts> struct f;
+  template <typename I> struct f<I> {
+    typedef decltype(declval<I>() % declval<P>()) type;
   };
 };
 
@@ -350,6 +372,11 @@ struct size {
   template <typename T> struct f<T> : input<i<sizeof(T)>> {};
 };
 
+// ALIGNMENT
+struct alignment {
+  template <typename... Ts> struct f;
+  template <typename T> struct f<T> : input<i<alignof(T)>> {};
+};
 
 
 // Below is not yet integrated into rage
