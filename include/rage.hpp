@@ -4,6 +4,7 @@ template <typename T> T &&declval();
 
 // Identity
 struct identity;
+struct nothing;
 
 template <int I> struct i {
   template <int B> i<I + B> operator+(i<B> b);
@@ -294,18 +295,38 @@ template <template <typename...> class F, typename... Fs,
 struct flat<input<Ls...>, F<Fs...>, G<Gs...>, Ts...>
     : flat<input<Ls..., Fs..., Gs...>, Ts...> {};
 
+// FLATTEN
 struct flatten {
   template <typename... Ts> struct f {
     typedef typename flat<input<>, Ts...>::type type;
   };
 };
 
+// LENGTH
+struct length {
+  template <typename... Ts> struct f : input<i<sizeof...(Ts)>> {};
+};
+
+// SIZE
+struct size {
+  template <typename... Ts> struct f;
+  template <typename T> struct f<T> : input<i<sizeof(T)>> {};
+};
+
+// ALIGNMENT
+struct alignment {
+  template <typename... Ts> struct f;
+  template <typename T> struct f<T> : input<i<alignof(T)>> {};
+};
+
+
+
+// IDENTITY
 struct identity {
   template <typename... Ts> struct f { typedef input<Ts...> type; };
   template <typename T> struct f<T> { typedef T type; };
 };
 
-// COND_
 template <typename... Ts> struct conditional;
 template <> struct conditional<true_type> {
   template <typename T, typename F> struct f { typedef T type; };
@@ -314,6 +335,7 @@ template <> struct conditional<false_type> {
   template <typename T, typename F> struct f { typedef F type; };
 };
 
+// COND_
 template <typename... Ts> struct cond_;
 template <typename P, typename T, typename F> struct cond_<P, T, F> {
   template <typename... Ts> struct f {
@@ -350,6 +372,61 @@ template <typename P, typename T> struct replace_if_<P, T> {
   };
 };
 
+namespace detail {
+template<typename ... As>
+  struct f_impl_fold_until;
+  template<typename F,typename T, typename N, typename ... As>
+  struct f_impl_fold_until<F,T,T,N,As...>
+  { typedef T type;};
+  template<typename F,typename T>
+  struct f_impl_fold_until<F,T>
+  { typedef rage::nothing type;};
+  template<typename F,typename T>
+  struct f_impl_fold_until<F,T,T>
+  { typedef T type;};
+ template<typename F,typename T, typename A,typename B,typename ... Zs>
+  struct f_impl_fold_until<F, T, A ,B , Zs...> : 
+    f_impl_fold_until< F,T,typename F::template f<B>::type , Zs...>
+  {};
+};
+
+// FOLD_UNTIL_
+template<typename F, typename Type> struct fold_until_
+{
+  template<typename ... Ts>
+  struct f;
+  template<typename T,typename ... Ts>
+  struct f<T,Ts...> : 
+    detail::f_impl_fold_until<F,Type,typename F::template f<T>::type,Ts...>{};
+};
+
+// OR_
+template<typename F>
+struct or_ : fold_until_<F,true_type>
+{
+};
+
+// AND_
+template<typename F>
+struct and_ : 
+  fold_until_<F,false_type>
+{
+};
+
+// COUNT_IF_
+template<typename F>
+struct count_if_  
+{
+  template<typename ... Ts>
+  struct f 
+  {
+    typedef typename pipe_<input<Ts...>, remove_if_<not_<F>>, length>::type type;
+  };
+};
+
+
+
+
 // PRODUCT
 struct product {
   template <typename... Ts> struct f;
@@ -361,22 +438,6 @@ struct product {
       : pipe_<input<ls_<As, ls_<Bs...>>...>, transform_<product>, flatten> {};
 };
 
-// LENGTH
-struct length {
-  template <typename... Ts> struct f : input<i<sizeof...(Ts)>> {};
-};
-
-// SIZE
-struct size {
-  template <typename... Ts> struct f;
-  template <typename T> struct f<T> : input<i<sizeof(T)>> {};
-};
-
-// ALIGNMENT
-struct alignment {
-  template <typename... Ts> struct f;
-  template <typename T> struct f<T> : input<i<alignof(T)>> {};
-};
 
 
 // Below is not yet integrated into rage

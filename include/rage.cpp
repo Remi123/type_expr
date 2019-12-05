@@ -117,5 +117,8 @@ int main() {
   // product is a little bit special : given two lists, it return each
   // permutation possible while respecting the order
 
+static_assert( pipe_<input<i<1>,i<2>,i<3>,i<4>,i<5>,i<6>>, or_<is_<i<5>>> , is_<true_type>>::type::value,"");
+static_assert(pipe_<input<i<1>,i<0>,i<0>>, count_if_<is_<i<0>>>, is_<i<2>>>::type::value,"");
+
   return 0;
 }
