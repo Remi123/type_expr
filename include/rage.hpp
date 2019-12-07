@@ -2,25 +2,60 @@
 
 template <typename T> T &&declval();
 
-// Identity
-struct identity;
+// First Class Citizen of rage
+
+// INPUT : Universal type container of metafunctions.
+template <typename... Ts> struct input {
+  template <typename...> struct f { typedef input<Ts...> type; };
+};
+template <typename T> struct input<T> {
+  typedef T type;
+  template <typename... Ts> struct f { typedef T type; };
+};
+
+// LS_ : user-declared container
+template <typename...> struct ls_ {};
+
+// IDENTITY : Continue with whatever the inputs were.
+struct identity {
+  template <typename... Ts> struct f { typedef input<Ts...> type; };
+  template <typename T> struct f<T> { typedef T type; };
+};
+
+// NOTHING : Universal representation of the concept of nothing
 struct nothing;
 
+// ZERO : User-specialized to retrive the zero of their type.
+template<typename T> struct zero;
+
+// I : Universal integer type.
 template <int I> struct i {
+  typedef i type;
   template <int B> i<I + B> operator+(i<B> b);
   template <int B> i<I - B> operator-(i<B> b);
   template <int B> i<I * B> operator*(i<B> b);
   template <int B> i<I / B> operator/(i<B> b);
   template <int B> i<I % B> operator%(i<B> b);
 };
-template <typename...> struct ls_ {};
+// First specialization of zero. The zero of any i<Num> is i<0>
+template<int N>
+struct zero<i<N>>
+{
+  typedef i<0> type;
+};
 
+// B : Universal boolean type.
 template <bool B> struct b {
   typedef b type;
   static const bool value = B;
 };
 typedef b<true> true_type;
 typedef b<false> false_type;
+
+
+// -------------------------------------------------------
+// METAFUNCTION
+// -------------------------------------------------------
 
 template <typename...> struct Adding;
 template <typename I, typename J> struct Adding<I, J> {
@@ -39,16 +74,12 @@ template <typename I, typename J> struct Multipling<I, J> {
 
 template <typename...> struct Dividing;
 template <typename I, typename J> struct Dividing<I, J> {
-  typedef decltype(declval<I>() + declval<J>()) type;
+  typedef decltype(declval<I>() / declval<J>()) type;
 };
 
-template <typename... Ts> struct input {
-  template <typename...> struct f { typedef input<Ts...> type; };
-};
-template <typename T> struct input<T> {
-  typedef T type;
-
-  template <typename... Ts> struct f { typedef T type; };
+template <typename...> struct Modulo;
+template <typename I, typename J> struct Modulo<I, J> {
+  typedef decltype(declval<I>() % declval<J>()) type;
 };
 
 template <typename...> struct add {
@@ -58,6 +89,7 @@ template <typename...> struct add {
   };
 };
 
+// ARITHMETIC METAFUNCTIONS
 template <typename P> struct plus {
   template <typename... Ts> struct f;
   template <typename I> struct f<I> {
@@ -89,16 +121,19 @@ template <typename P> struct modulo {
   };
 };
 
-// LIFT_
+
+
+// LIFT_ : Universal customization point using template template. Get the ::type
 template <template <typename...> class F> struct lift_ {
   template <typename... Ts> struct f { typedef typename F<Ts...>::type type; };
 };
-// QUOTE_
+// QUOTE_ : Universal wrapper.
 template <template <typename...> class F> struct quote_ {
   template <typename... Ts> struct f { typedef F<Ts...> type; };
 };
 
-// FOLD_LEFT_
+// FOLD_LEFT_ : Fold expression 
+// The Farmer of the library
 template <typename...> struct fold_left_;
 template <typename F> struct fold_left_<F> {
   template <typename...> struct f {};
@@ -110,6 +145,8 @@ template <typename F> struct fold_left_<F> {
   struct f<A, B, Ts...> : f<typename F::template f<A, B>::type, Ts...> {};
 };
 
+// PIPE_EXPR : Internal-only. Take a type and send it as input to the next metafunction
+// The Flour and Yeast of the library. 
 template <typename...> struct pipe_expr {};
 template <typename T, typename G> struct pipe_expr<T, G> {
   typedef typename G::template f<T>::type type;
@@ -118,7 +155,7 @@ template <typename... Ts, typename G> struct pipe_expr<input<Ts...>, G> {
   typedef typename G::template f<Ts...>::type type;
 };
 
-// PIPE_
+// PIPE_ : Universal container of metafunction. 
 // The Bread and Butter of the library
 template <typename... Cs> struct pipe_;
 template <typename C, typename... Cs> struct pipe_<C, Cs...> {
@@ -129,7 +166,8 @@ template <typename C, typename... Cs> struct pipe_<C, Cs...> {
   typedef typename pipe_<C, Cs...>::template f<>::type type;
 };
 
-// FORK_
+// FORK_ : Inputs are copied to each metafunctions 
+// The Peanut Butter of the library
 template <typename... Cs> struct fork_ {
   template <typename... Ts> struct f {
     typedef input<typename Cs::template f<Ts...>::type...> type;
@@ -141,7 +179,7 @@ template <typename A> struct is_same<A, A> : true_type {};
 template <typename A, typename B> struct is_not_same : true_type {};
 template <typename A> struct is_not_same<A, A> : false_type {};
 
-// IS_
+// IS_ : Comparaison metafunction.
 template <typename... Ts> struct is_;
 template <typename T, typename... Ts> struct is_<T, Ts...> {
   template <typename... Us> struct f {
@@ -157,27 +195,27 @@ template <typename T, typename... Ts> struct isnt_<T, Ts...> {
   };
 };
 
-// TRANSFORM_
+// TRANSFORM_ : Similar to haskell's map. Also similar to std::transform
 template <typename F> struct transform_ {
   template <typename... Ts> struct f {
     typedef input<typename F::template f<Ts>::type...> type;
   };
 };
 
-// LISTIFY_
+// LISTIFY_ : wrap inputs into ls_ 
 struct listify {
-  template <typename... Ts> struct f { typedef input<ls_<Ts...>> type; };
+  template <typename... Ts> struct f { typedef ls_<Ts...> type; };
 };
 
-// UNPACK
-struct unpack {
+// UNWRAP : Unwrap types inside a wrapper into input<Ts...>
+struct unwrap {
   template <typename... Ts> struct f;
   template <template <typename...> class F, typename... Ts> struct f<F<Ts...>> {
     typedef input<Ts...> type;
   };
 };
 
-// REVERSE
+// REVERSE : Reverse the order of the types
 struct reverse {
   template <typename...> struct f_impl;
   template <template <typename...> class F, typename... Ts, typename T>
@@ -192,16 +230,17 @@ struct reverse {
   };
 };
 
-// CALL_F
+// CALL_F : The input is a metafunction. Call it.
 struct call_f {
   template <typename T> struct f : pipe_<T> {};
 };
-// CONSTRUCT_FS
+
+// CONSTRUCT_FS : Construct a metafunction from the inputs. and call it.
 template <typename... Fs> struct construct_fs {
   template <typename... Ts> struct f : pipe_<input<Ts...>, Fs..., call_f> {};
 };
 
-// MKSEQ_
+// MKSEQ_ : Continue with i<0>, i<1>, ... , i<N-1>
 // Need optimization but it's for later. I'll do it soon.
 template <typename Accessor>
 struct mkseq_ : construct_fs<Accessor, quote_<mkseq_>> {};
@@ -224,27 +263,27 @@ template <int I> struct mkseq_<i<I>> {
 static_assert(
     pipe_<input<i<1>>, mkseq_<plus<i<1>>>, is_<i<0>, i<1>>>::type::value, "");
 
-// PUSH_FRONT_
+// PUSH_FRONT_ : Add anything you want to the front of the inputs.
 template <typename... Ts> struct push_front_ {
   template <typename... Inputs> struct f {
     typedef input<Ts..., Inputs...> type;
   };
 };
 
-// PUSH_BACK_
+// PUSH_BACK_ : Add anything you want to the back of the inputs
 template <typename... Ts> struct push_back_ {
   template <typename... Inputs> struct f {
     typedef input<Inputs..., Ts...> type;
   };
 };
 
-// FIRST
+// FIRST : Continue with the first type
 struct first {
   template <typename... Ts> struct f;
   template <typename T, typename... Ts> struct f<T, Ts...> { typedef T type; };
 };
 
-// LAST
+// LAST : Continue with the last type
 struct last {
   template <typename... Ts> struct detail_ls_ {};
   struct detail_end;
@@ -262,7 +301,7 @@ struct last {
       : f_impl<detail_ls_<T, Ts...>, detail_ls_<Ts..., detail_end>> {};
 };
 
-// GET
+// GET : Continue with the type a index N
 template <int I> struct get_ {
   template <typename... Ts> struct f_impl {};
   template <typename T> struct f_impl<true_type, T> { typedef T type; };
@@ -270,8 +309,8 @@ template <int I> struct get_ {
   struct f_impl<input<Is...>, input<Us...>>
       : f_impl<typename is_same<Is, i<I>>::type, Us>... {};
   template <typename... Ts> struct f {
-    static_assert(
-        I <= sizeof...(Ts),
+    static_assert( I >= 0 &&
+        I < sizeof...(Ts),
         "ERROR Index is higher than the size of the type inputs lists");
     typedef
         typename mkseq_<i<sizeof...(Ts)>>::template f<>::type indexed_inputs;
@@ -295,37 +334,31 @@ template <template <typename...> class F, typename... Fs,
 struct flat<input<Ls...>, F<Fs...>, G<Gs...>, Ts...>
     : flat<input<Ls..., Fs..., Gs...>, Ts...> {};
 
-// FLATTEN
+// FLATTEN : Continue with only one input. Sub-input are removed.
 struct flatten {
   template <typename... Ts> struct f {
     typedef typename flat<input<>, Ts...>::type type;
   };
 };
 
-// LENGTH
+// LENGTH : Continue with the number of types in the inputs.
 struct length {
   template <typename... Ts> struct f : input<i<sizeof...(Ts)>> {};
 };
 
-// SIZE
+// SIZE : Continue with the sizeof(T). T is one input
 struct size {
   template <typename... Ts> struct f;
   template <typename T> struct f<T> : input<i<sizeof(T)>> {};
 };
 
-// ALIGNMENT
+// ALIGNMENT : Continue with the alignment of one input.
 struct alignment {
   template <typename... Ts> struct f;
   template <typename T> struct f<T> : input<i<alignof(T)>> {};
 };
 
 
-
-// IDENTITY
-struct identity {
-  template <typename... Ts> struct f { typedef input<Ts...> type; };
-  template <typename T> struct f<T> { typedef T type; };
-};
 
 template <typename... Ts> struct conditional;
 template <> struct conditional<true_type> {
@@ -335,7 +368,7 @@ template <> struct conditional<false_type> {
   template <typename T, typename F> struct f { typedef F type; };
 };
 
-// COND_
+// COND_ : Similar to std::conditional but only accept metafunctions
 template <typename... Ts> struct cond_;
 template <typename P, typename T, typename F> struct cond_<P, T, F> {
   template <typename... Ts> struct f {
@@ -346,23 +379,29 @@ template <typename P, typename T, typename F> struct cond_<P, T, F> {
   };
 };
 
-// NOT_
+// NOT_ : Boolean metafunction are inversed
 template <typename...> struct not_;
 template <typename P>
 struct not_<P> : pipe_<cond_<P, input<false_type>, input<true_type>>> {};
 
-// REMOVE_IF_
+// REMOVE_IF_ : Remove every type where the metafunction "returns" true_type
 template <typename...> struct remove_if_;
 template <typename P>
 struct remove_if_<P> : pipe_<transform_<cond_<P, input<>, identity>>, flatten> {
 };
 
+// PARTITION_ : Continue with two list. First predicate is true, Second predicate is false
 template <typename...> struct partition_;
 template <typename P>
 struct partition_<P> : fork_<pipe_<remove_if_<not_<P>>, listify>,
                              pipe_<remove_if_<P>, listify>> {};
 
-// REPLACE_IF_
+// FILTER_ : Remove every type where the metafunction is false.
+template<typename ... > struct filter_;
+template<typename P>
+struct filter_<P> : pipe_<remove_if_<not_<P>>> {};
+
+// REPLACE_IF_ : Replace the type by another if the predicate is true
 template <typename... Ts> struct replace_if_;
 template <typename P, typename T> struct replace_if_<P, T> {
   template <typename... Ts> struct f {
@@ -390,7 +429,7 @@ template<typename ... As>
   {};
 };
 
-// FOLD_UNTIL_
+// FOLD_UNTIL_ : Fold until a type is meet
 template<typename F, typename Type> struct fold_until_
 {
   template<typename ... Ts>
@@ -400,20 +439,20 @@ template<typename F, typename Type> struct fold_until_
     detail::f_impl_fold_until<F,Type,typename F::template f<T>::type,Ts...>{};
 };
 
-// OR_
+// OR_ : Fold expression until true_type is meet
 template<typename F>
 struct or_ : fold_until_<F,true_type>
 {
 };
 
-// AND_
+// AND_ : Fold expression until false_type is meet
 template<typename F>
 struct and_ : 
   fold_until_<F,false_type>
 {
 };
 
-// COUNT_IF_
+// COUNT_IF_ : Count the number of type where the predicate is true
 template<typename F>
 struct count_if_  
 {
@@ -427,7 +466,7 @@ struct count_if_
 
 
 
-// PRODUCT
+// PRODUCT : Given two lists, continue with every possible lists of two types. 
 struct product {
   template <typename... Ts> struct f;
   template <typename A, typename... Ts> struct f<ls_<A, ls_<Ts...>>> {
