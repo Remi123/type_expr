@@ -73,8 +73,8 @@ int main() {
       pipe_<input<int, float, ls_<int>>, last, is_<ls_<int>>>::type::value, "");
   // Getting the first and the last.
 
-  static_assert(pipe_<input<int, ls_<int>, ls_<int, int>>, flatten,
-                      is_<int, int, int, int>>::type::value);
+  static_assert(pipe_<input<int, input<int>, ls_<int, int>>, flatten,
+                      is_<int, int, ls_<int, int>>>::type::value);
   // Flatten and join_list might be reworked
 
   static_assert(
@@ -117,7 +117,7 @@ int main() {
   // product is a little bit special : given two lists, it return each
   // permutation possible while respecting the order
 
-static_assert( pipe_<input<i<1>,i<2>,i<3>,i<4>,i<5>,i<6>>, or_<is_<i<5>>> , is_<true_type>>::type::value,"");
+static_assert( pipe_<input<i<1>,i<2>,i<3>,i<4>,i<5>>, or_<is_<i<5>>> , is_<true_type>>::type::value,"");
 static_assert(pipe_<input<i<1>,i<0>,i<0>>, count_if_<is_<i<0>>>, is_<i<2>>>::type::value,"");
 
   return 0;

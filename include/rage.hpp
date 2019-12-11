@@ -145,6 +145,8 @@ template <typename F> struct fold_left_<F> {
   struct f<A, B, Ts...> : f<typename F::template f<A, B>::type, Ts...> {};
 };
 
+template<typename ... Fs> struct pipe_;
+
 // PIPE_EXPR : Internal-only. Take a type and send it as input to the next metafunction
 // The Flour and Yeast of the library. 
 template <typename...> struct pipe_expr {};
@@ -154,6 +156,12 @@ template <typename T, typename G> struct pipe_expr<T, G> {
 template <typename... Ts, typename G> struct pipe_expr<input<Ts...>, G> {
   typedef typename G::template f<Ts...>::type type;
 };
+template <typename T,typename ... Fs> struct pipe_expr<T, pipe_<Fs...>> {
+  typedef typename pipe_<input<T>,Fs...>::type type;
+};
+template <typename... Ts, typename ... Fs> struct pipe_expr<input<Ts...>, pipe_<Fs...>> {
+  typedef typename pipe_<input<Ts...>,Fs...>::type type;
+};
 
 // PIPE_ : Universal container of metafunction. 
 // The Bread and Butter of the library
@@ -161,7 +169,11 @@ template <typename... Cs> struct pipe_;
 template <typename C, typename... Cs> struct pipe_<C, Cs...> {
   template <typename... Ts> struct f {
     typedef typename fold_left_<lift_<pipe_expr>>::template f<
-        typename C::template f<Ts...>::type, Cs...>::type type;
+        input<Ts...>,C, Cs...>::type type;
+  };
+  template <typename... Ts> struct f<input<Ts...>> {
+    typedef typename fold_left_<lift_<pipe_expr>>::template f<
+        input<Ts...>,C, Cs...>::type type;
   };
   typedef typename pipe_<C, Cs...>::template f<>::type type;
 };
@@ -242,9 +254,7 @@ template <typename... Fs> struct construct_fs {
 
 // MKSEQ_ : Continue with i<0>, i<1>, ... , i<N-1>
 // Need optimization but it's for later. I'll do it soon.
-template <typename Accessor>
-struct mkseq_ : construct_fs<Accessor, quote_<mkseq_>> {};
-template <int I> struct mkseq_<i<I>> {
+struct mkseq {
   template <typename... Is> struct f_impl;
 
   template <int In, typename... Is> struct f_impl<input<i<0>, Is...>, i<In>> {
@@ -254,14 +264,34 @@ template <int I> struct mkseq_<i<I>> {
   template <int In, typename... Is>
   struct f_impl<input<Is...>, i<In>> : f_impl<input<i<In>, Is...>, i<In - 1>> {
   };
-
-  template <typename...> struct f {
+  
+  template<typename ... Ts> struct f;
+  template <int I> struct f<i<I>> {
+    static_assert(0 < I,"");
     typedef typename f_impl<input<i<I - 1>>, i<I - 2>>::type type;
   };
 };
 
+// ZIP_INDEX
+struct zip_index 
+{
+  template<typename ... Ts>
+  struct f_impl;
+  template<typename ... Is,typename ... Ts>
+  struct f_impl<input<Is...>, input<Ts...>>
+  {
+    typedef input<ls_<Is,Ts>...> type;
+  };
+
+  template<typename ... Ts>
+  struct f 
+  {
+    typedef typename f_impl<typename mkseq::template f<i<sizeof...(Ts)>>::type, input<Ts...>>::type type ;
+  };
+};
+static_assert(pipe_<input<int,float>,zip_index,is_<ls_<i<0>,int>, ls_<i<1>,float>>>::type::value,"");;
 static_assert(
-    pipe_<input<i<1>>, mkseq_<plus<i<1>>>, is_<i<0>, i<1>>>::type::value, "");
+    pipe_<input<i<1>>, plus<i<1>> ,mkseq , is_<i<0>, i<1>>>::type::value, "");
 
 // PUSH_FRONT_ : Add anything you want to the front of the inputs.
 template <typename... Ts> struct push_front_ {
@@ -313,7 +343,7 @@ template <int I> struct get_ {
         I < sizeof...(Ts),
         "ERROR Index is higher than the size of the type inputs lists");
     typedef
-        typename mkseq_<i<sizeof...(Ts)>>::template f<>::type indexed_inputs;
+        typename mkseq::template f<i<sizeof...(Ts)>>::type indexed_inputs;
     typedef input<typename f_impl<indexed_inputs, input<Ts...>>::type> type;
   };
 };
@@ -324,14 +354,14 @@ template <typename... Ls> struct flat<input<Ls...>> {
 };
 template <typename... Ls, typename T, typename... Ts>
 struct flat<input<Ls...>, T, Ts...> : flat<input<Ls..., T>, Ts...> {};
-template <template <typename...> class F, typename... Ls, typename... Fs,
+template <typename... Ls, typename... Fs,
           typename... Ts>
-struct flat<input<Ls...>, F<Fs...>, Ts...> : flat<input<Ls..., Fs...>, Ts...> {
+struct flat<input<Ls...>, input<Fs...>, Ts...> : flat<input<Ls..., Fs...>, Ts...> {
 };
-template <template <typename...> class F, typename... Fs,
-          template <typename...> class G, typename... Gs, typename... Ls,
+template < typename... Fs,
+           typename... Gs, typename... Ls,
           typename... Ts>
-struct flat<input<Ls...>, F<Fs...>, G<Gs...>, Ts...>
+struct flat<input<Ls...>, input<Fs...>, input<Gs...>, Ts...>
     : flat<input<Ls..., Fs..., Gs...>, Ts...> {};
 
 // FLATTEN : Continue with only one input. Sub-input are removed.
@@ -343,7 +373,7 @@ struct flatten {
 
 // LENGTH : Continue with the number of types in the inputs.
 struct length {
-  template <typename... Ts> struct f : input<i<sizeof...(Ts)>> {};
+  template <typename... Ts> struct f { typedef i<sizeof...(Ts)> type;};
 };
 
 // SIZE : Continue with the sizeof(T). T is one input
@@ -382,12 +412,18 @@ template <typename P, typename T, typename F> struct cond_<P, T, F> {
 // NOT_ : Boolean metafunction are inversed
 template <typename...> struct not_;
 template <typename P>
-struct not_<P> : pipe_<cond_<P, input<false_type>, input<true_type>>> {};
+struct not_<P> : cond_<P, input<false_type>, input<true_type>> {};
 
 // REMOVE_IF_ : Remove every type where the metafunction "returns" true_type
 template <typename...> struct remove_if_;
 template <typename P>
-struct remove_if_<P> : pipe_<transform_<cond_<P, input<>, identity>>, flatten> {
+struct remove_if_<P> 
+{
+template<typename ... Ts>
+  struct f 
+  {
+    typedef typename pipe_<input<Ts...>,transform_<cond_<P,input<>,identity>>, flatten >::type  type;
+  };
 };
 
 // PARTITION_ : Continue with two list. First predicate is true, Second predicate is false
@@ -411,18 +447,19 @@ template <typename P, typename T> struct replace_if_<P, T> {
   };
 };
 
+// TODO : Prepare for find_if
 namespace detail {
 template<typename ... As>
   struct f_impl_fold_until;
   template<typename F,typename T, typename N, typename ... As>
   struct f_impl_fold_until<F,T,T,N,As...>
   { typedef T type;};
-  template<typename F,typename T>
-  struct f_impl_fold_until<F,T>
-  { typedef rage::nothing type;};
-  template<typename F,typename T>
+   template<typename F,typename T>
   struct f_impl_fold_until<F,T,T>
   { typedef T type;};
+ template<typename F,typename T>
+  struct f_impl_fold_until<F,T>
+  { typedef rage::nothing type;};
  template<typename F,typename T, typename A,typename B,typename ... Zs>
   struct f_impl_fold_until<F, T, A ,B , Zs...> : 
     f_impl_fold_until< F,T,typename F::template f<B>::type , Zs...>
@@ -463,8 +500,24 @@ struct count_if_
   };
 };
 
+// FIND_IF_ : Return the first index that respond to the predicate, along with the type.
+// WIP
+template<typename F>
+struct find_if_ //:  pipe_<identity>
+{ 
+  template<typename ... Ts> 
+  struct f: pipe_<input<Ts...>,
+                  zip_index,
+                  remove_if_<
+                    pipe_<unwrap, get_<1>, not_<F>  > 
+                 > 
+                 ,get_<0>, unwrap>
+  {
+    
+  };
+};
 
-
+static_assert(pipe_<input<float,int, float, int>, find_if_<is_<int>> ,is_<i<1>,int>>::type::value);
 
 // PRODUCT : Given two lists, continue with every possible lists of two types. 
 struct product {
