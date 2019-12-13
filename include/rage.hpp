@@ -6,6 +6,7 @@ template <typename T> T &&declval();
 
 // INPUT : Universal type container of metafunctions.
 template <typename... Ts> struct input {
+typedef input type;
   template <typename...> struct f { typedef input<Ts...> type; };
 };
 template <typename T> struct input<T> {
@@ -147,6 +148,8 @@ template <typename F> struct fold_left_<F> {
 
 template<typename ... Fs> struct pipe_;
 
+template<typename T> struct id { typedef T type; };
+
 // PIPE_EXPR : Internal-only. Take a type and send it as input to the next metafunction
 // The Flour and Yeast of the library. 
 template <typename...> struct pipe_expr {};
@@ -156,13 +159,12 @@ template <typename T, typename G> struct pipe_expr<T, G> {
 template <typename... Ts, typename G> struct pipe_expr<input<Ts...>, G> {
   typedef typename G::template f<Ts...>::type type;
 };
-template <typename T,typename ... Fs> struct pipe_expr<T, pipe_<Fs...>> {
-  typedef typename pipe_<input<T>,Fs...>::type type;
-};
-template <typename... Ts, typename ... Fs> struct pipe_expr<input<Ts...>, pipe_<Fs...>> {
-  typedef typename pipe_<input<Ts...>,Fs...>::type type;
-};
-
+/*template <typename T, typename ... Fs> struct pipe_expr<T, pipe_<Fs...>> {*/
+  //typedef typename pipe_<input<T>,Fs...>::type type;
+/*};*/
+/*template <typename... Ts, typename ... Fs> struct pipe_expr<input<Ts...>, pipe_<Fs...>> {*/
+  //typedef typename pipe_<Fs...>::template f<Ts...>::type type;
+/*}*/;
 // PIPE_ : Universal container of metafunction. 
 // The Bread and Butter of the library
 template <typename... Cs> struct pipe_;
@@ -171,10 +173,10 @@ template <typename C, typename... Cs> struct pipe_<C, Cs...> {
     typedef typename fold_left_<lift_<pipe_expr>>::template f<
         input<Ts...>,C, Cs...>::type type;
   };
-  template <typename... Ts> struct f<input<Ts...>> {
-    typedef typename fold_left_<lift_<pipe_expr>>::template f<
-        input<Ts...>,C, Cs...>::type type;
-  };
+  /*template <typename... Ts> struct f<input<Ts...>> {*/
+    //typedef typename fold_left_<lift_<pipe_expr>>::template f<
+        //input<Ts...>,C, Cs...>::type type;
+  /*};*/
   typedef typename pipe_<C, Cs...>::template f<>::type type;
 };
 
@@ -221,11 +223,13 @@ struct listify {
 
 // UNWRAP : Unwrap types inside a wrapper into input<Ts...>
 struct unwrap {
-  template <typename... Ts> struct f;
+  template <typename... Ts> struct f
+  { typedef input<Ts...> type;};
   template <template <typename...> class F, typename... Ts> struct f<F<Ts...>> {
     typedef input<Ts...> type;
   };
 };
+
 
 // REVERSE : Reverse the order of the types
 struct reverse {
@@ -506,18 +510,27 @@ template<typename F>
 struct find_if_ //:  pipe_<identity>
 { 
   template<typename ... Ts> 
-  struct f: pipe_<input<Ts...>,
+  struct f   {
+    typedef  typename pipe_<input<Ts...>,
                   zip_index,
                   remove_if_<
                     pipe_<unwrap, get_<1>, not_<F>  > 
                  > 
-                 ,get_<0>, unwrap>
-  {
-    
+                 ,get_<0>>::type type;
   };
 };
 
-static_assert(pipe_<input<float,int, float, int>, find_if_<is_<int>> ,is_<i<1>,int>>::type::value);
+
+//pipe_<input<i<3>,float,i<4>,int>, find_if_< is_<int> >   >::type t = 0;
+//pipe_<input<ls_<false_type,true_type>, ls_<true_type, false_type>>, remove_if_<pipe_<unwrap, get_<1>>>>::type t = 0;
+
+//static_assert(pipe_<input<ls_<int,int>>,pipe_<unwrap,get_<0>>, is_<int>>::type::value,""); 
+
+//pipe_<unwrap,is_<int>>::template f<ls_<int>>::type t = 0;
+//static_assert(pipe_<input<float,int,float,int>,zip_index,
+    //remove_if_<pipe_<unwrap,get_<1>,not_< is_<int>>>
+    //>, get_<0>,unwrap,is_<i<1>,int>>::type::value,"");
+//static_assert(pipe_<input<float,int, float, int>, find_if_<is_<int>> ,is_<ls_<i<1>,int>>>::type::value,"");
 
 // PRODUCT : Given two lists, continue with every possible lists of two types. 
 struct product {

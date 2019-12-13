@@ -11,6 +11,9 @@ int main() {
   auto input_test = pipe_<input<i<1>>, input<i<2>>>::type{};
   static_assert(std::is_same<decltype(input_test), i<2>>::value, "");
 
+  
+
+
   auto sort_test =
       pipe_<input<i<3>, i<1>, i<3>, i<4>, i<3>, i<1>, i<2>, i<3>, i<5>>,
             sort>::type{};
@@ -46,7 +49,20 @@ int main() {
 
   auto pipe_isnt_ = pipe_<input<i<1>, i<2>>, isnt_<int>>::type{};
   static_assert(pipe_isnt_.value, "");
-  // Inst_ is the opposite of is_
+  // Isnt_ is the opposite of is_
+
+  auto pipe_add = pipe_<input<int>,pipe_<push_back_<float>>, is_<int,float> >::type{}; 
+  static_assert(pipe_add.value,"");
+
+  auto pipe_add2 = pipe_<input<int,short>,pipe_<push_back_<float>>, is_<int,short,float> >::type{}; 
+  static_assert(pipe_add2.value,"");
+
+  constexpr  pipe_<input<ls_<int>>,unwrap>::type pipe_unwrap = 0;
+  constexpr  pipe_<input<ls_<int>>,pipe_<input<ls_<int>>,unwrap>>::type pipe_unwrap2 = 0;
+  constexpr  pipe_<input<ls_<int>>,pipe_<unwrap>>::type pipe_unwrap3 = 0;
+  constexpr  pipe_<input<ls_<int,float>>,pipe_<unwrap>, is_<int,float>>::type pipe_unwrap4 = b<true>{};
+  constexpr  pipe_<input<ls_<int,float>>,pipe_<unwrap>, get_<0>>::type pipe_unwrap5 = 0;
+
 
   static_assert(pipe_<input<int, float>, push_back_<ls_<>>,
                       is_<int, float, ls_<>>>::type::value,
