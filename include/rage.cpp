@@ -57,11 +57,13 @@ int main() {
   auto pipe_add2 = pipe_<input<int,short>,pipe_<push_back_<float>>, is_<int,short,float> >::type{}; 
   static_assert(pipe_add2.value,"");
 
+  constexpr pipe_<input<int>, unwrap ,is_<int> >::type t = b<true>{};
   constexpr  pipe_<input<ls_<int>>,unwrap>::type pipe_unwrap = 0;
   constexpr  pipe_<input<ls_<int>>,pipe_<input<ls_<int>>,unwrap>>::type pipe_unwrap2 = 0;
   constexpr  pipe_<input<ls_<int>>,pipe_<unwrap>>::type pipe_unwrap3 = 0;
   constexpr  pipe_<input<ls_<int,float>>,pipe_<unwrap>, is_<int,float>>::type pipe_unwrap4 = b<true>{};
   constexpr  pipe_<input<ls_<int,float>>,pipe_<unwrap>, get_<0>>::type pipe_unwrap5 = 0;
+  // There was a problem with unwrap... those test stay there because I don't want to debug this again.
 
 
   static_assert(pipe_<input<int, float>, push_back_<ls_<>>,

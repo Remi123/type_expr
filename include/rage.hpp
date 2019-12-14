@@ -24,7 +24,7 @@ struct identity {
 };
 
 // NOTHING : Universal representation of the concept of nothing
-struct nothing;
+struct nothing{};
 
 // ZERO : User-specialized to retrive the zero of their type.
 template<typename T> struct zero;
@@ -140,7 +140,7 @@ template <typename F> struct fold_left_<F> {
   template <typename...> struct f {};
   template <typename A> struct f<A> { typedef A type; };
 
-  template <typename A> struct f<input<A>> { typedef A type; };
+  template <typename... A> struct f<input<A...>> { typedef typename input<A...>::type type; };
 
   template <typename A, typename B, typename... Ts>
   struct f<A, B, Ts...> : f<typename F::template f<A, B>::type, Ts...> {};
@@ -159,24 +159,15 @@ template <typename T, typename G> struct pipe_expr<T, G> {
 template <typename... Ts, typename G> struct pipe_expr<input<Ts...>, G> {
   typedef typename G::template f<Ts...>::type type;
 };
-/*template <typename T, typename ... Fs> struct pipe_expr<T, pipe_<Fs...>> {*/
-  //typedef typename pipe_<input<T>,Fs...>::type type;
-/*};*/
-/*template <typename... Ts, typename ... Fs> struct pipe_expr<input<Ts...>, pipe_<Fs...>> {*/
-  //typedef typename pipe_<Fs...>::template f<Ts...>::type type;
-/*}*/;
+
 // PIPE_ : Universal container of metafunction. 
 // The Bread and Butter of the library
 template <typename... Cs> struct pipe_;
 template <typename C, typename... Cs> struct pipe_<C, Cs...> {
   template <typename... Ts> struct f {
     typedef typename fold_left_<lift_<pipe_expr>>::template f<
-        input<Ts...>,C, Cs...>::type type;
+        typename C::template f<Ts...>::type, Cs...>::type type;
   };
-  /*template <typename... Ts> struct f<input<Ts...>> {*/
-    //typedef typename fold_left_<lift_<pipe_expr>>::template f<
-        //input<Ts...>,C, Cs...>::type type;
-  /*};*/
   typedef typename pipe_<C, Cs...>::template f<>::type type;
 };
 
@@ -221,14 +212,29 @@ struct listify {
   template <typename... Ts> struct f { typedef ls_<Ts...> type; };
 };
 
-// UNWRAP : Unwrap types inside a wrapper into input<Ts...>
-struct unwrap {
-  template <typename... Ts> struct f
-  { typedef input<Ts...> type;};
-  template <template <typename...> class F, typename... Ts> struct f<F<Ts...>> {
-    typedef input<Ts...> type;
-  };
+template<typename ... Ts>
+struct unwrap_impl 
+{ typedef typename input<Ts...>::type type;};
+template<template<typename...> class Fn, typename ... Ts>
+struct unwrap_impl<Fn<Ts...>> {
+typedef input<Ts... > type;
 };
+template<typename ... Ts>
+struct unwrap_impl<input<Ts...>> {
+typedef input<Ts...> type;
+};
+struct unwrap
+{
+ template<typename ... Ts>
+ struct f { 
+ typedef typename  unwrap_impl<Ts...>::type type;};
+};
+
+// UNWRAP : Unwrap types inside a wrapper into input<Ts...>
+//struct unwrap_impl {
+  //template <typename... Ts> struct f
+  //{ typedef typename unwrap_impl<Ts...>::type type;};
+//};
 
 
 // REVERSE : Reverse the order of the types
@@ -280,7 +286,7 @@ struct mkseq {
 struct zip_index 
 {
   template<typename ... Ts>
-  struct f_impl;
+  struct f_impl{};
   template<typename ... Is,typename ... Ts>
   struct f_impl<input<Is...>, input<Ts...>>
   {
@@ -315,6 +321,12 @@ template <typename... Ts> struct push_back_ {
 struct first {
   template <typename... Ts> struct f;
   template <typename T, typename... Ts> struct f<T, Ts...> { typedef T type; };
+};
+
+// FIRST : Continue with the first type
+struct second {
+  template <typename... Ts> struct f{};
+  template <typename T, typename T2 ,typename... Ts> struct f<T,T2, Ts...> { typedef T2 type; };
 };
 
 // LAST : Continue with the last type
@@ -403,8 +415,8 @@ template <> struct conditional<false_type> {
 };
 
 // COND_ : Similar to std::conditional but only accept metafunctions
-template <typename... Ts> struct cond_;
-template <typename P, typename T, typename F> struct cond_<P, T, F> {
+template <typename P, typename T, typename F> 
+struct cond_ {
   template <typename... Ts> struct f {
     typedef
         typename conditional<typename P::template f<Ts...>::type>::template f<
@@ -419,9 +431,8 @@ template <typename P>
 struct not_<P> : cond_<P, input<false_type>, input<true_type>> {};
 
 // REMOVE_IF_ : Remove every type where the metafunction "returns" true_type
-template <typename...> struct remove_if_;
 template <typename P>
-struct remove_if_<P> 
+struct remove_if_ 
 {
 template<typename ... Ts>
   struct f 
@@ -439,7 +450,10 @@ struct partition_<P> : fork_<pipe_<remove_if_<not_<P>>, listify>,
 // FILTER_ : Remove every type where the metafunction is false.
 template<typename ... > struct filter_;
 template<typename P>
-struct filter_<P> : pipe_<remove_if_<not_<P>>> {};
+struct filter_<P>  {
+  template<typename ... Ts>
+  struct f { typedef typename  pipe_<input<Ts...>,remove_if_<not_<P>>>::type type;};
+};
 
 // REPLACE_IF_ : Replace the type by another if the predicate is true
 template <typename... Ts> struct replace_if_;
@@ -507,16 +521,14 @@ struct count_if_
 // FIND_IF_ : Return the first index that respond to the predicate, along with the type.
 // WIP
 template<typename F>
-struct find_if_ //:  pipe_<identity>
+struct find_if_ 
 { 
+  
   template<typename ... Ts> 
-  struct f   {
-    typedef  typename pipe_<input<Ts...>,
-                  zip_index,
-                  remove_if_<
-                    pipe_<unwrap, get_<1>, not_<F>  > 
-                 > 
-                 ,get_<0>>::type type;
+  struct f   
+  { typedef typename pipe_< input<Ts...>, 
+                            zip_index,
+                            filter_<pipe_<unwrap,second,F>> >::type type;
   };
 };
 
@@ -530,7 +542,12 @@ struct find_if_ //:  pipe_<identity>
 //static_assert(pipe_<input<float,int,float,int>,zip_index,
     //remove_if_<pipe_<unwrap,get_<1>,not_< is_<int>>>
     //>, get_<0>,unwrap,is_<i<1>,int>>::type::value,"");
-//static_assert(pipe_<input<float,int, float, int>, find_if_<is_<int>> ,is_<ls_<i<1>,int>>>::type::value,"");
+//static_assert(pipe_<input<float,int, float, int>, 
+                    //find_if_<is_<int>> 
+                    //>::type::value,"");
+
+//pipe_<input<int,i<0>>, cond_<pipe_<first,is_<int>>,input<true_type> , input<false_type>>  >::type t = 0;
+
 
 // PRODUCT : Given two lists, continue with every possible lists of two types. 
 struct product {
