@@ -4,6 +4,11 @@ template <typename T> T &&declval();
 
 // First Class Citizen of rage
 
+// NOTHING : Universal representation of the concept of nothing
+struct nothing{
+  template<typename ...> struct f {typedef nothing type;};
+};
+
 // INPUT : Universal type container of metafunctions.
 template <typename... Ts> struct input {
 typedef input type;
@@ -13,6 +18,12 @@ template <typename T> struct input<T> {
   typedef T type;
   template <typename... Ts> struct f { typedef T type; };
 };
+/*template<>*/
+//struct input<>
+//{
+  //typedef input<> type;
+  //template<typename ...> struct f{ typedef nothing type;};
+/*};*/
 
 // LS_ : user-declared container
 template <typename...> struct ls_ {};
@@ -23,8 +34,6 @@ struct identity {
   template <typename T> struct f<T> { typedef T type; };
 };
 
-// NOTHING : Universal representation of the concept of nothing
-struct nothing{};
 
 // ZERO : User-specialized to retrive the zero of their type.
 template<typename T> struct zero;
@@ -122,7 +131,16 @@ template <typename P> struct modulo {
   };
 };
 
-
+// UNWRAP : Universal unwrapper. WIP 
+struct unwrap
+{
+ template<typename ... Ts>
+ struct f { 
+  //static_assert(sizeof(ls_<Ts...>) < 1,"Error unwrap bad path");
+ typedef nothing type;};
+ template<template<typename ... Ts> class F , typename ... Ts> struct f<F<Ts...>> {
+ typedef typename input<Ts...>::template f<>::type type;};
+};
 
 // LIFT_ : Universal customization point using template template. Get the ::type
 template <template <typename...> class F> struct lift_ {
@@ -135,9 +153,12 @@ template <template <typename...> class F> struct quote_ {
 
 // FOLD_LEFT_ : Fold expression 
 // The Farmer of the library
-template <typename...> struct fold_left_;
+template <typename...> struct fold_left_
+{ 
+  template <typename...> struct f { typedef nothing type;};
+};
 template <typename F> struct fold_left_<F> {
-  template <typename...> struct f {};
+  template <typename...> struct f { typedef nothing type;};
   template <typename A> struct f<A> { typedef A type; };
 
   template <typename... A> struct f<input<A...>> { typedef typename input<A...>::type type; };
@@ -146,30 +167,40 @@ template <typename F> struct fold_left_<F> {
   struct f<A, B, Ts...> : f<typename F::template f<A, B>::type, Ts...> {};
 };
 
-template<typename ... Fs> struct pipe_;
 
-template<typename T> struct id { typedef T type; };
 
 // PIPE_EXPR : Internal-only. Take a type and send it as input to the next metafunction
 // The Flour and Yeast of the library. 
-template <typename...> struct pipe_expr {};
-template <typename T, typename G> struct pipe_expr<T, G> {
+template <typename...> struct pipe_expr {
+  typedef nothing type;
+};
+template <typename T, typename G> 
+struct pipe_expr<T, G> {
   typedef typename G::template f<T>::type type;
 };
-template <typename... Ts, typename G> struct pipe_expr<input<Ts...>, G> {
+template <typename... Ts, typename G> 
+struct pipe_expr<input<Ts...>, G> {
   typedef typename G::template f<Ts...>::type type;
 };
 
 // PIPE_ : Universal container of metafunction. 
 // The Bread and Butter of the library
-template <typename... Cs> struct pipe_;
-template <typename C, typename... Cs> struct pipe_<C, Cs...> {
-  template <typename... Ts> struct f {
+template <typename... Cs> struct pipe_
+  {template <typename... Ts> struct f {
     typedef typename fold_left_<lift_<pipe_expr>>::template f<
-        typename C::template f<Ts...>::type, Cs...>::type type;
+        input<Ts...>, Cs...>::type type;
   };
-  typedef typename pipe_<C, Cs...>::template f<>::type type;
+  typedef typename pipe_<Cs...>::template f<>::type type;
 };
+template<>
+struct pipe_<>
+{
+  template<typename ...> struct f { typedef nothing type;};
+  typedef nothing type;
+};
+
+template<typename ... Fs> using pipe_t = typename pipe_<Fs...>::type;
+template<typename ... Fs> constexpr bool pipe_v = pipe_<Fs...>::type::value;
 
 // FORK_ : Inputs are copied to each metafunctions 
 // The Peanut Butter of the library
@@ -211,31 +242,6 @@ template <typename F> struct transform_ {
 struct listify {
   template <typename... Ts> struct f { typedef ls_<Ts...> type; };
 };
-
-template<typename ... Ts>
-struct unwrap_impl 
-{ typedef typename input<Ts...>::type type;};
-template<template<typename...> class Fn, typename ... Ts>
-struct unwrap_impl<Fn<Ts...>> {
-typedef input<Ts... > type;
-};
-template<typename ... Ts>
-struct unwrap_impl<input<Ts...>> {
-typedef input<Ts...> type;
-};
-struct unwrap
-{
- template<typename ... Ts>
- struct f { 
- typedef typename  unwrap_impl<Ts...>::type type;};
-};
-
-// UNWRAP : Unwrap types inside a wrapper into input<Ts...>
-//struct unwrap_impl {
-  //template <typename... Ts> struct f
-  //{ typedef typename unwrap_impl<Ts...>::type type;};
-//};
-
 
 // REVERSE : Reverse the order of the types
 struct reverse {
@@ -323,9 +329,9 @@ struct first {
   template <typename T, typename... Ts> struct f<T, Ts...> { typedef T type; };
 };
 
-// FIRST : Continue with the first type
+// SECOND : Continue with the first type
 struct second {
-  template <typename... Ts> struct f{};
+  template <typename... Ts> struct f{typedef nothing type;};
   template <typename T, typename T2 ,typename... Ts> struct f<T,T2, Ts...> { typedef T2 type; };
 };
 
@@ -528,7 +534,7 @@ struct find_if_
   struct f   
   { typedef typename pipe_< input<Ts...>, 
                             zip_index,
-                            filter_<pipe_<unwrap,second,F>> >::type type;
+                            filter_<pipe_<unwrap,second,F>>, first, unwrap >::type type;
   };
 };
 
@@ -542,9 +548,10 @@ struct find_if_
 //static_assert(pipe_<input<float,int,float,int>,zip_index,
     //remove_if_<pipe_<unwrap,get_<1>,not_< is_<int>>>
     //>, get_<0>,unwrap,is_<i<1>,int>>::type::value,"");
-//static_assert(pipe_<input<float,int, float, int>, 
-                    //find_if_<is_<int>> 
-                    //>::type::value,"");
+static_assert(pipe_<input<float,int, float, int>, 
+                    find_if_<is_<int>>
+                    , is_<i<1>,int>
+                    >::type::value,"");
 
 //pipe_<input<int,i<0>>, cond_<pipe_<first,is_<int>>,input<true_type> , input<false_type>>  >::type t = 0;
 
