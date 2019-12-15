@@ -1,4 +1,26 @@
-﻿namespace rage {
+﻿#include <type_traits>
+
+
+// This is for making std::integral_constant compatible with us.
+
+template<typename T, T Tvalue, typename U, U Uvalue>
+  std::integral_constant<decltype(Tvalue + Uvalue),Tvalue + Uvalue>
+  operator+(std::integral_constant<T,Tvalue>, std::integral_constant<U,Uvalue>);
+  template<typename T, T Tvalue, typename U, U Uvalue>
+  std::integral_constant<decltype(Tvalue - Uvalue),Tvalue - Uvalue>
+  operator-(std::integral_constant<T,Tvalue>, std::integral_constant<U,Uvalue>);
+  template<typename T, T Tvalue, typename U, U Uvalue>
+  std::integral_constant<decltype(Tvalue * Uvalue),Tvalue * Uvalue>
+  operator*(std::integral_constant<T,Tvalue>, std::integral_constant<U,Uvalue>);
+  template<typename T, T Tvalue, typename U, U Uvalue>
+  std::integral_constant<decltype(Tvalue / Uvalue),Tvalue / Uvalue>
+  operator/(std::integral_constant<T,Tvalue>, std::integral_constant<U,Uvalue>);
+  template<typename T, T Tvalue, typename U, U Uvalue>
+  std::integral_constant<decltype(Tvalue % Uvalue),Tvalue % Uvalue>
+  operator%(std::integral_constant<T,Tvalue>, std::integral_constant<U,Uvalue>);
+
+
+namespace rage {
 
 template <typename T> T &&declval();
 
@@ -39,28 +61,31 @@ struct identity {
 template<typename T> struct zero;
 
 // I : Universal integer type.
-template <int I> struct i {
-  typedef i type;
-  template <int B> i<I + B> operator+(i<B> b);
-  template <int B> i<I - B> operator-(i<B> b);
-  template <int B> i<I * B> operator*(i<B> b);
-  template <int B> i<I / B> operator/(i<B> b);
-  template <int B> i<I % B> operator%(i<B> b);
-};
+template<int V>
+using i = std::integral_constant<int, V>; 
+
+// This would have been the ideal implementation of std::integral_constant
+/*template <int I> struct i {*/
+  //typedef i type;
+  // constexpr static int value = I;
+  //template <int B> i<I + B> operator+(i<B> b);
+  //template <int B> i<I - B> operator-(i<B> b);
+  //template <int B> i<I * B> operator*(i<B> b);
+  //template <int B> i<I / B> operator/(i<B> b);
+  //template <int B> i<I % B> operator%(i<B> b);
+/*};*/
+
+
 // First specialization of zero. The zero of any i<Num> is i<0>
-template<int N>
-struct zero<i<N>>
+template<typename T, T value>
+struct zero<std::integral_constant<T,value>>
 {
-  typedef i<0> type;
+  typedef std::integral_constant<T,0> type;
 };
 
 // B : Universal boolean type.
-template <bool B> struct b {
-  typedef b type;
-  static const bool value = B;
-};
-typedef b<true> true_type;
-typedef b<false> false_type;
+template<bool B>
+using b = std::integral_constant<bool,B>;
 
 
 // -------------------------------------------------------
@@ -210,10 +235,10 @@ template <typename... Cs> struct fork_ {
   };
 };
 
-template <typename A, typename B> struct is_same : false_type {};
-template <typename A> struct is_same<A, A> : true_type {};
-template <typename A, typename B> struct is_not_same : true_type {};
-template <typename A> struct is_not_same<A, A> : false_type {};
+template <typename A, typename B> struct is_same : std::false_type {};
+template <typename A> struct is_same<A, A> : std::true_type {};
+template <typename A, typename B> struct is_not_same : std::true_type {};
+template <typename A> struct is_not_same<A, A> : std::false_type {};
 
 // IS_ : Comparaison metafunction.
 template <typename... Ts> struct is_;
@@ -356,7 +381,7 @@ struct last {
 // GET : Continue with the type a index N
 template <int I> struct get_ {
   template <typename... Ts> struct f_impl {};
-  template <typename T> struct f_impl<true_type, T> { typedef T type; };
+  template <typename T> struct f_impl<std::true_type, T> { typedef T type; };
   template <typename... Is, typename... Us>
   struct f_impl<input<Is...>, input<Us...>>
       : f_impl<typename is_same<Is, i<I>>::type, Us>... {};
@@ -413,10 +438,10 @@ struct alignment {
 
 
 template <typename... Ts> struct conditional;
-template <> struct conditional<true_type> {
+template <> struct conditional<std::true_type> {
   template <typename T, typename F> struct f { typedef T type; };
 };
-template <> struct conditional<false_type> {
+template <> struct conditional<std::false_type> {
   template <typename T, typename F> struct f { typedef F type; };
 };
 
@@ -434,9 +459,9 @@ struct cond_ {
 // NOT_ : Boolean metafunction are inversed
 template <typename...> struct not_;
 template <typename P>
-struct not_<P> : cond_<P, input<false_type>, input<true_type>> {};
+struct not_<P> : cond_<P, input<std::false_type>, input<std::true_type>> {};
 
-// REMOVE_IF_ : Remove every type where the metafunction "returns" true_type
+// REMOVE_IF_ : Remove every type where the metafunction "returns" std::true_type
 template <typename P>
 struct remove_if_ 
 {
@@ -500,16 +525,16 @@ template<typename F, typename Type> struct fold_until_
     detail::f_impl_fold_until<F,Type,typename F::template f<T>::type,Ts...>{};
 };
 
-// OR_ : Fold expression until true_type is meet
+// OR_ : Fold expression until std::true_type is meet
 template<typename F>
-struct or_ : fold_until_<F,true_type>
+struct or_ : fold_until_<F,std::true_type>
 {
 };
 
-// AND_ : Fold expression until false_type is meet
+// AND_ : Fold expression until std::false_type is meet
 template<typename F>
 struct and_ : 
-  fold_until_<F,false_type>
+  fold_until_<F,std::false_type>
 {
 };
 
@@ -540,7 +565,7 @@ struct find_if_
 
 
 //pipe_<input<i<3>,float,i<4>,int>, find_if_< is_<int> >   >::type t = 0;
-//pipe_<input<ls_<false_type,true_type>, ls_<true_type, false_type>>, remove_if_<pipe_<unwrap, get_<1>>>>::type t = 0;
+//pipe_<input<ls_<std::false_type,std::true_type>, ls_<std::true_type, std::false_type>>, remove_if_<pipe_<unwrap, get_<1>>>>::type t = 0;
 
 //static_assert(pipe_<input<ls_<int,int>>,pipe_<unwrap,get_<0>>, is_<int>>::type::value,""); 
 
@@ -553,7 +578,7 @@ static_assert(pipe_<input<float,int, float, int>,
                     , is_<i<1>,int>
                     >::type::value,"");
 
-//pipe_<input<int,i<0>>, cond_<pipe_<first,is_<int>>,input<true_type> , input<false_type>>  >::type t = 0;
+//pipe_<input<int,i<0>>, cond_<pipe_<first,is_<int>>,input<std::true_type> , input<std::false_type>>  >::type t = 0;
 
 
 // PRODUCT : Given two lists, continue with every possible lists of two types. 
@@ -573,11 +598,11 @@ struct product {
 
 template <typename A, typename B> struct less : b<(sizeof(A) < sizeof(B))> {};
 
-template <typename A> struct less<void, A> : true_type {};
-template <typename A> struct less<A, void> : false_type {};
-template <> struct less<void, void> : true_type {};
-template <> struct less<int, float> : true_type {};
-template <> struct less<float, int> : false_type {};
+template <typename A> struct less<void, A> : std::true_type {};
+template <typename A> struct less<A, void> : std::false_type {};
+template <> struct less<void, void> : std::true_type {};
+template <> struct less<int, float> : std::true_type {};
+template <> struct less<float, int> : std::false_type {};
 
 template <int A, int B> struct less<i<A>, i<B>> : b<(A < B)> {};
 
@@ -585,7 +610,7 @@ template <typename A, typename B> struct greater : b<!less<A, B>::value> {};
 
 template <typename A, typename B> struct eager { typedef input<> type; };
 
-template <typename A> struct eager<A, true_type> { typedef A type; };
+template <typename A> struct eager<A, std::true_type> { typedef A type; };
 
 struct sort {
   template <typename... L> struct sort_impl;
