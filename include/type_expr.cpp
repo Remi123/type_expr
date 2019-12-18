@@ -1,10 +1,10 @@
-﻿#include "rage.hpp"
+﻿#include "type_expr.hpp"
 #include <assert.h>
 #include <type_traits>
 int main() {
   // ls_<float,int,void,short,double> t2 =
   // sort<float,int,int,void,void,float,short,double>::type{};
-  using namespace rage;
+  using namespace te;
 
   static_assert(std::is_same<i<(4 + 3 * 2 / 1)>, i<10>>::value, "");
 

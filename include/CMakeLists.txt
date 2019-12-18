@@ -2,8 +2,8 @@
 cmake_minimum_required(VERSION 3.0)
 
 add_library(
-rage
+Type_Expr
 STATIC
-rage.hpp
-rage.cpp
+type_expr.hpp
+type_expr.cpp
 )

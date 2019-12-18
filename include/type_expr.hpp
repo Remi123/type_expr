@@ -20,7 +20,7 @@ template<typename T, T Tvalue, typename U, U Uvalue>
   operator%(std::integral_constant<T,Tvalue>, std::integral_constant<U,Uvalue>);
 
 
-namespace rage {
+namespace te {
 
 template <typename T> T &&declval();
 
@@ -508,7 +508,7 @@ template<typename ... As>
   { typedef T type;};
  template<typename F,typename T>
   struct f_impl_fold_until<F,T>
-  { typedef rage::nothing type;};
+  { typedef te::nothing type;};
  template<typename F,typename T, typename A,typename B,typename ... Zs>
   struct f_impl_fold_until<F, T, A ,B , Zs...> : 
     f_impl_fold_until< F,T,typename F::template f<B>::type , Zs...>
