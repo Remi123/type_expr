@@ -11,9 +11,6 @@ int main() {
   auto input_test = pipe_<input<i<1>>, input<i<2>>>::type{};
   static_assert(std::is_same<decltype(input_test), i<2>>::value, "");
 
-  
-
-
   auto sort_test =
       pipe_<input<i<3>, i<1>, i<3>, i<4>, i<3>, i<1>, i<2>, i<3>, i<5>>,
             sort>::type{};
@@ -35,31 +32,34 @@ int main() {
   auto pipe_pipe_test =
       pipe_<pipe_<input<i<3>>, plus<i<1>>>, plus<i<2>>>::type{};
   static_assert(std::is_same<decltype(pipe_pipe_test), i<6>>::value, "");
-// -------------------------------------------------------------------
-// -------------------------------------------------------------------
-// -------------------------------------------------------------------
-// UNWRAP TESTING 
-// There was a problem with unwrap... 
-// those test stay there because I don't want to debug this again.
+  // -------------------------------------------------------------------
+  // -------------------------------------------------------------------
+  // -------------------------------------------------------------------
+  // UNWRAP TESTING
+  // There was a problem with unwrap...
+  // those test stay there because I don't want to debug this again.
 
-  pipe_t<input<ls_<int,i<0>>>,unwrap,second> t11 = i<0>{} ;
-  pipe_t<input<ls_<int,i<0>>>,unwrap,pipe_<identity,second> > t12 = i<0>{} ;
-  pipe_t<input<ls_<int,i<0>>>,unwrap,pipe_<second> > t13 = i<0>{} ;
-  pipe_t<input<ls_<int,i<0>>>,pipe_<unwrap,pipe_<second>>> t14 = i<0>{} ;
+  pipe_t<input<ls_<int, i<0>>>, unwrap, second> t11 = i<0>{};
+  pipe_t<input<ls_<int, i<0>>>, unwrap, pipe_<identity, second>> t12 = i<0>{};
+  pipe_t<input<ls_<int, i<0>>>, unwrap, pipe_<second>> t13 = i<0>{};
+  pipe_t<input<ls_<int, i<0>>>, pipe_<unwrap, pipe_<second>>> t14 = i<0>{};
 
-  pipe_v<input<ls_<int,i<0>>>,pipe_<unwrap,first>,is_<int>  >;
+  pipe_v<input<ls_<int, i<0>>>, pipe_<unwrap, first>, is_<int>>;
 
-  constexpr pipe_<input<int>, unwrap ,is_<nothing> >::type t = b<true>{};
-  constexpr  pipe_<input<ls_<int>>,unwrap>::type pipe_unwrap = 0;
-  constexpr  pipe_<input<ls_<int>>,pipe_<input<ls_<int>>,unwrap>>::type pipe_unwrap2 = 0;
-  constexpr  pipe_<input<ls_<int>>,pipe_<unwrap>>::type pipe_unwrap3 = 0;
-  constexpr  pipe_<input<ls_<int,float>>,pipe_<unwrap>, is_<int,float>>::type pipe_unwrap4 = b<true>{};
-  constexpr  pipe_<input<ls_<int,float>>,pipe_<unwrap>, get_<0>>::type pipe_unwrap5 = 0;
-  // 
-// -------------------------------------------------------------------
-// -------------------------------------------------------------------
-// -------------------------------------------------------------------
-  
+  constexpr pipe_<input<int>, unwrap, is_<nothing>>::type t = b<true>{};
+  constexpr pipe_<input<ls_<int>>, unwrap>::type pipe_unwrap = 0;
+  constexpr pipe_<input<ls_<int>>, pipe_<input<ls_<int>>, unwrap>>::type
+      pipe_unwrap2 = 0;
+  constexpr pipe_<input<ls_<int>>, pipe_<unwrap>>::type pipe_unwrap3 = 0;
+  constexpr pipe_<input<ls_<int, float>>, pipe_<unwrap>, is_<int, float>>::type
+      pipe_unwrap4 = b<true>{};
+  constexpr pipe_<input<ls_<int, float>>, pipe_<unwrap>, get_<0>>::type
+      pipe_unwrap5 = 0;
+  //
+  // -------------------------------------------------------------------
+  // -------------------------------------------------------------------
+  // -------------------------------------------------------------------
+
   auto pipe_less = pipe_<input<i<1>, i<2>>, lift_<less>>::type{};
 
   static_assert(pipe_less.value, "");
@@ -76,13 +76,13 @@ int main() {
   static_assert(pipe_isnt_.value, "");
   // Isnt_ is the opposite of is_
 
-  auto pipe_add = pipe_<input<int>,pipe_<push_back_<float>>, is_<int,float> >::type{}; 
-  static_assert(pipe_add.value,"");
+  auto pipe_add =
+      pipe_<input<int>, pipe_<push_back_<float>>, is_<int, float>>::type{};
+  static_assert(pipe_add.value, "");
 
-  auto pipe_add2 = pipe_<input<int,short>,pipe_<push_back_<float>>, is_<int,short,float> >::type{}; 
-  static_assert(pipe_add2.value,"");
-
-  
+  auto pipe_add2 = pipe_<input<int, short>, pipe_<push_back_<float>>,
+                         is_<int, short, float>>::type{};
+  static_assert(pipe_add2.value, "");
 
   static_assert(pipe_<input<int, float>, push_back_<ls_<>>,
                       is_<int, float, ls_<>>>::type::value,
@@ -141,7 +141,7 @@ int main() {
   //              second one with predicate == false
 
   static_assert(
-      pipe_<input<int, float, int, short>, replace_if_<is_<int>, float>,
+      pipe_<input<int, float, int, short>, replace_if_<is_<int>, input<float>>,
             is_<float, float, float, short>>::type::value,
       "");
   // replace_if transform the type into another if the predicate is true
@@ -153,8 +153,35 @@ int main() {
   // product is a little bit special : given two lists, it return each
   // permutation possible while respecting the order
 
-static_assert( pipe_<input<i<1>,i<2>,i<3>,i<4>,i<5>>, or_<is_<i<5>>> , is_<std::true_type>>::type::value,"");
-static_assert(pipe_<input<i<1>,i<0>,i<0>>, count_if_<is_<i<0>>>, is_<i<2>>>::type::value,"");
+  static_assert(pipe_<input<i<1>, i<2>, i<3>, i<4>, i<5>>, or_<is_<i<5>>>,
+                      is_<std::true_type>>::type::value,
+                "");
+  static_assert(pipe_<input<i<1>, i<0>, i<0>>, count_if_<is_<i<0>>>,
+                      is_<i<2>>>::type::value,
+                "");
+
+  static_assert(
+      pipe_<input<int, int, int>, pipe_<get_<0>>, is_<int>>::type::value, "");
+  static_assert(
+      pipe_<input<int, int, int>, pipe_<get_<-1>>, is_<nothing>>::type::value,
+      "");
+  static_assert(
+      pipe_<input<int, int, int>, pipe_<get_<3>>, is_<nothing>>::type::value,
+      "");
+  static_assert(pipe_<input<i<2>>, mkseq, is_<i<0>, i<1>>>::type::value, "");
+  ;
+  static_assert(pipe_<input<i<1>>, mkseq, is_<i<0>>>::type::value, "");
+  ;
+  static_assert(pipe_<input<i<0>>, mkseq, is_<nothing>>::type::value, "");
+  ;
+
+  static_assert(pipe_<input<int, i<0>>,
+                      cond_<pipe_<first, is_<int>>, input<std::true_type>,
+                            input<std::false_type>>>::type::value,
+                "");
+  static_assert(pipe_<input<float, int, float, int>, find_if_<is_<int>>,
+                      is_<i<1>, int>>::type::value,
+                "");
 
   return 0;
 }
