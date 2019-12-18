@@ -4,7 +4,8 @@
 int main() {
   // ls_<float,int,void,short,double> t2 =
   // sort<float,int,int,void,void,float,short,double>::type{};
-  using namespace te;
+  using namespace type_expr;
+  namespace te = type_expr;
 
   static_assert(std::is_same<i<(4 + 3 * 2 / 1)>, i<10>>::value, "");
 

@@ -18,7 +18,7 @@ template <typename T, T Tvalue, typename U, U Uvalue>
 std::integral_constant<decltype(Tvalue % Uvalue), Tvalue % Uvalue>
 operator%(std::integral_constant<T, Tvalue>, std::integral_constant<U, Uvalue>);
 
-namespace te {
+namespace type_expr {
 
 template <typename T> T &&declval();
 
@@ -505,7 +505,7 @@ template <typename F, typename T> struct f_impl_fold_until<F, T, T> {
   typedef T type;
 };
 template <typename F, typename T> struct f_impl_fold_until<F, T> {
-  typedef te::nothing type;
+  typedef nothing type;
 };
 template <typename F, typename T, typename A, typename B, typename... Zs>
 struct f_impl_fold_until<F, T, A, B, Zs...>
