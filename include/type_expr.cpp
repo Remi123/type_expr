@@ -2,8 +2,6 @@
 #include <assert.h>
 #include <type_traits>
 int main() {
-  // ls_<float,int,void,short,double> t2 =
-  // sort<float,int,int,void,void,float,short,double>::type{};
   using namespace type_expr;
   namespace te = type_expr;
 
@@ -45,7 +43,7 @@ int main() {
   pipe_t<input<ls_<int, i<0>>>, unwrap, pipe_<second>> t13 = i<0>{};
   pipe_t<input<ls_<int, i<0>>>, pipe_<unwrap, pipe_<second>>> t14 = i<0>{};
 
-  pipe_v<input<ls_<int, i<0>>>, pipe_<unwrap, first>, is_<int>>;
+  pipe_t<input<ls_<int, i<0>>>, pipe_<unwrap, first>, is_<int>>::value;
 
   constexpr pipe_<input<int>, unwrap, is_<nothing>>::type t = b<true>{};
   constexpr pipe_<input<ls_<int>>, unwrap>::type pipe_unwrap = 0;
@@ -60,6 +58,14 @@ int main() {
   // -------------------------------------------------------------------
   // -------------------------------------------------------------------
   // -------------------------------------------------------------------
+
+  // Calculation tests
+  // -------------------------------------------------------------------
+    
+  static_assert(  pipe_<input<i<21>,i<49>>, gcd, is_<i<7>> >::type::value,"");
+  static_assert(  pipe_<input<i<21>,i<49>>, lcm, is_<i<147>> >::type::value,"");
+  // -------------------------------------------------------------------
+
 
   auto pipe_less = pipe_<input<i<1>, i<2>>, lift_<less>>::type{};
 
@@ -154,35 +160,40 @@ int main() {
   // product is a little bit special : given two lists, it return each
   // permutation possible while respecting the order
 
-  static_assert(pipe_<input<i<1>, i<2>, i<3>, i<4>, i<5>>, or_<is_<i<5>>>,
+  static_assert(pipe_<input<i<1>, i<2>, i<3>, i<4>, i<5>>, any_of_<is_<i<5>>>,
                       is_<std::true_type>>::type::value,
                 "");
   static_assert(pipe_<input<i<1>, i<0>, i<0>>, count_if_<is_<i<0>>>,
                       is_<i<2>>>::type::value,
                 "");
+  // Count_if does exactly what is name suggest.
+                
+  static_assert(pipe_<input<int,int,int>, all_of_<is_<int>>>::type::value,"") ; 
+  static_assert(pipe_<input<int,float,int>, any_of_<is_<float>>>::type::value,""); 
+  static_assert(pipe_<input<int,float,int>, none_of_<is_<char>>>::type::value,""); 
+  // Does exactly the same as their std:: counterpart
+
 
   static_assert(
-      pipe_<input<int, int, int>, pipe_<get_<0>>, is_<int>>::type::value, "");
+                  pipe_<input<int, int, int>, pipe_<get_<0>>, is_<int>>::type::value, "");
   static_assert(
-      pipe_<input<int, int, int>, pipe_<get_<-1>>, is_<nothing>>::type::value,
-      "");
+                  pipe_<input<int, int, int>, pipe_<get_<-1>>, is_<nothing>>::type::value,
+                  "");
   static_assert(
-      pipe_<input<int, int, int>, pipe_<get_<3>>, is_<nothing>>::type::value,
-      "");
+                  pipe_<input<int, int, int>, pipe_<get_<3>>, is_<nothing>>::type::value,
+                  "");
+                  
   static_assert(pipe_<input<i<2>>, mkseq, is_<i<0>, i<1>>>::type::value, "");
-  ;
   static_assert(pipe_<input<i<1>>, mkseq, is_<i<0>>>::type::value, "");
-  ;
   static_assert(pipe_<input<i<0>>, mkseq, is_<nothing>>::type::value, "");
-  ;
 
   static_assert(pipe_<input<int, i<0>>,
-                      cond_<pipe_<first, is_<int>>, input<std::true_type>,
-                            input<std::false_type>>>::type::value,
-                "");
+                  cond_<pipe_<first, is_<int>>, input<std::true_type>,
+                  input<std::false_type>>>::type::value,
+                  "");
   static_assert(pipe_<input<float, int, float, int>, find_if_<is_<int>>,
-                      is_<i<1>, int>>::type::value,
-                "");
+                  is_<i<1>, int>>::type::value,
+                  "");
 
   return 0;
 }

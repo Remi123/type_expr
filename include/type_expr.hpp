@@ -38,12 +38,6 @@ template <typename T> struct input<T> {
   typedef T type;
   template <typename... Ts> struct f { typedef T type; };
 };
-/*template<>*/
-// struct input<>
-//{
-// typedef input<> type;
-// template<typename ...> struct f{ typedef nothing type;};
-/*};*/
 
 // LS_ : user-declared container
 template <typename...> struct ls_ {};
@@ -54,7 +48,7 @@ struct identity {
   template <typename T> struct f<T> { typedef T type; };
 };
 
-// ZERO : User-specialized to retrive the zero of their type.
+// ZERO : User-specialized to retrieve the zero of their type.
 template <typename T> struct zero;
 
 // I : Universal integer type.
@@ -116,6 +110,31 @@ template <typename...> struct add {
 };
 
 // ARITHMETIC METAFUNCTIONS
+struct gcd
+{
+  template<typename ...> 
+  struct f ;
+  template<typename T>
+  struct f<T,typename zero<T>::type>
+  {
+    typedef T type;
+  };
+  template<typename T, typename U>
+  struct f<T,U> : f<U,typename Modulo<U,T>::type>
+  {};
+};
+
+struct lcm
+{
+  template<typename ...>
+  struct f;
+  template<typename T, typename U>
+  struct f<T,U>
+  {
+    typedef typename Dividing<typename Multipling<T,U>::type,typename gcd::template f<T,U>::type>::type type;
+  };
+};
+
 template <typename P> struct plus {
   template <typename... Ts> struct f;
   template <typename I> struct f<I> {
@@ -147,23 +166,16 @@ template <typename P> struct modulo {
   };
 };
 
-// UNWRAP : Universal unwrapper. WIP
-struct unwrap {
-  template <typename... Ts> struct f {
-    // static_assert(sizeof...(Ts) < 0,"Error unwrap bad path");
-    typedef nothing type;
-  };
-  template <template <typename... Ts> class F, typename... Ts>
-  struct f<F<Ts...>> {
-    typedef typename input<Ts...>::template f<>::type type;
-  };
-};
+
+
 
 // LIFT_ : Universal customization point using template template. Get the ::type
+// The Farming field of our library
 template <template <typename...> class F> struct lift_ {
   template <typename... Ts> struct f { typedef typename F<Ts...>::type type; };
 };
-// QUOTE_ : Universal wrapper.
+// QUOTE_ : Universal wrapper. Doesn't get the ::type. Use with template alias
+// The Other Farming field of our library
 template <template <typename...> class F> struct quote_ {
   template <typename... Ts> struct f { typedef F<Ts...> type; };
 };
@@ -210,13 +222,24 @@ template <> struct pipe_<> {
 };
 
 template <typename... Fs> using pipe_t = typename pipe_<Fs...>::type;
-template <typename... Fs> constexpr bool pipe_v = pipe_<Fs...>::type::value;
+//template <typename... Fs> constexpr int pipe_v = pipe_<Fs...>::type::value;
 
 // FORK_ : Inputs are copied to each metafunctions
 // The Peanut Butter of the library
 template <typename... Cs> struct fork_ {
   template <typename... Ts> struct f {
     typedef input<typename Cs::template f<Ts...>::type...> type;
+  };
+};
+
+// UNWRAP : Universal unwrapper.
+struct unwrap {
+  template <typename... Ts> struct f {
+    typedef nothing type;
+  };
+  template <template <typename... Ts> class F, typename... Ts>
+  struct f<F<Ts...>> {
+    typedef typename input<Ts...>::template f<>::type type;
   };
 };
 
@@ -322,7 +345,7 @@ struct mkseq {
 
 // ZIP_INDEX
 struct zip_index {
-  template <typename... Ts> struct f_impl {};
+  template <typename... Ts> struct f_impl { typedef nothing type;};
   template <typename... Is, typename... Ts>
   struct f_impl<input<Is...>, input<Ts...>> {
     typedef input<ls_<Is, Ts>...> type;
@@ -432,6 +455,7 @@ struct flat<input<Ls...>, input<Fs...>, input<Gs...>, Ts...>
     : flat<input<Ls..., Fs..., Gs...>, Ts...> {};
 
 // FLATTEN : Continue with only one input. Sub-input are removed.
+// The dirty but necessary tool of our library
 struct flatten {
   template <typename... Ts> struct f {
     typedef typename flat<input<>, Ts...>::type type;
@@ -461,12 +485,10 @@ struct not_ : cond_<P, input<std::false_type>, input<std::true_type>> {};
 
 // REMOVE_IF_ : Remove every type where the metafunction "returns"
 // std::true_type
-template <typename P> struct remove_if_ {
-  template <typename... Ts> struct f {
-    typedef
-        typename pipe_<input<Ts...>, transform_<cond_<P, input<>, identity>>,
-                       flatten>::type type;
-  };
+template <typename P> struct remove_if_ : pipe_<transform_<cond_<P, input<>, identity>>,
+                       flatten> 
+{
+
 };
 
 // PARTITION_ : Continue with two list. First predicate is true, Second
@@ -494,7 +516,6 @@ template <typename P, typename F> struct replace_if_<P, F> {
   };
 };
 
-// TODO : Prepare for find_if
 namespace detail {
 template <typename... As> struct f_impl_fold_until;
 template <typename F, typename T, typename N, typename... As>
@@ -521,30 +542,49 @@ template <typename F, typename Type> struct fold_until_ {
                                   Ts...> {};
 };
 
-// OR_ : Fold expression until std::true_type is meet
-template <typename F> struct or_ : fold_until_<F, std::true_type> {};
+// ALL_OF_ : Thanks to Roland Bock for the inspiration
+template<typename P>
+struct all_of_ 
+{
+  template<typename ... Ts> struct f 
+  {
+    typedef typename is_same<
+      ls_<b<true>, typename P::template f<Ts>::type...>
+      ,ls_<typename P::template f<Ts>::type...,b<true>>
+    >::type type;
+  };
+};
 
-// AND_ : Fold expression until std::false_type is meet
-template <typename F> struct and_ : fold_until_<F, std::false_type> {};
+// ANY_OF_ : Thanks to Roland Bock for the inspiration
+template<typename P>
+struct any_of_ 
+{
+  template<typename ... Ts> struct f 
+  {
+    typedef typename is_not_same<
+      ls_<b<false>, typename P::template f<Ts>::type...>
+      ,ls_<typename P::template f<Ts>::type...,b<false>>
+    >::type type;
+  };
+};
+
+// NONE_OF : Simply the inverse of any_of_
+template<typename P>
+struct none_of_ : not_<any_of_<P>>{};
+
+
 
 // COUNT_IF_ : Count the number of type where the predicate is true
-template <typename F> struct count_if_ {
-  template <typename... Ts> struct f {
-    typedef
-        typename pipe_<input<Ts...>, remove_if_<not_<F>>, length>::type type;
-  };
+template <typename F> struct count_if_ : pipe_<remove_if_<not_<F>>, length>
+{
 };
 
 // FIND_IF_ : Return the first index that respond to the predicate, along with
 // the type. WIP
-template <typename F> struct find_if_ {
+template <typename F> struct find_if_ : pipe_< zip_index,
+        filter_<pipe_<unwrap, second, F>>, first, unwrap> 
+{
 
-  template <typename... Ts> struct f {
-    typedef
-        typename pipe_<input<Ts...>, zip_index,
-                       filter_<pipe_<unwrap, second, F>>, first, unwrap>::type
-            type;
-  };
 };
 
 static_assert(pipe_<input<float, int, float, int>, find_if_<is_<int>>,
@@ -562,7 +602,7 @@ struct product {
       : pipe_<input<ls_<As, ls_<Bs...>>...>, transform_<product>, flatten> {};
 };
 
-// Below is not yet integrated into rage
+// Below is not yet integrated into type_expr 
 
 template <typename A, typename B> struct less : b<(sizeof(A) < sizeof(B))> {};
 
