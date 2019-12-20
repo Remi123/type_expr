@@ -110,28 +110,18 @@ template <typename...> struct add {
 };
 
 // ARITHMETIC METAFUNCTIONS
-struct gcd
-{
-  template<typename ...> 
-  struct f ;
-  template<typename T>
-  struct f<T,typename zero<T>::type>
-  {
-    typedef T type;
-  };
-  template<typename T, typename U>
-  struct f<T,U> : f<U,typename Modulo<U,T>::type>
-  {};
+struct gcd {
+  template <typename...> struct f;
+  template <typename T> struct f<T, typename zero<T>::type> { typedef T type; };
+  template <typename T, typename U>
+  struct f<T, U> : f<U, typename Modulo<U, T>::type> {};
 };
 
-struct lcm
-{
-  template<typename ...>
-  struct f;
-  template<typename T, typename U>
-  struct f<T,U>
-  {
-    typedef typename Dividing<typename Multipling<T,U>::type,typename gcd::template f<T,U>::type>::type type;
+struct lcm {
+  template <typename...> struct f;
+  template <typename T, typename U> struct f<T, U> {
+    typedef typename Dividing<typename Multipling<T, U>::type,
+                              typename gcd::template f<T, U>::type>::type type;
   };
 };
 
@@ -165,9 +155,6 @@ template <typename P> struct modulo {
     typedef decltype(declval<I>() % declval<P>()) type;
   };
 };
-
-
-
 
 // LIFT_ : Universal customization point using template template. Get the ::type
 // The Farming field of our library
@@ -222,7 +209,7 @@ template <> struct pipe_<> {
 };
 
 template <typename... Fs> using pipe_t = typename pipe_<Fs...>::type;
-//template <typename... Fs> constexpr int pipe_v = pipe_<Fs...>::type::value;
+// template <typename... Fs> constexpr int pipe_v = pipe_<Fs...>::type::value;
 
 // FORK_ : Inputs are copied to each metafunctions
 // The Peanut Butter of the library
@@ -234,9 +221,7 @@ template <typename... Cs> struct fork_ {
 
 // UNWRAP : Universal unwrapper.
 struct unwrap {
-  template <typename... Ts> struct f {
-    typedef nothing type;
-  };
+  template <typename... Ts> struct f { typedef nothing type; };
   template <template <typename... Ts> class F, typename... Ts>
   struct f<F<Ts...>> {
     typedef typename input<Ts...>::template f<>::type type;
@@ -345,7 +330,7 @@ struct mkseq {
 
 // ZIP_INDEX
 struct zip_index {
-  template <typename... Ts> struct f_impl { typedef nothing type;};
+  template <typename... Ts> struct f_impl { typedef nothing type; };
   template <typename... Is, typename... Ts>
   struct f_impl<input<Is...>, input<Ts...>> {
     typedef input<ls_<Is, Ts>...> type;
@@ -485,11 +470,8 @@ struct not_ : cond_<P, input<std::false_type>, input<std::true_type>> {};
 
 // REMOVE_IF_ : Remove every type where the metafunction "returns"
 // std::true_type
-template <typename P> struct remove_if_ : pipe_<transform_<cond_<P, input<>, identity>>,
-                       flatten> 
-{
-
-};
+template <typename P>
+struct remove_if_ : pipe_<transform_<cond_<P, input<>, identity>>, flatten> {};
 
 // PARTITION_ : Continue with two list. First predicate is true, Second
 // predicate is false
@@ -543,49 +525,34 @@ template <typename F, typename Type> struct fold_until_ {
 };
 
 // ALL_OF_ : Thanks to Roland Bock for the inspiration
-template<typename P>
-struct all_of_ 
-{
-  template<typename ... Ts> struct f 
-  {
+template <typename P> struct all_of_ {
+  template <typename... Ts> struct f {
     typedef typename is_same<
-      ls_<b<true>, typename P::template f<Ts>::type...>
-      ,ls_<typename P::template f<Ts>::type...,b<true>>
-    >::type type;
+        ls_<b<true>, typename P::template f<Ts>::type...>,
+        ls_<typename P::template f<Ts>::type..., b<true>>>::type type;
   };
 };
 
 // ANY_OF_ : Thanks to Roland Bock for the inspiration
-template<typename P>
-struct any_of_ 
-{
-  template<typename ... Ts> struct f 
-  {
+template <typename P> struct any_of_ {
+  template <typename... Ts> struct f {
     typedef typename is_not_same<
-      ls_<b<false>, typename P::template f<Ts>::type...>
-      ,ls_<typename P::template f<Ts>::type...,b<false>>
-    >::type type;
+        ls_<b<false>, typename P::template f<Ts>::type...>,
+        ls_<typename P::template f<Ts>::type..., b<false>>>::type type;
   };
 };
 
 // NONE_OF : Simply the inverse of any_of_
-template<typename P>
-struct none_of_ : not_<any_of_<P>>{};
-
-
+template <typename P> struct none_of_ : not_<any_of_<P>> {};
 
 // COUNT_IF_ : Count the number of type where the predicate is true
-template <typename F> struct count_if_ : pipe_<remove_if_<not_<F>>, length>
-{
-};
+template <typename F> struct count_if_ : pipe_<remove_if_<not_<F>>, length> {};
 
 // FIND_IF_ : Return the first index that respond to the predicate, along with
 // the type. WIP
-template <typename F> struct find_if_ : pipe_< zip_index,
-        filter_<pipe_<unwrap, second, F>>, first, unwrap> 
-{
-
-};
+template <typename F>
+struct find_if_
+    : pipe_<zip_index, filter_<pipe_<unwrap, second, F>>, first, unwrap> {};
 
 static_assert(pipe_<input<float, int, float, int>, find_if_<is_<int>>,
                     is_<i<1>, int>>::type::value,
@@ -602,7 +569,7 @@ struct product {
       : pipe_<input<ls_<As, ls_<Bs...>>...>, transform_<product>, flatten> {};
 };
 
-// Below is not yet integrated into type_expr 
+// Below is not yet integrated into type_expr
 
 template <typename A, typename B> struct less : b<(sizeof(A) < sizeof(B))> {};
 
@@ -670,4 +637,4 @@ struct sort {
 // int t1 = unique<i<3>>::type {};
 // int t = unique<i<3>,i<1>,i<3>,i<4>,i<3>,i<1>,i<2>,i<3>,i<5>>::type {};
 
-}; // namespace te
+}; // namespace type_expr

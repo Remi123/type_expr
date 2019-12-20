@@ -61,11 +61,10 @@ int main() {
 
   // Calculation tests
   // -------------------------------------------------------------------
-    
-  static_assert(  pipe_<input<i<21>,i<49>>, gcd, is_<i<7>> >::type::value,"");
-  static_assert(  pipe_<input<i<21>,i<49>>, lcm, is_<i<147>> >::type::value,"");
+  static_assert(pipe_t<input<double>, plus<int>, is_<double>>::value, "");
+  static_assert(pipe_<input<i<21>, i<49>>, gcd, is_<i<7>>>::type::value, "");
+  static_assert(pipe_<input<i<21>, i<49>>, lcm, is_<i<147>>>::type::value, "");
   // -------------------------------------------------------------------
-
 
   auto pipe_less = pipe_<input<i<1>, i<2>>, lift_<less>>::type{};
 
@@ -167,33 +166,35 @@ int main() {
                       is_<i<2>>>::type::value,
                 "");
   // Count_if does exactly what is name suggest.
-                
-  static_assert(pipe_<input<int,int,int>, all_of_<is_<int>>>::type::value,"") ; 
-  static_assert(pipe_<input<int,float,int>, any_of_<is_<float>>>::type::value,""); 
-  static_assert(pipe_<input<int,float,int>, none_of_<is_<char>>>::type::value,""); 
+
+  static_assert(pipe_<input<int, int, int>, all_of_<is_<int>>>::type::value,
+                "");
+  static_assert(pipe_<input<int, float, int>, any_of_<is_<float>>>::type::value,
+                "");
+  static_assert(pipe_<input<int, float, int>, none_of_<is_<char>>>::type::value,
+                "");
   // Does exactly the same as their std:: counterpart
 
+  static_assert(
+      pipe_<input<int, int, int>, pipe_<get_<0>>, is_<int>>::type::value, "");
+  static_assert(
+      pipe_<input<int, int, int>, pipe_<get_<-1>>, is_<nothing>>::type::value,
+      "");
+  static_assert(
+      pipe_<input<int, int, int>, pipe_<get_<3>>, is_<nothing>>::type::value,
+      "");
 
-  static_assert(
-                  pipe_<input<int, int, int>, pipe_<get_<0>>, is_<int>>::type::value, "");
-  static_assert(
-                  pipe_<input<int, int, int>, pipe_<get_<-1>>, is_<nothing>>::type::value,
-                  "");
-  static_assert(
-                  pipe_<input<int, int, int>, pipe_<get_<3>>, is_<nothing>>::type::value,
-                  "");
-                  
   static_assert(pipe_<input<i<2>>, mkseq, is_<i<0>, i<1>>>::type::value, "");
   static_assert(pipe_<input<i<1>>, mkseq, is_<i<0>>>::type::value, "");
   static_assert(pipe_<input<i<0>>, mkseq, is_<nothing>>::type::value, "");
 
   static_assert(pipe_<input<int, i<0>>,
-                  cond_<pipe_<first, is_<int>>, input<std::true_type>,
-                  input<std::false_type>>>::type::value,
-                  "");
+                      cond_<pipe_<first, is_<int>>, input<std::true_type>,
+                            input<std::false_type>>>::type::value,
+                "");
   static_assert(pipe_<input<float, int, float, int>, find_if_<is_<int>>,
-                  is_<i<1>, int>>::type::value,
-                  "");
+                      is_<i<1>, int>>::type::value,
+                "");
 
   return 0;
 }
