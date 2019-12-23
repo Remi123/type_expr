@@ -39,6 +39,11 @@ template <typename T> struct input<T> {
   template <typename... Ts> struct f { typedef T type; };
 };
 
+// ERROR : Template used for debugging
+template <typename MSG> struct error_ {
+  template <typename...> struct f { typedef error_<MSG> type; };
+};
+
 // LS_ : user-declared container
 template <typename...> struct ls_ {};
 
@@ -185,13 +190,17 @@ template <typename F> struct fold_left_<F> {
 };
 
 // PIPE_EXPR : Internal-only. Take a type and send it as input to the next
-// metafunction The Flour and Yeast of the library.
+// metafunction.
+// The Flour and Yeast of the library.
 template <typename...> struct pipe_expr { typedef nothing type; };
 template <typename T, typename G> struct pipe_expr<T, G> {
   typedef typename G::template f<T>::type type;
 };
 template <typename... Ts, typename G> struct pipe_expr<input<Ts...>, G> {
   typedef typename G::template f<Ts...>::type type;
+};
+template <typename ErrorT, typename G> struct pipe_expr<error_<ErrorT>, G> {
+  typedef error_<ErrorT> type;
 };
 
 // PIPE_ : Universal container of metafunction.
@@ -221,7 +230,10 @@ template <typename... Cs> struct fork_ {
 
 // UNWRAP : Universal unwrapper.
 struct unwrap {
-  template <typename... Ts> struct f { typedef nothing type; };
+  struct unwrappable_type {};
+  template <typename... Ts> struct f {
+    typedef input<error_<unwrappable_type>> type;
+  };
   template <template <typename... Ts> class F, typename... Ts>
   struct f<F<Ts...>> {
     typedef typename input<Ts...>::template f<>::type type;

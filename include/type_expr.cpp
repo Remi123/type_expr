@@ -45,7 +45,7 @@ int main() {
 
   pipe_t<input<ls_<int, i<0>>>, pipe_<unwrap, first>, is_<int>>::value;
 
-  constexpr pipe_<input<int>, unwrap, is_<nothing>>::type t = b<true>{};
+  // constexpr pipe_<input<int>, unwrap, is_<nothing>>::type t = b<true>{};
   constexpr pipe_<input<ls_<int>>, unwrap>::type pipe_unwrap = 0;
   constexpr pipe_<input<ls_<int>>, pipe_<input<ls_<int>>, unwrap>>::type
       pipe_unwrap2 = 0;
