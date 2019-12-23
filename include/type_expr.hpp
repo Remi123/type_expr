@@ -328,6 +328,18 @@ struct mkseq {
   };
 };
 
+// ZIP : Join together two list of type in multiple ls_
+struct zip {
+  template <typename...> struct f { typedef nothing type; };
+  template <template <typename...> class F, typename... Ts, typename... Us>
+  struct f<F<Ts...>, F<Us...>> {
+    typedef input<ls_<Ts, Us>...> type;
+  };
+};
+static_assert(pipe_<input<ls_<int, int>, ls_<float, char>>, zip,
+                    is_<ls_<int, float>, ls_<int, char>>>::type::value,
+              "");
+
 // ZIP_INDEX
 struct zip_index {
   template <typename... Ts> struct f_impl { typedef nothing type; };
@@ -568,6 +580,27 @@ struct product {
   struct f<ls_<As...>, ls_<Bs...>>
       : pipe_<input<ls_<As, ls_<Bs...>>...>, transform_<product>, flatten> {};
 };
+
+// ROTATE : rotate
+// WIP : The implementation may rely on undefined behavior.
+// But so far clang and gcc are compliant
+template <int I> struct rotate_ {
+  template <int N, typename T, typename... Ts>
+  struct f_impl : f_impl<N - 1, Ts..., T> {};
+  template <typename T, typename... Ts> struct f_impl<0, T, Ts...> {
+    typedef input<T, Ts...> type;
+  };
+
+  template <typename... Ts> struct f : f_impl<I % sizeof...(Ts), Ts...> {};
+};
+
+static_assert(pipe_t<input<int, float, short, int[2]>, rotate_<5>,
+                     is_<float, short, int[2], int>>::value,
+              "");
+
+static_assert(pipe_t<input<int, float, short, int[2]>, rotate_<-1>,
+                     is_<int[2], int, float, short>>::value,
+              "");
 
 // Below is not yet integrated into type_expr
 
