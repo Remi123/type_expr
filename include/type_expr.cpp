@@ -66,9 +66,11 @@ int main() {
   static_assert(pipe_<input<i<21>, i<49>>, lcm, is_<i<147>>>::type::value, "");
   // -------------------------------------------------------------------
 
-  auto pipe_less = pipe_<input<i<1>, i<2>>, lift_<less>>::type{};
+  auto pipe_less = pipe_<input<i<1>, i<2>>, less<>>::type{};
+  auto pipe_less_2 = pipe_<input<i<1>>, less<i<2>>>::type{};
 
   static_assert(pipe_less.value, "");
+  static_assert(pipe_less_2.value, "");
 
   auto pipe_is_test = pipe_<input<i<1>>, is_<i<1>>>::type{};
   static_assert(pipe_is_test.value, "");
@@ -186,7 +188,7 @@ int main() {
 
   static_assert(pipe_<input<i<2>>, mkseq, is_<i<0>, i<1>>>::type::value, "");
   static_assert(pipe_<input<i<1>>, mkseq, is_<i<0>>>::type::value, "");
-  static_assert(pipe_<input<i<0>>, mkseq, is_<nothing>>::type::value, "");
+  static_assert(pipe_<input<i<0>>, mkseq, is_<>>::type::value, "");
 
   static_assert(pipe_<input<int, i<0>>,
                       cond_<pipe_<first, is_<int>>, input<std::true_type>,

@@ -17,6 +17,9 @@ operator/(std::integral_constant<T, Tvalue>, std::integral_constant<U, Uvalue>);
 template <typename T, T Tvalue, typename U, U Uvalue>
 std::integral_constant<decltype(Tvalue % Uvalue), Tvalue % Uvalue>
 operator%(std::integral_constant<T, Tvalue>, std::integral_constant<U, Uvalue>);
+template <typename T, T Tvalue, typename U, U Uvalue>
+std::integral_constant<bool, (Tvalue < Uvalue)>
+operator<(std::integral_constant<T, Tvalue>, std::integral_constant<U, Uvalue>);
 
 namespace type_expr {
 
@@ -130,6 +133,15 @@ struct lcm {
   };
 };
 
+template<typename ... Ts> struct less {typedef error_<less<Ts...>>  type;};
+template <typename P> struct less<P>  {
+  template<typename B> struct f { typedef decltype(declval<B>() < declval<P>())   type;};
+};
+template <> struct less<>  {
+  template<typename P, typename B > struct f { typedef decltype(declval<P>() < declval<B>())   type;};
+};
+
+
 template <typename P> struct plus {
   template <typename... Ts> struct f;
   template <typename I> struct f<I> {
@@ -174,11 +186,8 @@ template <template <typename...> class F> struct quote_ {
 
 // FOLD_LEFT_ : Fold expression
 // The Farmer of the library
-template <typename...> struct fold_left_ {
-  template <typename...> struct f { typedef nothing type; };
-};
-template <typename F> struct fold_left_<F> {
-  template <typename...> struct f { typedef nothing type; };
+template <typename F> struct fold_left_ {
+  template <typename...> struct f { typedef input<> type; };
   template <typename A> struct f<A> { typedef A type; };
 
   template <typename... A> struct f<input<A...>> {
@@ -246,10 +255,9 @@ template <typename A, typename B> struct is_not_same : std::true_type {};
 template <typename A> struct is_not_same<A, A> : std::false_type {};
 
 // IS_ : Comparaison metafunction.
-template <typename... Ts> struct is_;
-template <typename T, typename... Ts> struct is_<T, Ts...> {
+template < typename... Ts> struct is_ {
   template <typename... Us> struct f {
-    typedef typename is_same<ls_<T, Ts...>, ls_<Us...>>::type type;
+    typedef typename is_same<ls_< Ts...>, ls_<Us...>>::type type;
   };
 };
 
@@ -332,7 +340,7 @@ struct mkseq {
   template <int I> struct fff<true, i<I>> {
     typedef typename f_impl<input<>, i<I - 1>>::type type;
   };
-  template <int I> struct fff<false, i<I>> { typedef nothing type; };
+  template <int I> struct fff<false, i<I>> { typedef input<> type; };
 
   template <typename... Ts> struct f { typedef nothing type; };
   template <int I> struct f<i<I>> {
@@ -342,7 +350,8 @@ struct mkseq {
 
 // ZIP : Join together two list of type in multiple ls_
 struct zip {
-  template <typename...> struct f { typedef nothing type; };
+  
+  template <typename...> struct f { typedef error_<zip> type; };
   template <template <typename...> class F, typename... Ts, typename... Us>
   struct f<F<Ts...>, F<Us...>> {
     typedef input<ls_<Ts, Us>...> type;
@@ -371,6 +380,15 @@ static_assert(pipe_<input<int, float>, zip_index,
 ;
 static_assert(
     pipe_<input<i<1>>, plus<i<1>>, mkseq, is_<i<0>, i<1>>>::type::value, "");
+
+// UNZIP_INDEX
+struct unzip_index
+{
+  struct unzip_index_not_recognized{};
+  template<typename ... Ts> struct f {typedef error_<unzip_index_not_recognized> type;};
+  template<typename... Is,typename ... Ts> struct f<ls_<Is,Ts>...> {typedef input<Ts...> type;};
+};
+
 
 // PUSH_FRONT_ : Add anything you want to the front of the inputs.
 template <typename... Ts> struct push_front_ {
@@ -478,14 +496,12 @@ struct length {
 
 // SIZE : Continue with the sizeof(T). T is one input
 struct size {
-  template <typename... Ts> struct f;
-  template <typename T> struct f<T> { typedef i<sizeof(T)> type; };
+  template <typename T> struct f { typedef i<sizeof(T)> type; };
 };
 
 // ALIGNMENT : Continue with the alignment of one input.
 struct alignment {
-  template <typename... Ts> struct f;
-  template <typename T> struct f<T> { typedef i<alignof(T)> type; };
+  template <typename T> struct f { typedef i<alignof(T)> type; };
 };
 
 // NOT_ : Boolean metafunction are inversed
@@ -505,12 +521,7 @@ struct partition_<P> : fork_<pipe_<remove_if_<not_<P>>, listify>,
                              pipe_<remove_if_<P>, listify>> {};
 
 // FILTER_ : Remove every type where the metafunction is false.
-template <typename...> struct filter_;
-template <typename P> struct filter_<P> {
-  template <typename... Ts> struct f {
-    typedef typename pipe_<input<Ts...>, remove_if_<not_<P>>>::type type;
-  };
-};
+template <typename P> struct filter_ : remove_if_<not_<P>> {};
 
 // REPLACE_IF_ : Replace the type by another if the predicate is true
 template <typename... Ts> struct replace_if_;
@@ -573,7 +584,7 @@ template <typename P> struct none_of_ : not_<any_of_<P>> {};
 template <typename F> struct count_if_ : pipe_<remove_if_<not_<F>>, length> {};
 
 // FIND_IF_ : Return the first index that respond to the predicate, along with
-// the type. WIP
+// the type. 
 template <typename F>
 struct find_if_
     : pipe_<zip_index, filter_<pipe_<unwrap, second, F>>, first, unwrap> {};
@@ -594,7 +605,7 @@ struct product {
 };
 
 // ROTATE : rotate
-// WIP : The implementation may rely on undefined behavior.
+// The implementation may rely on undefined behavior.
 // But so far clang and gcc are compliant
 template <int I> struct rotate_ {
   template <int N, typename T, typename... Ts>
@@ -614,19 +625,70 @@ static_assert(pipe_t<input<int, float, short, int[2]>, rotate_<-1>,
                      is_<int[2], int, float, short>>::value,
               "");
 
+// IS_ZERO : return if the input is it's type_zero
+struct is_zero
+{
+  template<typename ... ts> struct f_impl { typedef b<false> type; };
+  template<typename T > struct f_impl<T,T>{ typedef b<true> type;};
+
+  template<typename ... T> struct f { typedef b<false> type;};
+  template<typename  T > struct f<T> { typedef typename  f_impl<T, typename zero<T>::type>::type    type; };
+};
+
+static_assert(pipe_<input<b<0>>, is_zero>::type::value,"");
+static_assert(pipe_<input<b<true>>, not_<is_zero>>::type::value,"");
+
+// IF, AND , OR : WIP
+// Not satisfying will revisit later
+/*template<typename ... Ps>*/
+//struct if_ : pipe_<Ps..., cond_<is_zero,input<b<false>>,input< b<true>>> >
+//{};
+//template<typename P>
+//struct and_: pipe_<P,cond_<is_zero,input<b<false>>,identity>>
+//{};
+//template<typename P>
+//struct or_: pipe_<P,cond_<not_<is_zero>,input<b<true>>, identity>>
+//{};
+
+//static_assert(pipe_<input<b<false>>, if_< is_zero , and_<is_<b<true>>> >>::type::value,"");
+
+template<typename P, typename F>
+struct if_then_ : cond_<P,F,identity>{};
+
+static_assert(pipe_t<input<i<3>>, plus<i<1>>, if_then_<is_<i<4>>,plus<i<2>>  >, is_<i<6>>   >::value,"");
+static_assert(pipe_t<input<i<3>>, plus<i<1>>, if_then_<is_<i<3>>,plus<i<2>>  >, is_<i<4>>   >::value,"");
+
+
+// INSERT_AT
+template<int Index, typename F>
+struct insert_at_ : 
+  pipe_<
+    fork_<
+      pipe_<zip_index,filter_<pipe_<unwrap,first,less<i<Index>>>> ,unzip_index >,
+      F,
+      pipe_<zip_index,remove_if_<pipe_<unwrap,first,less<i<Index>>>>,unzip_index>
+    >,
+    flatten
+  >
+{
+};
+
+static_assert(pipe_<input<int,float,int[2], float[2]>, insert_at_<2,input<char,char[2]> >
+    ,is_<int, float, char, char [2], int [2], float [2]>
+    >::type::value  ,"");
+
+static_assert(pipe_<input<int,float>, insert_at_<1, identity>, is_<int,int,float,float>>::type::value,"");
+
 // Below is not yet integrated into type_expr
 
-template <typename A, typename B> struct less : b<(sizeof(A) < sizeof(B))> {};
+//*template <typename A> struct less<void, A> : std::true_type {};*/
+//template <typename A> struct less<A, void> : std::false_type {};
+//template <> struct less<void, void> : std::true_type {};
+//template <> struct less<int, float> : std::true_type {};
+/*template <> struct less<float, int> : std::false_type {};*/
 
-template <typename A> struct less<void, A> : std::true_type {};
-template <typename A> struct less<A, void> : std::false_type {};
-template <> struct less<void, void> : std::true_type {};
-template <> struct less<int, float> : std::true_type {};
-template <> struct less<float, int> : std::false_type {};
 
-template <int A, int B> struct less<i<A>, i<B>> : b<(A < B)> {};
-
-template <typename A, typename B> struct greater : b<!less<A, B>::value> {};
+template <typename A, typename B> struct greater : b<!less<>::template f<A, B>::type::value> {};
 
 template <typename A, typename B> struct eager { typedef input<> type; };
 
@@ -640,7 +702,7 @@ struct sort {
 
     typedef typename sort_impl<typename flat<
         input<>,
-        typename eager<Ts, typename less<Ts, F>::type>::type...>::type>::type
+        typename eager<Ts, typename less<>::template f<Ts, F>::type>::type...>::type>::type
         Less;
     typedef typename sort_impl<typename flat<
         input<>,
