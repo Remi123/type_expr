@@ -1,40 +1,5 @@
 ﻿#include <type_traits>
 
-// This is for making std::integral_constant compatible with us.
-
-// Integral operator
-template <typename T, T Tvalue, typename U, U Uvalue>
-std::integral_constant<decltype(Tvalue + Uvalue), Tvalue + Uvalue>
-operator+(std::integral_constant<T, Tvalue>, std::integral_constant<U, Uvalue>);
-template <typename T, T Tvalue, typename U, U Uvalue>
-std::integral_constant<decltype(Tvalue - Uvalue), Tvalue - Uvalue>
-operator-(std::integral_constant<T, Tvalue>, std::integral_constant<U, Uvalue>);
-template <typename T, T Tvalue, typename U, U Uvalue>
-std::integral_constant<decltype(Tvalue * Uvalue), Tvalue * Uvalue>
-operator*(std::integral_constant<T, Tvalue>, std::integral_constant<U, Uvalue>);
-template <typename T, T Tvalue, typename U, U Uvalue>
-std::integral_constant<decltype(Tvalue / Uvalue), Tvalue / Uvalue>
-operator/(std::integral_constant<T, Tvalue>, std::integral_constant<U, Uvalue>);
-template <typename T, T Tvalue, typename U, U Uvalue>
-std::integral_constant<decltype(Tvalue % Uvalue), Tvalue % Uvalue>
-operator%(std::integral_constant<T, Tvalue>, std::integral_constant<U, Uvalue>);
-
-// Boolean operator
-template <typename T, T Tvalue, typename U, U Uvalue>
-std::integral_constant<bool, (Tvalue < Uvalue)>
-operator<(std::integral_constant<T, Tvalue>, std::integral_constant<U, Uvalue>);
-template <typename T, T Tvalue, typename U, U Uvalue>
-std::integral_constant<bool, (Tvalue <= Uvalue)>
-operator<=(std::integral_constant<T, Tvalue>,
-           std::integral_constant<U, Uvalue>);
-template <typename T, T Tvalue, typename U, U Uvalue>
-std::integral_constant<bool, (Tvalue > Uvalue)>
-operator>(std::integral_constant<T, Tvalue>, std::integral_constant<U, Uvalue>);
-template <typename T, T Tvalue, typename U, U Uvalue>
-std::integral_constant<bool, (Tvalue >= Uvalue)>
-operator>=(std::integral_constant<T, Tvalue>,
-           std::integral_constant<U, Uvalue>);
-
 namespace type_expr {
 
 template <typename T> T &&declval();
@@ -98,185 +63,6 @@ template <bool B> using b = std::integral_constant<bool, B>;
 // -------------------------------------------------------
 // METAFUNCTION
 // -------------------------------------------------------
-
-template <typename...> struct Adding;
-template <typename I, typename J> struct Adding<I, J> {
-  typedef decltype(declval<I>() + declval<J>()) type;
-};
-
-template <typename...> struct Substracting;
-template <typename I, typename J> struct Substracting<I, J> {
-  typedef decltype(declval<I>() - declval<J>()) type;
-};
-
-template <typename...> struct Multipling;
-template <typename I, typename J> struct Multipling<I, J> {
-  typedef decltype(declval<I>() * declval<J>()) type;
-};
-
-template <typename...> struct Dividing;
-template <typename I, typename J> struct Dividing<I, J> {
-  typedef decltype(declval<I>() / declval<J>()) type;
-};
-
-template <typename...> struct Modulo;
-template <typename I, typename J> struct Modulo<I, J> {
-  typedef decltype(declval<I>() % declval<J>()) type;
-};
-
-template <typename...> struct add {
-  template <typename... Ts> struct f;
-  template <typename I, typename P> struct f<I, P> {
-    typedef decltype(declval<I>() + declval<P>()) type;
-  };
-};
-
-// ARITHMETIC METAFUNCTIONS
-
-// LESS
-template <typename... Ts> struct less_ { typedef error_<less_<Ts...>> type; };
-template <typename P> struct less_<P> {
-  template <typename B> struct f {
-    typedef decltype(declval<B>() < declval<P>()) type;
-  };
-};
-template <> struct less_<> {
-  template <typename P, typename B> struct f {
-    typedef decltype(declval<P>() < declval<B>()) type;
-  };
-};
-// LESS_EQ
-template <typename... Ts> struct less_eq_ {
-  typedef error_<less_<Ts...>> type;
-};
-template <typename P> struct less_eq_<P> {
-  template <typename B> struct f {
-    typedef decltype(declval<B>() <= declval<P>()) type;
-  };
-};
-template <> struct less_eq_<> {
-  template <typename P, typename B> struct f {
-    typedef decltype(declval<P>() <= declval<B>()) type;
-  };
-};
-
-// GREATER
-template <typename... Ts> struct greater_ {
-  typedef error_<greater_<Ts...>> type;
-};
-template <typename P> struct greater_<P> {
-  template <typename B> struct f {
-    typedef decltype(declval<B>() > declval<P>()) type;
-  };
-};
-template <> struct greater_<> {
-  template <typename P, typename B> struct f {
-    typedef decltype(declval<P>() > declval<B>()) type;
-  };
-};
-// GREATER_EQ
-template <typename... Ts> struct greater_eq_ {
-  typedef error_<greater_eq_<Ts...>> type;
-};
-template <typename P> struct greater_eq_<P> {
-  template <typename B> struct f {
-    typedef decltype(declval<B>() >= declval<P>()) type;
-  };
-};
-template <> struct greater_eq_<> {
-  template <typename P, typename B> struct f {
-    typedef decltype(declval<P>() >= declval<B>()) type;
-  };
-};
-
-// PLUS
-template <typename... Ts> struct plus_ { typedef error_<plus_<Ts...>> type; };
-template <typename P> struct plus_<P> {
-  template <typename... Ts> struct f;
-  template <typename I> struct f<I> {
-    typedef decltype(declval<I>() + declval<P>()) type;
-  };
-};
-template <> struct plus_<> {
-  template <typename P, typename B> struct f {
-    typedef decltype(declval<P>() + declval<B>()) type;
-  };
-};
-// MINUS
-template <typename... Ts> struct minus_ { typedef error_<minus_<Ts...>> type; };
-template <typename P> struct minus_<P> {
-  template <typename... Ts> struct f;
-  template <typename I> struct f<I> {
-    typedef decltype(declval<I>() - declval<P>()) type;
-  };
-};
-template <> struct minus_<> {
-  template <typename P, typename B> struct f {
-    typedef decltype(declval<P>() - declval<B>()) type;
-  };
-};
-
-// MULTIPLY
-template <typename... Ts> struct multiply_ {
-  typedef error_<multiply_<Ts...>> type;
-};
-template <typename P> struct multiply_<P> {
-  template <typename... Ts> struct f;
-  template <typename I> struct f<I> {
-    typedef decltype(declval<I>() * declval<P>()) type;
-  };
-};
-template <> struct multiply_<> {
-  template <typename P, typename B> struct f {
-    typedef decltype(declval<P>() * declval<B>()) type;
-  };
-};
-// DIVIDE
-template <typename... Ts> struct divide_ {
-  typedef error_<divide_<Ts...>> type;
-};
-template <typename P> struct divide_<P> {
-  template <typename... Ts> struct f;
-  template <typename I> struct f<I> {
-    typedef decltype(declval<I>() / declval<P>()) type;
-  };
-};
-template <> struct divide_<> {
-  template <typename P, typename B> struct f {
-    typedef decltype(declval<P>() / declval<B>()) type;
-  };
-};
-// MODULO
-template <typename... Ts> struct modulo_ {
-  typedef error_<modulo_<Ts...>> type;
-};
-template <typename P> struct modulo_<P> {
-  template <typename... Ts> struct f;
-  template <typename I> struct f<I> {
-    typedef decltype(declval<I>() % declval<P>()) type;
-  };
-};
-template <> struct modulo_<> {
-  template <typename P, typename B> struct f {
-    typedef decltype(declval<P>() % declval<B>()) type;
-  };
-};
-
-struct gcd {
-  template <typename...> struct f;
-  template <typename T> struct f<T, typename zero<T>::type> { typedef T type; };
-  template <typename T, typename U>
-  struct f<T, U> : f<U, typename modulo_<>::template f<U, T>::type> {};
-};
-
-struct lcm {
-  template <typename...> struct f;
-  template <typename T, typename U> struct f<T, U> {
-    typedef typename divide_<>::template f<
-        typename multiply_<>::template f<T, U>::type,
-        typename gcd::template f<T, U>::type>::type type;
-  };
-};
 
 // LIFT_ : Universal customization point using template template. Get the ::type
 // The Farming field of our library
@@ -479,12 +265,6 @@ struct zip_index {
                             input<Ts...>>::type type;
   };
 };
-static_assert(pipe_<input<int, float>, zip_index,
-                    is_<ls_<i<0>, int>, ls_<i<1>, float>>>::type::value,
-              "");
-;
-static_assert(
-    pipe_<input<i<1>>, plus_<i<1>>, mkseq, is_<i<0>, i<1>>>::type::value, "");
 
 // UNZIP_INDEX
 struct unzip_index {
@@ -762,6 +542,188 @@ static_assert(pipe_<input<b<true>>, not_<is_zero>>::type::value, "");
 // >>::type::value,"");
 
 template <typename P, typename F> struct if_then_ : cond_<P, F, identity> {};
+
+// ARITHMETIC METAFUNCTIONS
+
+// This is for making std::integral_constant compatible with this library.
+
+// Integral operator
+template <typename T, T Tvalue, typename U, U Uvalue>
+std::integral_constant<decltype(Tvalue + Uvalue), Tvalue + Uvalue>
+operator+(std::integral_constant<T, Tvalue>, std::integral_constant<U, Uvalue>);
+template <typename T, T Tvalue, typename U, U Uvalue>
+std::integral_constant<decltype(Tvalue - Uvalue), Tvalue - Uvalue>
+operator-(std::integral_constant<T, Tvalue>, std::integral_constant<U, Uvalue>);
+template <typename T, T Tvalue, typename U, U Uvalue>
+std::integral_constant<decltype(Tvalue * Uvalue), Tvalue * Uvalue>
+operator*(std::integral_constant<T, Tvalue>, std::integral_constant<U, Uvalue>);
+template <typename T, T Tvalue, typename U, U Uvalue>
+std::integral_constant<decltype(Tvalue / Uvalue), Tvalue / Uvalue>
+operator/(std::integral_constant<T, Tvalue>, std::integral_constant<U, Uvalue>);
+template <typename T, T Tvalue, typename U, U Uvalue>
+std::integral_constant<decltype(Tvalue % Uvalue), Tvalue % Uvalue>
+operator%(std::integral_constant<T, Tvalue>, std::integral_constant<U, Uvalue>);
+
+// Boolean operator
+template <typename T, T Tvalue, typename U, U Uvalue>
+std::integral_constant<bool, (Tvalue < Uvalue)>
+operator<(std::integral_constant<T, Tvalue>, std::integral_constant<U, Uvalue>);
+template <typename T, T Tvalue, typename U, U Uvalue>
+std::integral_constant<bool, (Tvalue <= Uvalue)>
+operator<=(std::integral_constant<T, Tvalue>,
+           std::integral_constant<U, Uvalue>);
+template <typename T, T Tvalue, typename U, U Uvalue>
+std::integral_constant<bool, (Tvalue > Uvalue)>
+operator>(std::integral_constant<T, Tvalue>, std::integral_constant<U, Uvalue>);
+template <typename T, T Tvalue, typename U, U Uvalue>
+std::integral_constant<bool, (Tvalue >= Uvalue)>
+operator>=(std::integral_constant<T, Tvalue>,
+           std::integral_constant<U, Uvalue>);
+
+// LESS
+template <typename... Ts> struct less_ { typedef error_<less_<Ts...>> type; };
+template <typename P> struct less_<P> {
+  template <typename B> struct f {
+    typedef decltype(declval<B>() < declval<P>()) type;
+  };
+};
+template <> struct less_<> {
+  template <typename P, typename B> struct f {
+    typedef decltype(declval<P>() < declval<B>()) type;
+  };
+};
+// LESS_EQ
+template <typename... Ts> struct less_eq_ {
+  typedef error_<less_<Ts...>> type;
+};
+template <typename P> struct less_eq_<P> {
+  template <typename B> struct f {
+    typedef decltype(declval<B>() <= declval<P>()) type;
+  };
+};
+template <> struct less_eq_<> {
+  template <typename P, typename B> struct f {
+    typedef decltype(declval<P>() <= declval<B>()) type;
+  };
+};
+
+// GREATER
+template <typename... Ts> struct greater_ {
+  typedef error_<greater_<Ts...>> type;
+};
+template <typename P> struct greater_<P> {
+  template <typename B> struct f {
+    typedef decltype(declval<B>() > declval<P>()) type;
+  };
+};
+template <> struct greater_<> {
+  template <typename P, typename B> struct f {
+    typedef decltype(declval<P>() > declval<B>()) type;
+  };
+};
+// GREATER_EQ
+template <typename... Ts> struct greater_eq_ {
+  typedef error_<greater_eq_<Ts...>> type;
+};
+template <typename P> struct greater_eq_<P> {
+  template <typename B> struct f {
+    typedef decltype(declval<B>() >= declval<P>()) type;
+  };
+};
+template <> struct greater_eq_<> {
+  template <typename P, typename B> struct f {
+    typedef decltype(declval<P>() >= declval<B>()) type;
+  };
+};
+
+// PLUS
+template <typename... Ts> struct plus_ { typedef error_<plus_<Ts...>> type; };
+template <typename P> struct plus_<P> {
+  template <typename... Ts> struct f;
+  template <typename I> struct f<I> {
+    typedef decltype(declval<I>() + declval<P>()) type;
+  };
+};
+template <> struct plus_<> {
+  template <typename P, typename B> struct f {
+    typedef decltype(declval<P>() + declval<B>()) type;
+  };
+};
+// MINUS
+template <typename... Ts> struct minus_ { typedef error_<minus_<Ts...>> type; };
+template <typename P> struct minus_<P> {
+  template <typename... Ts> struct f;
+  template <typename I> struct f<I> {
+    typedef decltype(declval<I>() - declval<P>()) type;
+  };
+};
+template <> struct minus_<> {
+  template <typename P, typename B> struct f {
+    typedef decltype(declval<P>() - declval<B>()) type;
+  };
+};
+
+// MULTIPLY
+template <typename... Ts> struct multiply_ {
+  typedef error_<multiply_<Ts...>> type;
+};
+template <typename P> struct multiply_<P> {
+  template <typename... Ts> struct f;
+  template <typename I> struct f<I> {
+    typedef decltype(declval<I>() * declval<P>()) type;
+  };
+};
+template <> struct multiply_<> {
+  template <typename P, typename B> struct f {
+    typedef decltype(declval<P>() * declval<B>()) type;
+  };
+};
+// DIVIDE
+template <typename... Ts> struct divide_ {
+  typedef error_<divide_<Ts...>> type;
+};
+template <typename P> struct divide_<P> {
+  template <typename... Ts> struct f;
+  template <typename I> struct f<I> {
+    typedef decltype(declval<I>() / declval<P>()) type;
+  };
+};
+template <> struct divide_<> {
+  template <typename P, typename B> struct f {
+    typedef decltype(declval<P>() / declval<B>()) type;
+  };
+};
+// MODULO
+template <typename... Ts> struct modulo_ {
+  typedef error_<modulo_<Ts...>> type;
+};
+template <typename P> struct modulo_<P> {
+  template <typename... Ts> struct f;
+  template <typename I> struct f<I> {
+    typedef decltype(declval<I>() % declval<P>()) type;
+  };
+};
+template <> struct modulo_<> {
+  template <typename P, typename B> struct f {
+    typedef decltype(declval<P>() % declval<B>()) type;
+  };
+};
+
+struct gcd {
+  template <typename...> struct f;
+  template <typename T> struct f<T, typename zero<T>::type> { typedef T type; };
+  template <typename T, typename U>
+  struct f<T, U> : f<U, typename modulo_<>::template f<U, T>::type> {};
+};
+
+struct lcm {
+  template <typename...> struct f;
+  template <typename T, typename U> struct f<T, U> {
+    typedef typename divide_<>::template f<
+        typename multiply_<>::template f<T, U>::type,
+        typename gcd::template f<T, U>::type>::type type;
+  };
+};
 
 static_assert(pipe_t<input<i<3>>, plus_<i<1>>, if_then_<is_<i<4>>, plus_<i<2>>>,
                      is_<i<6>>>::value,

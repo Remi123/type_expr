@@ -18,15 +18,11 @@ int main() {
   auto pipe_test = pipe_<input<i<3>>, plus_<i<1>>, plus_<i<2>>>::type{};
   static_assert(std::is_same<decltype(pipe_test), i<6>>::value, "");
 
-  auto fold_test = pipe_<input<i<1>, i<2>, i<3>>, fold_left_<add<>>>::type{};
+  auto fold_test = pipe_<input<i<1>, i<2>, i<3>>, fold_left_<plus_<>>>::type{};
   static_assert(std::is_same<decltype(fold_test), i<6>>::value, "");
 
   static_assert(std::is_same<decltype(pipe_test), decltype(fold_test)>::value,
                 "");
-
-  auto pipe_fold_test =
-      pipe_<input<i<1>, i<4>>, fold_left_<lift_<Adding>>>::type{};
-  static_assert(std::is_same<decltype(pipe_fold_test), i<5>>::value, "");
 
   auto pipe_pipe_test =
       pipe_<pipe_<input<i<3>>, plus_<i<1>>>, plus_<i<2>>>::type{};
@@ -200,6 +196,12 @@ int main() {
   static_assert(pipe_<input<float, int, float, int>, find_if_<is_<int>>,
                       is_<i<1>, int>>::type::value,
                 "");
+  static_assert(pipe_<input<int, float>, zip_index,
+                      is_<ls_<i<0>, int>, ls_<i<1>, float>>>::type::value,
+                "");
+  ;
+  static_assert(
+      pipe_<input<i<1>>, plus_<i<1>>, mkseq, is_<i<0>, i<1>>>::type::value, "");
 
   return 0;
 }
