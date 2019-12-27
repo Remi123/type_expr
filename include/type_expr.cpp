@@ -15,7 +15,7 @@ int main() {
             sort>::type{};
   sort_test = input<i<1>, i<1>, i<2>, i<3>, i<3>, i<3>, i<3>, i<4>, i<5>>{};
 
-  auto pipe_test = pipe_<input<i<3>>, plus<i<1>>, plus<i<2>>>::type{};
+  auto pipe_test = pipe_<input<i<3>>, plus_<i<1>>, plus_<i<2>>>::type{};
   static_assert(std::is_same<decltype(pipe_test), i<6>>::value, "");
 
   auto fold_test = pipe_<input<i<1>, i<2>, i<3>>, fold_left_<add<>>>::type{};
@@ -29,7 +29,7 @@ int main() {
   static_assert(std::is_same<decltype(pipe_fold_test), i<5>>::value, "");
 
   auto pipe_pipe_test =
-      pipe_<pipe_<input<i<3>>, plus<i<1>>>, plus<i<2>>>::type{};
+      pipe_<pipe_<input<i<3>>, plus_<i<1>>>, plus_<i<2>>>::type{};
   static_assert(std::is_same<decltype(pipe_pipe_test), i<6>>::value, "");
   // -------------------------------------------------------------------
   // -------------------------------------------------------------------
@@ -43,9 +43,11 @@ int main() {
   pipe_t<input<ls_<int, i<0>>>, unwrap, pipe_<second>> t13 = i<0>{};
   pipe_t<input<ls_<int, i<0>>>, pipe_<unwrap, pipe_<second>>> t14 = i<0>{};
 
-  pipe_t<input<ls_<int, i<0>>>, pipe_<unwrap, first>, is_<int>>::value;
+  pipe_t<input<ls_<int, i<0>>>, pipe_<unwrap, first>, is_<int>> t15 = b<true>{};
 
-  // constexpr pipe_<input<int>, unwrap, is_<nothing>>::type t = b<true>{};
+  constexpr pipe_<input<int>, unwrap,
+                  is_<error_<type_expr::unwrap::unwrappable_type>>>::type t =
+      b<true>{};
   constexpr pipe_<input<ls_<int>>, unwrap>::type pipe_unwrap = 0;
   constexpr pipe_<input<ls_<int>>, pipe_<input<ls_<int>>, unwrap>>::type
       pipe_unwrap2 = 0;
@@ -61,16 +63,16 @@ int main() {
 
   // Calculation tests
   // -------------------------------------------------------------------
-  static_assert(pipe_t<input<double>, plus<int>, is_<double>>::value, "");
+  static_assert(pipe_t<input<double>, plus_<int>, is_<double>>::value, "");
   static_assert(pipe_<input<i<21>, i<49>>, gcd, is_<i<7>>>::type::value, "");
   static_assert(pipe_<input<i<21>, i<49>>, lcm, is_<i<147>>>::type::value, "");
   // -------------------------------------------------------------------
 
-  auto pipe_less = pipe_<input<i<1>, i<2>>, less<>>::type{};
-  auto pipe_less_2 = pipe_<input<i<1>>, less<i<2>>>::type{};
+  auto pipe_less_ = pipe_<input<i<1>, i<2>>, less_<>>::type{};
+  auto pipe_less__2 = pipe_<input<i<1>>, less_<i<2>>>::type{};
 
-  static_assert(pipe_less.value, "");
-  static_assert(pipe_less_2.value, "");
+  static_assert(pipe_less_.value, "");
+  static_assert(pipe_less__2.value, "");
 
   auto pipe_is_test = pipe_<input<i<1>>, is_<i<1>>>::type{};
   static_assert(pipe_is_test.value, "");
@@ -118,7 +120,8 @@ int main() {
   // Getting the first and the last.
 
   static_assert(pipe_<input<int, input<int>, ls_<int, int>>, flatten,
-                      is_<int, int, ls_<int, int>>>::type::value);
+                      is_<int, int, ls_<int, int>>>::type::value,
+                "");
   // Flatten and join_list might be reworked
 
   static_assert(
@@ -130,13 +133,13 @@ int main() {
 
   static_assert(
       pipe_<input<int, float, short>, get_<1>, is_<float>>::type::value, "");
-  static_assert(pipe_<input<i<1>, i<2>>, transform_<plus<i<3>>>,
+  static_assert(pipe_<input<i<1>, i<2>>, transform_<plus_<i<3>>>,
                       is_<i<4>, i<5>>>::type::value,
                 "");
   // Transform apply this metafunctor to the types one by one
   // Can also be called a map_ but I disgress transform_ is a better name
 
-  static_assert(pipe_<input<i<1>>, fork_<plus<i<1>>, plus<i<2>>>,
+  static_assert(pipe_<input<i<1>>, fork_<plus_<i<1>>, plus_<i<2>>>,
                       is_<i<2>, i<3>>>::type::value,
                 "");
   // pipes and forks in a single expression ? Cool Stuff
