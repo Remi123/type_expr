@@ -1,10 +1,9 @@
 ﻿#include <type_traits>
+#include <utility>
 
 namespace type_expr {
 
-template <typename T> T &&declval();
-
-// First Class Citizen of rage
+// First Class Citizen of type_expr
 
 // NOTHING : Universal representation of the concept of nothing
 struct nothing {
@@ -78,15 +77,48 @@ template <template <typename...> class F> struct quote_ {
 // FOLD_LEFT_ : Fold expression
 // The Farmer of the library
 template <typename F> struct fold_left_ {
+
   template <typename...> struct f { typedef input<> type; };
   template <typename A> struct f<A> { typedef A type; };
 
   template <typename... A> struct f<input<A...>> {
     typedef typename input<A...>::type type;
   };
+  // helper alias to use with the monster below
+  template <typename A, typename B>
+  using f_impl = typename F::template f<A, B>::type;
 
-  template <typename A, typename B, typename... Ts>
-  struct f<A, B, Ts...> : f<typename F::template f<A, B>::type, Ts...> {};
+  template <typename T0, typename T1, typename... Ts>
+  struct f<T0, T1, Ts...> : f<f_impl<T0, T1>, Ts...> {};
+  template <typename T0, typename T1, typename T2, typename... Ts>
+  struct f<T0, T1, T2, Ts...> : f<f_impl<f_impl<T0, T1>, T2>, Ts...> {};
+  template <typename T0, typename T1, typename T2, typename T3, typename... Ts>
+  struct f<T0, T1, T2, T3, Ts...>
+      : f<f_impl<f_impl<f_impl<T0, T1>, T2>, T3>, Ts...> {};
+  template <typename T0, typename T1, typename T2, typename T3, typename T4,
+            typename... Ts>
+  struct f<T0, T1, T2, T3, T4, Ts...>
+      : f<f_impl<f_impl<f_impl<f_impl<T0, T1>, T2>, T3>, T4>, Ts...> {};
+  template <typename T0, typename T1, typename T2, typename T3, typename T4,
+            typename T5, typename... Ts>
+  struct f<T0, T1, T2, T3, T4, T5, Ts...>
+      : f<f_impl<f_impl<f_impl<f_impl<f_impl<T0, T1>, T2>, T3>, T4>, T5>,
+          Ts...> {};
+  template <typename T0, typename T1, typename T2, typename T3, typename T4,
+            typename T5, typename T6, typename... Ts>
+  struct f<T0, T1, T2, T3, T4, T5, T6, Ts...>
+      : f<f_impl<f_impl<f_impl<f_impl<f_impl<f_impl<T0, T1>, T2>, T3>, T4>, T5>,
+                 T6>,
+          Ts...> {};
+  template <typename T0, typename T1, typename T2, typename T3, typename T4,
+            typename T5, typename T6, typename T7, typename... Ts>
+  struct f<T0, T1, T2, T3, T4, T5, T6, T7, Ts...>
+      : f<f_impl<
+              f_impl<f_impl<f_impl<f_impl<f_impl<f_impl<T0, T1>, T2>, T3>, T4>,
+                            T5>,
+                     T6>,
+              T7>,
+          Ts...> {};
 };
 
 // PIPE_EXPR : Internal-only. Take a type and send it as input to the next
@@ -361,12 +393,30 @@ template <typename... Ls> struct flat<input<Ls...>> {
 };
 template <typename... Ls, typename T, typename... Ts>
 struct flat<input<Ls...>, T, Ts...> : flat<input<Ls..., T>, Ts...> {};
+template <typename... Ls, typename T, typename... Is, typename... Ts>
+struct flat<input<Ls...>, T, input<Is...>, Ts...>
+    : flat<input<Ls..., T, Is...>, Ts...> {};
+
 template <typename... Ls, typename... Fs, typename... Ts>
 struct flat<input<Ls...>, input<Fs...>, Ts...>
     : flat<input<Ls..., Fs...>, Ts...> {};
 template <typename... Fs, typename... Gs, typename... Ls, typename... Ts>
 struct flat<input<Ls...>, input<Fs...>, input<Gs...>, Ts...>
     : flat<input<Ls..., Fs..., Gs...>, Ts...> {};
+template <typename... Fs, typename... Gs, typename... Hs, typename... Ls,
+          typename... Ts>
+struct flat<input<Ls...>, input<Fs...>, input<Gs...>, input<Hs...>, Ts...>
+    : flat<input<Ls..., Fs..., Gs..., Hs...>, Ts...> {};
+template <typename... Fs, typename... Gs, typename... Hs, typename... Is,
+          typename... Ls, typename... Ts>
+struct flat<input<Ls...>, input<Fs...>, input<Gs...>, input<Hs...>,
+            input<Is...>, Ts...>
+    : flat<input<Ls..., Fs..., Gs..., Hs..., Is...>, Ts...> {};
+
+template <typename T> struct flat_impl { typedef input<T> type; };
+template <typename... Ts> struct flat_impl<input<Ts...>> {
+  typedef input<Ts...> type;
+};
 
 // FLATTEN : Continue with only one input. Sub-input are removed.
 // The dirty but necessary tool of our library
@@ -584,12 +634,12 @@ operator>=(std::integral_constant<T, Tvalue>,
 template <typename... Ts> struct less_ { typedef error_<less_<Ts...>> type; };
 template <typename P> struct less_<P> {
   template <typename B> struct f {
-    typedef decltype(declval<B>() < declval<P>()) type;
+    typedef decltype(std::declval<B>() < std::declval<P>()) type;
   };
 };
 template <> struct less_<> {
   template <typename P, typename B> struct f {
-    typedef decltype(declval<P>() < declval<B>()) type;
+    typedef decltype(std::declval<P>() < std::declval<B>()) type;
   };
 };
 // LESS_EQ
@@ -598,12 +648,12 @@ template <typename... Ts> struct less_eq_ {
 };
 template <typename P> struct less_eq_<P> {
   template <typename B> struct f {
-    typedef decltype(declval<B>() <= declval<P>()) type;
+    typedef decltype(std::declval<B>() <= std::declval<P>()) type;
   };
 };
 template <> struct less_eq_<> {
   template <typename P, typename B> struct f {
-    typedef decltype(declval<P>() <= declval<B>()) type;
+    typedef decltype(std::declval<P>() <= std::declval<B>()) type;
   };
 };
 
@@ -613,12 +663,12 @@ template <typename... Ts> struct greater_ {
 };
 template <typename P> struct greater_<P> {
   template <typename B> struct f {
-    typedef decltype(declval<B>() > declval<P>()) type;
+    typedef decltype(std::declval<B>() > std::declval<P>()) type;
   };
 };
 template <> struct greater_<> {
   template <typename P, typename B> struct f {
-    typedef decltype(declval<P>() > declval<B>()) type;
+    typedef decltype(std::declval<P>() > std::declval<B>()) type;
   };
 };
 // GREATER_EQ
@@ -627,12 +677,12 @@ template <typename... Ts> struct greater_eq_ {
 };
 template <typename P> struct greater_eq_<P> {
   template <typename B> struct f {
-    typedef decltype(declval<B>() >= declval<P>()) type;
+    typedef decltype(std::declval<B>() >= std::declval<P>()) type;
   };
 };
 template <> struct greater_eq_<> {
   template <typename P, typename B> struct f {
-    typedef decltype(declval<P>() >= declval<B>()) type;
+    typedef decltype(std::declval<P>() >= std::declval<B>()) type;
   };
 };
 
@@ -641,12 +691,12 @@ template <typename... Ts> struct plus_ { typedef error_<plus_<Ts...>> type; };
 template <typename P> struct plus_<P> {
   template <typename... Ts> struct f;
   template <typename I> struct f<I> {
-    typedef decltype(declval<I>() + declval<P>()) type;
+    typedef decltype(std::declval<I>() + std::declval<P>()) type;
   };
 };
 template <> struct plus_<> {
   template <typename P, typename B> struct f {
-    typedef decltype(declval<P>() + declval<B>()) type;
+    typedef decltype(std::declval<P>() + std::declval<B>()) type;
   };
 };
 // MINUS
@@ -654,12 +704,12 @@ template <typename... Ts> struct minus_ { typedef error_<minus_<Ts...>> type; };
 template <typename P> struct minus_<P> {
   template <typename... Ts> struct f;
   template <typename I> struct f<I> {
-    typedef decltype(declval<I>() - declval<P>()) type;
+    typedef decltype(std::declval<I>() - std::declval<P>()) type;
   };
 };
 template <> struct minus_<> {
   template <typename P, typename B> struct f {
-    typedef decltype(declval<P>() - declval<B>()) type;
+    typedef decltype(std::declval<P>() - std::declval<B>()) type;
   };
 };
 
@@ -670,12 +720,12 @@ template <typename... Ts> struct multiply_ {
 template <typename P> struct multiply_<P> {
   template <typename... Ts> struct f;
   template <typename I> struct f<I> {
-    typedef decltype(declval<I>() * declval<P>()) type;
+    typedef decltype(std::declval<I>() * std::declval<P>()) type;
   };
 };
 template <> struct multiply_<> {
   template <typename P, typename B> struct f {
-    typedef decltype(declval<P>() * declval<B>()) type;
+    typedef decltype(std::declval<P>() * std::declval<B>()) type;
   };
 };
 // DIVIDE
@@ -685,12 +735,12 @@ template <typename... Ts> struct divide_ {
 template <typename P> struct divide_<P> {
   template <typename... Ts> struct f;
   template <typename I> struct f<I> {
-    typedef decltype(declval<I>() / declval<P>()) type;
+    typedef decltype(std::declval<I>() / std::declval<P>()) type;
   };
 };
 template <> struct divide_<> {
   template <typename P, typename B> struct f {
-    typedef decltype(declval<P>() / declval<B>()) type;
+    typedef decltype(std::declval<P>() / std::declval<B>()) type;
   };
 };
 // MODULO
@@ -700,12 +750,12 @@ template <typename... Ts> struct modulo_ {
 template <typename P> struct modulo_<P> {
   template <typename... Ts> struct f;
   template <typename I> struct f<I> {
-    typedef decltype(declval<I>() % declval<P>()) type;
+    typedef decltype(std::declval<I>() % std::declval<P>()) type;
   };
 };
 template <> struct modulo_<> {
   template <typename P, typename B> struct f {
-    typedef decltype(declval<P>() % declval<B>()) type;
+    typedef decltype(std::declval<P>() % std::declval<B>()) type;
   };
 };
 
