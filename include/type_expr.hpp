@@ -3,12 +3,10 @@
 
 namespace type_expr {
 
-// First Class Citizen of type_expr
+// -------------------------------------------------------
+// FIRST CLASS CITIZEN OF TYPE_EXPR
+// -------------------------------------------------------
 
-// NOTHING : Universal representation of the concept of nothing
-struct nothing {
-  template <typename...> struct f { typedef nothing type; };
-};
 
 // INPUT : Universal type container of metafunctions.
 template <typename... Ts> struct input {
@@ -19,6 +17,9 @@ template <typename T> struct input<T> {
   typedef T type;
   template <typename... Ts> struct f { typedef T type; };
 };
+
+// NOTHING : Universal representation of the concept of nothing
+using nothing = input<>;
 
 // ERROR : Template used for debugging
 template <typename MSG> struct error_ {
@@ -34,22 +35,11 @@ struct identity {
   template <typename T> struct f<T> { typedef T type; };
 };
 
-// ZERO : User-specialized to retrieve the zero of their type.
-template <typename T> struct zero;
-
 // I : Universal integer type.
 template <int V> using i = std::integral_constant<int, V>;
 
-// This would have been the ideal implementation of std::integral_constant
-/*template <int I> struct i {*/
-// typedef i type;
-// constexpr static int value = I;
-// template <int B> i<I + B> operator+(i<B> b);
-// template <int B> i<I - B> operator-(i<B> b);
-// template <int B> i<I * B> operator*(i<B> b);
-// template <int B> i<I / B> operator/(i<B> b);
-// template <int B> i<I % B> operator%(i<B> b);
-/*};*/
+// ZERO : User-specialized to retrieve the zero of their type.
+template <typename T> struct zero;
 
 // First specialization of zero. The zero of any i<Num> is i<0>
 template <typename T, T value> struct zero<std::integral_constant<T, value>> {
@@ -58,6 +48,13 @@ template <typename T, T value> struct zero<std::integral_constant<T, value>> {
 
 // B : Universal boolean type.
 template <bool B> using b = std::integral_constant<bool, B>;
+
+// FRACTION : Universal fraction type.
+template<typename Num, typename Den>
+struct fraction_;
+/*{*/
+  //typedef typename decltype(std::declval<Num>() / std::declval<Den>() )  reduce;
+/*};*/
 
 // -------------------------------------------------------
 // METAFUNCTION
@@ -78,7 +75,7 @@ template <template <typename...> class F> struct quote_ {
 // The Farmer of the library
 template <typename F> struct fold_left_ {
 
-  template <typename...> struct f { typedef input<> type; };
+  template <typename...> struct f { typedef error_<fold_left_<int>> type; };
   template <typename A> struct f<A> { typedef A type; };
 
   template <typename... A> struct f<input<A...>> {
@@ -142,14 +139,15 @@ template <typename... Cs> struct pipe_ {
     typedef typename fold_left_<lift_<pipe_expr>>::template f<input<Ts...>,
                                                               Cs...>::type type;
   };
-  typedef typename pipe_<Cs...>::template f<>::type type;
+  using type = typename pipe_<Cs...>::template f<>::type ;
+  // TODO : This ::type is a problem since it's always instanciated
 };
 template <> struct pipe_<> {
   template <typename...> struct f { typedef nothing type; };
   typedef nothing type;
 };
 
-template <typename... Fs> using pipe_t = typename pipe_<Fs...>::type;
+template <typename... Fs> using pipe_t = typename pipe_<Fs...>::template f<>::type;
 // template <typename... Fs> constexpr int pipe_v = pipe_<Fs...>::type::value;
 
 // FORK_ : Inputs are copied to each metafunctions
@@ -168,7 +166,7 @@ struct unwrap {
   };
   template <template <typename... Ts> class F, typename... Ts>
   struct f<F<Ts...>> {
-    typedef typename input<Ts...>::template f<>::type type;
+    typedef typename input<Ts...>::type type;
   };
 };
 
@@ -221,11 +219,11 @@ struct reverse {
 
 // CALL_F : The input is a metafunction. Call it.
 struct call_f {
-  template <typename T> struct f : pipe_<T> {};
+  template <typename ... T> struct f : pipe_<T...> {};
 };
 
 // CONSTRUCT_FS : Construct a metafunction from the inputs. and call it.
-template <typename... Fs> struct construct_fs {
+template <typename... Fs> struct construct_fs : pipe_<Fs..., call_f> {
   template <typename... Ts> struct f : pipe_<input<Ts...>, Fs..., call_f> {};
 };
 
@@ -246,28 +244,78 @@ template <typename P, typename T, typename F> struct cond_ {
   };
 };
 
+
+// Implementation of mkseq
+template< std::size_t ... i >
+struct index_sequence
+{
+        typedef std::size_t value_type;
+
+        typedef index_sequence<i...> type;
+        typedef input<std::integral_constant<int,i>...> to_types;
+};
+
+
+// this structure doubles index_sequence elements.
+// s- is number of template arguments in IS.
+template< std::size_t s, typename IS >
+struct doubled_index_sequence;
+
+template< std::size_t s, std::size_t ... i >
+struct doubled_index_sequence< s, index_sequence<i... > >
+{
+        typedef index_sequence<i..., (s + i)... > type;
+};
+
+// this structure incremented by one index_sequence, iff NEED-is true, 
+// otherwise returns IS
+template< bool NEED, typename IS >
+struct inc_index_sequence;
+
+template< typename IS >
+struct inc_index_sequence<false,IS>{ typedef IS type; };
+
+template< std::size_t ... i >
+struct inc_index_sequence< true, index_sequence<i...> >
+{
+        typedef index_sequence<i..., sizeof...(i)> type;
+};
+
+
+
+// helper structure for make_index_sequence.
+template< std::size_t N >
+struct make_index_sequence_impl : 
+        inc_index_sequence< (N % 2 != 0), 
+        typename doubled_index_sequence< N / 2,
+        typename make_index_sequence_impl< N / 2> ::type
+        >::type
+        >
+{};
+
+// helper structure needs specialization only with 0 element.
+template<>struct make_index_sequence_impl<0>{ typedef index_sequence<> type; };
+
+
+
+// OUR make_index_sequence,  gcc-4.4.7 doesn't support `using`, 
+// so we use struct instead of it.
+template< std::size_t N >
+struct make_index_sequence : make_index_sequence_impl<N>::type {};
+
+//index_sequence_for  any variadic templates
+template< typename ... T >
+struct index_sequence_for : make_index_sequence< sizeof...(T) >{};
+
+
+
+
+
 // MKSEQ_ : Continue with i<0>, i<1>, ... , i<N-1>
-// Need optimization but it's for later. I'll do it soon.
 struct mkseq {
-  template <typename... Is> struct f_impl;
-
-  template <int In, typename... Is> struct f_impl<input<i<0>, Is...>, i<In>> {
-    typedef input<i<0>, Is...> type;
-  };
-
-  template <int In, typename... Is>
-  struct f_impl<input<Is...>, i<In>> : f_impl<input<i<In>, Is...>, i<In - 1>> {
-  };
-
-  template <bool B, typename I> struct fff;
-  template <int I> struct fff<true, i<I>> {
-    typedef typename f_impl<input<>, i<I - 1>>::type type;
-  };
-  template <int I> struct fff<false, i<I>> { typedef input<> type; };
-
   template <typename... Ts> struct f { typedef nothing type; };
   template <int I> struct f<i<I>> {
-    typedef typename fff<(0 < I), i<I>>::type type;
+    typedef typename make_index_sequence<I>::to_types type;
   };
 };
 
@@ -325,19 +373,20 @@ template <typename... Ts> struct push_back_ {
 
 // GET : Continue with the type a index N
 template <int I> struct get_ {
-  template <typename... Ts> struct f_impl {};
-  template <typename T> struct f_impl<i<I>, T> { typedef T type; };
-  template <typename... Is, typename... Us>
-  struct f_impl<input<Is...>, input<Us...>> : f_impl<Is, Us>... {};
 
   template <bool b, typename... Ts> struct fff { typedef nothing type; };
   template <typename... Ts> struct fff<true, Ts...> {
+        template <typename... > struct f_impl {};
+          template <typename T> struct f_impl<i<I>, T> { typedef T type; };
+          template <typename... Is, typename... Us>
+          struct f_impl<input<Is...>, input<Us...>> : f_impl<Is, Us>... {};
+
     typedef typename mkseq::template f<i<sizeof...(Ts)>>::type indexed_inputs;
     typedef input<typename f_impl<indexed_inputs, input<Ts...>>::type> type;
   };
 
   template <typename... Ts> struct f {
-    typedef typename fff<(0 <= I && I < sizeof...(Ts)), Ts...>::type type;
+    typedef typename fff<(I < sizeof...(Ts)) &&( 0 < sizeof...(Ts)), Ts...>::type type;
   };
 };
 
@@ -748,7 +797,7 @@ template <typename... Ts> struct modulo_ {
   typedef error_<modulo_<Ts...>> type;
 };
 template <typename P> struct modulo_<P> {
-  template <typename... Ts> struct f;
+  template <typename... Ts> struct f{typedef error_<modulo_<P>> type;};
   template <typename I> struct f<I> {
     typedef decltype(std::declval<I>() % std::declval<P>()) type;
   };
@@ -760,10 +809,10 @@ template <> struct modulo_<> {
 };
 
 struct gcd {
-  template <typename...> struct f;
+  template <typename...> struct f{ typedef error_<gcd> type;};
   template <typename T> struct f<T, typename zero<T>::type> { typedef T type; };
   template <typename T, typename U>
-  struct f<T, U> : f<U, typename modulo_<>::template f<U, T>::type> {};
+  struct f<T, U> : f<U, typename modulo_<>::template f<T,U>::type> {};
 };
 
 struct lcm {
@@ -781,6 +830,16 @@ static_assert(pipe_t<input<i<3>>, plus_<i<1>>, if_then_<is_<i<4>>, plus_<i<2>>>,
 static_assert(pipe_t<input<i<3>>, plus_<i<1>>, if_then_<is_<i<3>>, plus_<i<2>>>,
                      is_<i<4>>>::value,
               "");
+
+template<typename N, typename D>
+struct fraction
+{
+        typedef typename gcd::template f<N,D>::type Gcd;
+        template<typename A, typename B> using div = typename divide_<>::template f<A,B>::type;
+        typedef fraction<div<N,Gcd>,div<D,Gcd> > Reduce;
+};
+
+
 
 // INSERT_AT
 template <int Index, typename F>

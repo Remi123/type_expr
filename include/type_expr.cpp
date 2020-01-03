@@ -128,7 +128,7 @@ int main() {
   // function
 
   static_assert(
-      pipe_<input<int, float, short>, get_<1>, is_<float>>::type::value, "");
+      pipe_<input<int, float, short>, get_<1>, is_<float> >::type::value, "");
   static_assert(pipe_<input<i<1>, i<2>>, transform_<plus_<i<3>>>,
                       is_<i<4>, i<5>>>::type::value,
                 "");
@@ -179,10 +179,10 @@ int main() {
   static_assert(
       pipe_<input<int, int, int>, pipe_<get_<0>>, is_<int>>::type::value, "");
   static_assert(
-      pipe_<input<int, int, int>, pipe_<get_<-1>>, is_<nothing>>::type::value,
+      pipe_<input<i<1>, i<2>, i<3>>, get_<-1>, is_<> >::type::value,
       "");
   static_assert(
-      pipe_<input<int, int, int>, pipe_<get_<3>>, is_<nothing>>::type::value,
+      pipe_<input<int, int, int>, pipe_<get_<3>>, is_<>>::type::value,
       "");
 
   static_assert(pipe_<input<i<2>>, mkseq, is_<i<0>, i<1>>>::type::value, "");
