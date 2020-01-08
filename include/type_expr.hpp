@@ -139,8 +139,9 @@ template <typename... Cs> struct pipe_ {
     typedef typename fold_left_<lift_<pipe_expr>>::template f<input<Ts...>,
                                                               Cs...>::type type;
   };
-  using type = typename pipe_<Cs...>::template f<>::type ;
-  // TODO : This ::type is a problem since it's always instanciated
+  // No ::type. This is a problem since it's always instanciated even if not asked.
+  // required to have an alias eval_pipe_ = typename pipe_<Fs...>::template f<>::type;
+  // to instanciate to the result type;
 };
 template <> struct pipe_<> {
   template <typename...> struct f { typedef nothing type; };
@@ -148,7 +149,7 @@ template <> struct pipe_<> {
 };
 
 template <typename... Fs> using pipe_t = typename pipe_<Fs...>::template f<>::type;
-// template <typename... Fs> constexpr int pipe_v = pipe_<Fs...>::type::value;
+// template <typename... Fs> constexpr int eval_pipe_v = eval_pipe_<Fs...>::value;
 
 // FORK_ : Inputs are copied to each metafunctions
 // The Peanut Butter of the library
@@ -244,8 +245,8 @@ template <typename P, typename T, typename F> struct cond_ {
   };
 };
 
-
-// Implementation of mkseq
+// MKSEQ_ : Continue with i<0>, i<1>, ... , i<N-1>
+// Implementation of mkseq -------------------------------------------
 template< std::size_t ... i >
 struct index_sequence
 {
@@ -254,7 +255,6 @@ struct index_sequence
         typedef index_sequence<i...> type;
         typedef input<std::integral_constant<int,i>...> to_types;
 };
-
 
 // this structure doubles index_sequence elements.
 // s- is number of template arguments in IS.
@@ -281,8 +281,6 @@ struct inc_index_sequence< true, index_sequence<i...> >
         typedef index_sequence<i..., sizeof...(i)> type;
 };
 
-
-
 // helper structure for make_index_sequence.
 template< std::size_t N >
 struct make_index_sequence_impl : 
@@ -296,8 +294,6 @@ struct make_index_sequence_impl :
 // helper structure needs specialization only with 0 element.
 template<>struct make_index_sequence_impl<0>{ typedef index_sequence<> type; };
 
-
-
 // OUR make_index_sequence,  gcc-4.4.7 doesn't support `using`, 
 // so we use struct instead of it.
 template< std::size_t N >
@@ -307,11 +303,7 @@ struct make_index_sequence : make_index_sequence_impl<N>::type {};
 template< typename ... T >
 struct index_sequence_for : make_index_sequence< sizeof...(T) >{};
 
-
-
-
-
-// MKSEQ_ : Continue with i<0>, i<1>, ... , i<N-1>
+// MKSEQ actual implementation.
 struct mkseq {
   template <typename... Ts> struct f { typedef nothing type; };
   template <int I> struct f<i<I>> {
@@ -328,8 +320,8 @@ struct zip {
     typedef input<ls_<Ts, Us>...> type;
   };
 };
-static_assert(pipe_<input<ls_<int, int>, ls_<float, char>>, zip,
-                    is_<ls_<int, float>, ls_<int, char>>>::type::value,
+static_assert(pipe_t<input<ls_<int, int>, ls_<float, char>>, zip,
+                    is_<ls_<int, float>, ls_<int, char>>>::value,
               "");
 
 // ZIP_INDEX
@@ -575,8 +567,8 @@ template <typename F>
 struct find_if_
     : pipe_<zip_index, filter_<pipe_<unwrap, second, F>>, first, unwrap> {};
 
-static_assert(pipe_<input<float, int, float, int>, find_if_<is_<int>>,
-                    is_<i<1>, int>>::type::value,
+static_assert(pipe_t<input<float, int, float, int>, find_if_<is_<int>>,
+                    is_<i<1>, int>>::value,
               "");
 
 // PRODUCT : Given two lists, continue with every possible lists of two types.
@@ -587,7 +579,7 @@ struct product {
   };
   template <typename... As, typename... Bs>
   struct f<ls_<As...>, ls_<Bs...>>
-      : pipe_<input<ls_<As, ls_<Bs...>>...>, transform_<product>, flatten> {};
+      : pipe_t<input<ls_<As, ls_<Bs...>>...>, transform_<product>, flatten> {};
 };
 
 // ROTATE : rotate
@@ -622,8 +614,8 @@ struct is_zero {
   };
 };
 
-static_assert(pipe_<input<b<0>>, is_zero>::type::value, "");
-static_assert(pipe_<input<b<true>>, not_<is_zero>>::type::value, "");
+static_assert(pipe_t<input<b<0>>, is_zero>::value, "");
+static_assert(pipe_t<input<b<true>>, not_<is_zero>>::value, "");
 
 // IF, AND , OR : WIP
 // Not satisfying will revisit later
@@ -847,136 +839,16 @@ struct insert_at_
           flatten> {};
 
 static_assert(
-    pipe_<input<int, float, int[2], float[2]>,
+    pipe_t<input<int, float, int[2], float[2]>,
           insert_at_<2, input<char, char[2]>>,
-          is_<int, float, char, char[2], int[2], float[2]>>::type::value,
+          is_<int, float, char, char[2], int[2], float[2]>>::value,
     "");
 
-static_assert(pipe_<input<int, float>, insert_at_<1, identity>,
-                    is_<int, int, float, float>>::type::value,
+static_assert(pipe_t<input<int, float>, insert_at_<1, identity>,
+                    is_<int, int, float, float>>::value,
               "");
 
 
-
-
-// FRACTION : Arithmetic type. 
-template<typename N, typename D>
-struct fraction
-{
-        /*typedef typename gcd::template f<N,D>::type Gcd;*/
-        //typedef fraction<typename divide_<>::template f<N,Gcd>::type,
-                /*typename divide_<>::template f<D,Gcd>::type > Reduce;*/
-
-        template<typename N2, typename D2>
-                fraction<
-                decltype(std::declval<N>() * std::declval<D2>() + std::declval<N2>() * std::declval<D>()),
-                decltype(std::declval<D>() * std::declval<D2>())
-                        >
-                        operator+(const fraction<N2,D2>&){};
-
-        template<typename N2, typename D2>
-                fraction<
-                decltype(std::declval<N>() * std::declval<D2>() - std::declval<N2>() * std::declval<D>()),
-                decltype(std::declval<D>() * std::declval<D2>())
-                        >
-                        operator-(const fraction<N2,D2>&);
-
-        template<typename N2, typename D2>
-                fraction<
-                decltype(std::declval<N>() * std::declval<N2>()),
-                decltype(std::declval<D>() * std::declval<D2>())
-                        >
-                        operator*(const fraction<N2,D2>&);
-        template<typename N2, typename D2>
-                fraction<
-                decltype(std::declval<N>() / std::declval<N2>()),
-                decltype(std::declval<D>() * std::declval<D2>())
-                        >
-                        operator/(const fraction<N2,D2>&);
-
-
-
-};
-
-template<typename N, typename D,typename N2>
-        fraction<
-decltype(std::declval<N>() + (std::declval<N2>() * std::declval<D>())  ),
-        decltype(std::declval<D>())
-        >
-        operator+(const N2&,const fraction<N,D>){};
-template<typename N, typename D,typename N2>
-        fraction<
-decltype(std::declval<N>() + (std::declval<N2>() * std::declval<D>())  ),
-        decltype(std::declval<D>())
-        >
-        operator+(const fraction<N,D>,const N2&){};
-template<typename N, typename D,typename N2>
-        fraction<
-decltype(std::declval<N2>() * std::declval<D>() - std::declval<N>() ),
-        decltype(std::declval<D>())
-        >
-        operator-(const N2&,const fraction<N,D>){};
-template<typename N, typename D,typename N2>
-        fraction<
-decltype(std::declval<N>() - (std::declval<N2>() * std::declval<D>())  ),
-        decltype(std::declval<D>())
-        >
-        operator-(const fraction<N,D>,const N2&){};
-
-
-template<typename N, typename D,typename N2>
-        fraction<
-decltype(std::declval<N>() * std::declval<N2>()  ),
-        decltype(std::declval<D>())
-        >
-        operator*(const N2&,const fraction<N,D>){};
-template<typename N, typename D,typename N2>
-        fraction<
-decltype(std::declval<N>() * std::declval<N2>()  ),
-        decltype(std::declval<D>())
-        >
-        operator*(const fraction<N,D>,const N2&){};
-//WIP
-template<typename N, typename D,typename N2>
-        fraction<
-decltype(std::declval<N2>() / std::declval<N>()  ),
-        decltype(std::declval<D>())
-        >
-        operator/(const N2&,const fraction<N,D>){};
-template<typename N, typename D,typename N2>
-        fraction<
-decltype(std::declval<N>() * std::declval<N2>()  ),
-        decltype(std::declval<D>())
-        >
-        operator/(const fraction<N,D>,const N2&){};
-
-
-
-
-/*template<typename N>*/
-//struct fraction<N,N> : std::integral_constant<int,1> 
-//{
-  //typedef N Gcd;
-  //typedef std::integral_constant<int,1> Reduce;
-/*};*/
-
-template<typename N>
-struct fraction<N,typename zero<N>::type>
-{
-//empty
-};
-
-template<typename N, typename D>
-struct zero<fraction<N,D>>
-{
-  typedef fraction<typename zero<N>::type,D> type;
-};
-
-template<int I, int J>
-using frac = fraction<std::integral_constant<int,I>, std::integral_constant<int,J>>;
-static_assert(pipe_t<input<frac<9,5>>, plus_<frac<3,4>> , is_<frac<51,20>>>::value,"");
-static_assert(pipe_<input<frac<5,5>>, plus_<frac<3,1>>, is_<frac<20,5>> >::type::value,"");
-static_assert(pipe_<input<frac<2,5>>, plus_<frac<3,5>>, is_<frac<25,25>> >::type::value,"");
 
 // Below is not yet integrated into type_expr
 
