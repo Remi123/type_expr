@@ -12,7 +12,7 @@ int main() {
 
   auto sort_test =
       pipe_<input<i<3>, i<1>, i<3>, i<4>, i<3>, i<1>, i<2>, i<3>, i<5>>,
-            sort>::type{};
+            sort<less_<>>>::type{};
   sort_test = input<i<1>, i<1>, i<2>, i<3>, i<3>, i<3>, i<3>, i<4>, i<5>>{};
 
   auto pipe_test = pipe_<input<i<3>>, plus_<i<1>>, plus_<i<2>>>::type{};

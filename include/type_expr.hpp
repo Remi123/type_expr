@@ -813,7 +813,10 @@ struct gcd {
   template <typename T> struct f<T, typename zero<T>::type> { typedef T type; };
   template <typename T, typename U>
   struct f<T, U> : f<U, typename modulo_<>::template f<T,U>::type> {};
+  template <typename T>
+  struct f<T, T> { typedef T type; };
 };
+
 
 struct lcm {
   template <typename...> struct f;
@@ -830,16 +833,6 @@ static_assert(pipe_t<input<i<3>>, plus_<i<1>>, if_then_<is_<i<4>>, plus_<i<2>>>,
 static_assert(pipe_t<input<i<3>>, plus_<i<1>>, if_then_<is_<i<3>>, plus_<i<2>>>,
                      is_<i<4>>>::value,
               "");
-
-template<typename N, typename D>
-struct fraction
-{
-        typedef typename gcd::template f<N,D>::type Gcd;
-        template<typename A, typename B> using div = typename divide_<>::template f<A,B>::type;
-        typedef fraction<div<N,Gcd>,div<D,Gcd> > Reduce;
-};
-
-
 
 // INSERT_AT
 template <int Index, typename F>
@@ -863,18 +856,136 @@ static_assert(pipe_<input<int, float>, insert_at_<1, identity>,
                     is_<int, int, float, float>>::type::value,
               "");
 
+
+
+
+// FRACTION : Arithmetic type. 
+template<typename N, typename D>
+struct fraction
+{
+        /*typedef typename gcd::template f<N,D>::type Gcd;*/
+        //typedef fraction<typename divide_<>::template f<N,Gcd>::type,
+                /*typename divide_<>::template f<D,Gcd>::type > Reduce;*/
+
+        template<typename N2, typename D2>
+                fraction<
+                decltype(std::declval<N>() * std::declval<D2>() + std::declval<N2>() * std::declval<D>()),
+                decltype(std::declval<D>() * std::declval<D2>())
+                        >
+                        operator+(const fraction<N2,D2>&){};
+
+        template<typename N2, typename D2>
+                fraction<
+                decltype(std::declval<N>() * std::declval<D2>() - std::declval<N2>() * std::declval<D>()),
+                decltype(std::declval<D>() * std::declval<D2>())
+                        >
+                        operator-(const fraction<N2,D2>&);
+
+        template<typename N2, typename D2>
+                fraction<
+                decltype(std::declval<N>() * std::declval<N2>()),
+                decltype(std::declval<D>() * std::declval<D2>())
+                        >
+                        operator*(const fraction<N2,D2>&);
+        template<typename N2, typename D2>
+                fraction<
+                decltype(std::declval<N>() / std::declval<N2>()),
+                decltype(std::declval<D>() * std::declval<D2>())
+                        >
+                        operator/(const fraction<N2,D2>&);
+
+
+
+};
+
+template<typename N, typename D,typename N2>
+        fraction<
+decltype(std::declval<N>() + (std::declval<N2>() * std::declval<D>())  ),
+        decltype(std::declval<D>())
+        >
+        operator+(const N2&,const fraction<N,D>){};
+template<typename N, typename D,typename N2>
+        fraction<
+decltype(std::declval<N>() + (std::declval<N2>() * std::declval<D>())  ),
+        decltype(std::declval<D>())
+        >
+        operator+(const fraction<N,D>,const N2&){};
+template<typename N, typename D,typename N2>
+        fraction<
+decltype(std::declval<N2>() * std::declval<D>() - std::declval<N>() ),
+        decltype(std::declval<D>())
+        >
+        operator-(const N2&,const fraction<N,D>){};
+template<typename N, typename D,typename N2>
+        fraction<
+decltype(std::declval<N>() - (std::declval<N2>() * std::declval<D>())  ),
+        decltype(std::declval<D>())
+        >
+        operator-(const fraction<N,D>,const N2&){};
+
+
+template<typename N, typename D,typename N2>
+        fraction<
+decltype(std::declval<N>() * std::declval<N2>()  ),
+        decltype(std::declval<D>())
+        >
+        operator*(const N2&,const fraction<N,D>){};
+template<typename N, typename D,typename N2>
+        fraction<
+decltype(std::declval<N>() * std::declval<N2>()  ),
+        decltype(std::declval<D>())
+        >
+        operator*(const fraction<N,D>,const N2&){};
+//WIP
+template<typename N, typename D,typename N2>
+        fraction<
+decltype(std::declval<N2>() / std::declval<N>()  ),
+        decltype(std::declval<D>())
+        >
+        operator/(const N2&,const fraction<N,D>){};
+template<typename N, typename D,typename N2>
+        fraction<
+decltype(std::declval<N>() * std::declval<N2>()  ),
+        decltype(std::declval<D>())
+        >
+        operator/(const fraction<N,D>,const N2&){};
+
+
+
+
+/*template<typename N>*/
+//struct fraction<N,N> : std::integral_constant<int,1> 
+//{
+  //typedef N Gcd;
+  //typedef std::integral_constant<int,1> Reduce;
+/*};*/
+
+template<typename N>
+struct fraction<N,typename zero<N>::type>
+{
+//empty
+};
+
+template<typename N, typename D>
+struct zero<fraction<N,D>>
+{
+  typedef fraction<typename zero<N>::type,D> type;
+};
+
+template<int I, int J>
+using frac = fraction<std::integral_constant<int,I>, std::integral_constant<int,J>>;
+static_assert(pipe_t<input<frac<9,5>>, plus_<frac<3,4>> , is_<frac<51,20>>>::value,"");
+static_assert(pipe_<input<frac<5,5>>, plus_<frac<3,1>>, is_<frac<20,5>> >::type::value,"");
+static_assert(pipe_<input<frac<2,5>>, plus_<frac<3,5>>, is_<frac<25,25>> >::type::value,"");
+
 // Below is not yet integrated into type_expr
 
-//*template <typename A> struct less_<void, A> : std::true_type {};*/
-// template <typename A> struct less_<A, void> : std::false_type {};
-// template <> struct less_<void, void> : std::true_type {};
-// template <> struct less_<int, float> : std::true_type {};
-/*template <> struct less_<float, int> : std::false_type {};*/
 
 template <typename A, typename B> struct eager { typedef input<> type; };
 
 template <typename A> struct eager<A, std::true_type> { typedef A type; };
 
+template<typename Predicate>
 struct sort {
   template <typename... L> struct sort_impl;
   template <typename T> struct sort_impl<T> { typedef T type; };
@@ -882,10 +993,10 @@ struct sort {
   template <typename... Ts, typename F> struct sort_impl<input<F, Ts...>> {
 
     typedef typename sort_impl<typename flat<
-        input<>, typename eager<Ts, typename less_<>::template f<Ts, F>::type>::
+        input<>, typename eager<Ts, typename Predicate::template f<Ts, F>::type>::
                      type...>::type>::type Less;
     typedef typename sort_impl<typename flat<
-        input<>, typename eager<Ts, typename greater_eq_<>::template f<Ts, F>::
+        input<>, typename eager<Ts, typename not_<Predicate>::template f<Ts, F>::
                                         type>::type...>::type>::type More;
 
     typedef typename flat<input<>, Less, F, More>::type type;
