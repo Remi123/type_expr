@@ -9,7 +9,7 @@ Most of it is unreadable but provide a promising interface to play with types. I
 
 ```C++
 using namespace type_expr;
-pipe_<input<i<1>>, plus_<i<3>> , is_<i<4>> >::type is_it_4; // is_it_4 is an std::integral_constant<bool,true>
+eval_pipe_<input<i<1>>, plus_<i<3>> , is_<i<4>> > is_it_4; // is_it_4 is an std::integral_constant<bool,true>
 static_assert(is_it_4.value,"");
 ```
 
