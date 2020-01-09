@@ -349,6 +349,14 @@ struct unzip_index {
   };
 };
 
+// UNZIP
+struct unzip
+{
+    template<typename ...> struct f;
+    template<template<typename ...> class F, typename ... Fs, typename ... Gs>
+            struct f<F<Fs,Gs>...> : te::input<te::input<Fs...>,te::input<Gs...>>{};
+};
+
 // PUSH_FRONT_ : Add anything you want to the front of the inputs.
 template <typename... Ts> struct push_front_ {
   template <typename... Inputs> struct f {
