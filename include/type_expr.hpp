@@ -1,4 +1,7 @@
-﻿#include <type_traits>
+﻿#ifndef TYPE_EXPR_HPP
+#define TYPE_EXPR_HPP
+
+#include <type_traits>
 #include <utility>
 
 namespace type_expr {
@@ -907,3 +910,4 @@ struct sort {
 // int t = unique<i<3>,i<1>,i<3>,i<4>,i<3>,i<1>,i<2>,i<3>,i<5>>::type {};
 
 }; // namespace type_expr
+#endif

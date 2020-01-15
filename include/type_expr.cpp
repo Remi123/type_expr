@@ -1,6 +1,8 @@
 ﻿#include "type_expr.hpp"
 #include <assert.h>
 #include <type_traits>
+
+#include "type_tup.hpp"
   
 
 int main() {
@@ -203,6 +205,12 @@ int main() {
                 "");
   static_assert(
       te::eval_pipe_<input<i<1>>, plus_<i<1>>, mkseq, is_<i<0>, i<1>>>::value, "");
+
+// TYPE_TUP Test
+
+te::tup<int,float> tt2{};
+
+// TYPE_TUP
 
   return 0;
 }
