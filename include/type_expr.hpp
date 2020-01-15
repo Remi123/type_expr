@@ -149,6 +149,7 @@ template <> struct pipe_<> {
 };
 
 template <typename... Fs> using pipe_t = typename pipe_<Fs...>::template f<>::type;
+template <typename... Fs> using eval_pipe_ = typename pipe_<Fs...>::template f<>::type;
 // template <typename... Fs> constexpr int eval_pipe_v = eval_pipe_<Fs...>::value;
 
 // FORK_ : Inputs are copied to each metafunctions
@@ -420,20 +421,10 @@ typedef third _3rd;
 
 // LAST : Continue with the last type
 struct last {
-  template <typename... Ts> struct detail_ls_ {};
-  struct detail_end;
-
-  template <typename... As> struct f_impl {};
-
-  template <typename T> struct f_impl<T, detail_end> { typedef T type; };
-
-  template <typename... As, typename... Bs>
-  struct f_impl<detail_ls_<As...>, detail_ls_<Bs...>> : f_impl<As, Bs>... {};
-
-  template <typename... Ts> struct f { typedef nothing type; };
-  template <typename T, typename... Ts>
-  struct f<T, Ts...>
-      : f_impl<detail_ls_<T, Ts...>, detail_ls_<Ts..., detail_end>> {};
+  template<typename ... Ts>
+  struct f {
+    typedef pipe_t<input<Ts...>,get_<sizeof...(Ts)-1> > type;
+  };
 };
 
 template <typename... Ts> struct flat;
