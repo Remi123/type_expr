@@ -36,15 +36,15 @@ template <typename... Is, typename... Ts, template <typename...> class TypeList>
 struct tup_impl<TypeList<Is, Ts>...> : tup_inst<Is, Ts>... {
   tup_impl(Ts &&... ts) : tup_inst<Is, Ts>(std::forward<Ts>(ts))... {}
   template <unsigned int I>
-  auto get() -> te::eval_pipe_<input<Ts...>, get_<I>> & {
-    return te::eval_pipe_<input<tup_inst<Is, Ts>...>, te::get_<I>>::data;
+  auto get() -> te::eval_pipe_<input_<Ts...>, get_<I>> & {
+    return te::eval_pipe_<input_<tup_inst<Is, Ts>...>, te::get_<I>>::data;
   }
 };
 
 // TUP
 template <typename... Ts>
 using te_tup_metafunction =
-    te::eval_pipe_<te::input<Ts...>, te::zip_index, te::quote_<tup_impl>>;
+    te::eval_pipe_<te::input_<Ts...>, te::zip_index, te::quote_<tup_impl>>;
 
 template <typename... Ts>
 struct tup : te_tup_metafunction<Ts...> {
@@ -68,18 +68,18 @@ tup<Types &&...> forward_as_tup(Types &&... args) noexcept {
 
 namespace detail {
 template <typename Ret, typename... Is, typename... Ks, typename Tuples>
-Ret tuple_cat_(te::input<Is...>, te::input<Ks...>, Tuples tpls) {
+Ret tuple_cat_(te::input_<Is...>, te::input_<Ks...>, Tuples tpls) {
   return Ret{
       std::move(tpls.template get<Is::value>().template get<Ks::value>())...};
 }
 };  // namespace detail
 template <typename... Tups,
-          typename Ret = te::eval_pipe_<input<Tups...>,
+          typename Ret = te::eval_pipe_<input_<Tups...>,
                                         te::transform_<te::pipe_<te::unwrap>>,
                                         te::flatten, quote_<te::tup>>>
 Ret tup_cat(Tups &&... tups) {
   using zip_indexes = te::eval_pipe_<
-      te::input<Tups...>,
+      te::input_<Tups...>,
       te::transform_<te::pipe_<te::unwrap, te::length, te::mkseq, te::listify>>,
       te::zip_index, te::transform_<te::product>, te::flatten, te::unzip>;
   using tup_index = te::eval_pipe_<zip_indexes, te::first>;
