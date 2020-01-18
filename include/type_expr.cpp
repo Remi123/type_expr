@@ -49,7 +49,8 @@ int main() {
   te::eval_pipe_<input_<ls_<int, i<0>>>, pipe_<unwrap, first>, is_<int>> t15 =
       b<true>{};
 
-  constexpr te::eval_pipe_<input_<int>, unwrap > t = type_expr::error_<type_expr::unwrap::unwrappable_type>{};
+  constexpr te::eval_pipe_<input_<int>, unwrap> t =
+      type_expr::error_<type_expr::unwrap::unwrappable_type>{};
   // Once an error_<Ts...> is discover, the pipe continue but doesn't evaluate.
   // a catch_ metafunction will never be implemented.
 
@@ -71,7 +72,8 @@ int main() {
   // -------------------------------------------------------------------
   static_assert(te::eval_pipe_<input_<double>, plus_<int>, is_<double>>::value,
                 "");
-  static_assert(te::eval_pipe_<input_<i<21>, i<49>>, gcd, is_<i<7>>>::value, "");
+  static_assert(te::eval_pipe_<input_<i<21>, i<49>>, gcd, is_<i<7>>>::value,
+                "");
   static_assert(te::eval_pipe_<input_<i<21>, i<49>>, lcm, is_<i<147>>>::value,
                 "");
   // -------------------------------------------------------------------
@@ -135,14 +137,16 @@ int main() {
   // Flatten and join_list might be reworked
 
   static_assert(
-      te::eval_pipe_<input_<int, int, int>, cond_<is_<int, int>, input_<b<false>>,
-                                                 is_<int, int, int>>>::value,
+      te::eval_pipe_<
+          input_<int, int, int>,
+          cond_<is_<int, int>, input_<b<false>>, is_<int, int, int>>>::value,
       "");
   // Conditional have a predicate and continue with the second or the third
   // function
 
   static_assert(
-      te::eval_pipe_<input_<int, float, short>, get_<1>, is_<float>>::value, "");
+      te::eval_pipe_<input_<int, float, short>, get_<1>, is_<float>>::value,
+      "");
   static_assert(te::eval_pipe_<input_<i<1>, i<2>>, transform_<plus_<i<3>>>,
                                is_<i<4>, i<5>>>::value,
                 "");
@@ -162,9 +166,8 @@ int main() {
   //              second one with predicate == false
 
   static_assert(te::eval_pipe_<input_<int, float, int, short>,
-                               replace_if_<is_<int>, input_<float>>
-                               ,is_<float, float, float, short>
-                               >::value,
+                               replace_if_<is_<int>, input_<float>>,
+                               is_<float, float, float, short>>::value,
                 "");
   // replace_if transform the type into another if the predicate is true
 
@@ -195,10 +198,13 @@ int main() {
   static_assert(
       te::eval_pipe_<input_<int, int, int>, pipe_<get_<0>>, is_<int>>::value,
       "");
-  constexpr te::eval_pipe_<input_<i<1>, i<2>, i<3>>, get_<-1>, is_<>> t_err = type_expr::error_<type_expr::get_<-1>::index_out_of_range>{};
-  constexpr te::eval_pipe_<input_<int, int, int>, pipe_<get_<3>>, is_<>> t_err2 = type_expr::error_<type_expr::get_<3>::index_out_of_range>{};
+  constexpr te::eval_pipe_<input_<i<1>, i<2>, i<3>>, get_<-1>, is_<>> t_err =
+      type_expr::error_<type_expr::get_<-1>::index_out_of_range>{};
+  constexpr te::eval_pipe_<input_<int, int, int>, pipe_<get_<3>>, is_<>>
+      t_err2 = type_expr::error_<type_expr::get_<3>::index_out_of_range>{};
 
-  static_assert(te::eval_pipe_<input_<i<2>>, mkseq, is_<i<0>, i<1>>>::value, "");
+  static_assert(te::eval_pipe_<input_<i<2>>, mkseq, is_<i<0>, i<1>>>::value,
+                "");
   static_assert(te::eval_pipe_<input_<i<1>>, mkseq, is_<i<0>>>::value, "");
   static_assert(te::eval_pipe_<input_<i<0>>, mkseq, is_<>>::value, "");
 

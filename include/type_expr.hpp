@@ -74,7 +74,6 @@ struct zero<std::integral_constant<T, value>> {
 template <bool B>
 using b = std::integral_constant<bool, B>;
 
-
 // -------------------------------------------------------
 // METAFUNCTION
 // -------------------------------------------------------
@@ -315,13 +314,15 @@ struct conditional<std::false_type> {
 };
 
 // COND_ : Similar to std::conditional but only accept metafunctions
-template <typename UnaryPredicate, typename True_Expression, typename False_Expression>
+template <typename UnaryPredicate, typename True_Expression,
+          typename False_Expression>
 struct cond_ {
   template <typename... Ts>
   struct f {
     typedef
-        typename conditional<typename UnaryPredicate::template f<Ts...>::type>::template f<
-            True_Expression, False_Expression>::type::template f<Ts...>::type type;
+        typename conditional<typename UnaryPredicate::template f<Ts...>::type>::
+            template f<True_Expression,
+                       False_Expression>::type::template f<Ts...>::type type;
   };
 };
 
@@ -385,7 +386,7 @@ struct index_sequence_for : make_index_sequence<sizeof...(T)> {};
 
 // MKSEQ actual implementation.
 struct mkseq {
-  struct not_integral_constant_int{};
+  struct not_integral_constant_int {};
   template <typename... Ts>
   struct f {
     typedef error_<not_integral_constant_int> type;
@@ -471,7 +472,7 @@ struct push_back_ {
 // GET : Continue with the type a index N
 template <int I>
 struct get_ {
-  struct index_out_of_range{};
+  struct index_out_of_range {};
   template <bool b, typename... Ts>
   struct fff {
     typedef error_<index_out_of_range> type;
@@ -625,15 +626,18 @@ struct not_ : cond_<P, input_<std::false_type>, input_<std::true_type>> {};
 // REMOVE_IF_ : Remove every type where the metafunction "returns"
 // std::true_type
 template <typename UnaryPredicate>
-struct remove_if_ : pipe_<transform_<cond_<UnaryPredicate, input_<>,quote_<input_>>>, flatten> {};
+struct remove_if_
+    : pipe_<transform_<cond_<UnaryPredicate, input_<>, quote_<input_>>>,
+            flatten> {};
 
 // PARTITION_ : Continue with two list. First predicate is true, Second
 // predicate is false
 template <typename...>
 struct partition_;
 template <typename UnaryPredicate>
-struct partition_<UnaryPredicate> : fork_<pipe_<remove_if_<not_<UnaryPredicate>>, listify>,
-                             pipe_<remove_if_<UnaryPredicate>, listify>> {};
+struct partition_<UnaryPredicate>
+    : fork_<pipe_<remove_if_<not_<UnaryPredicate>>, listify>,
+            pipe_<remove_if_<UnaryPredicate>, listify>> {};
 
 // FILTER_ : Remove every type where the metafunction is false.
 template <typename UnaryPredicate>
@@ -643,8 +647,7 @@ struct filter_ : remove_if_<not_<UnaryPredicate>> {};
 template <typename... Ts>
 struct replace_if_;
 template <typename P, typename F>
-struct replace_if_<P, F> : transform_<cond_<P,F,identity>> {
-  };
+struct replace_if_<P, F> : transform_<cond_<P, F, identity>> {};
 
 // ALL_OF_ : Thanks to Roland Bock for the inspiration
 template <typename UnaryPredicate>
@@ -653,7 +656,8 @@ struct all_of_ {
   struct f {
     typedef typename is_same<
         ls_<b<true>, typename UnaryPredicate::template f<Ts>::type...>,
-        ls_<typename UnaryPredicate::template f<Ts>::type..., b<true>>>::type type;
+        ls_<typename UnaryPredicate::template f<Ts>::type..., b<true>>>::type
+        type;
   };
 };
 
@@ -664,7 +668,8 @@ struct any_of_ {
   struct f {
     typedef typename is_not_same<
         ls_<b<false>, typename UnaryPredicate::template f<Ts>::type...>,
-        ls_<typename UnaryPredicate::template f<Ts>::type..., b<false>>>::type type;
+        ls_<typename UnaryPredicate::template f<Ts>::type..., b<false>>>::type
+        type;
   };
 };
 
@@ -1006,11 +1011,11 @@ struct lcm {
   };
 };
 
-static_assert(pipe_t<input_<i<3>>, plus_<i<1>>, if_then_<is_<i<4>>, plus_<i<2>>>,
-                     is_<i<6>>>::value,
+static_assert(pipe_t<input_<i<3>>, plus_<i<1>>,
+                     if_then_<is_<i<4>>, plus_<i<2>>>, is_<i<6>>>::value,
               "");
-static_assert(pipe_t<input_<i<3>>, plus_<i<1>>, if_then_<is_<i<3>>, plus_<i<2>>>,
-                     is_<i<4>>>::value,
+static_assert(pipe_t<input_<i<3>>, plus_<i<1>>,
+                     if_then_<is_<i<3>>, plus_<i<2>>>, is_<i<4>>>::value,
               "");
 
 // INSERT_AT
@@ -1030,9 +1035,8 @@ static_assert(pipe_t<input_<int, float, int[2], float[2]>,
                      is_<int, float, char, char[2], int[2], float[2]>>::value,
               "");
 
-static_assert(pipe_t<input_<int,short, float>, insert_at_<1, identity>
-                     ,is_<int, int,short, float, short ,float>
-                     >::value,
+static_assert(pipe_t<input_<int, short, float>, insert_at_<1, identity>,
+                     is_<int, int, short, float, short, float>>::value,
               "");
 
 // Below is not yet integrated into type_expr
@@ -1059,11 +1063,12 @@ struct sort_ {
   template <typename... Ts, typename F>
   struct sort_impl<input_<F, Ts...>> {
     typedef typename sort_impl<typename flat<
-        input_<>, typename eager<Ts, typename BinaryPredicate::template f<Ts, F>::
-                                        type>::type...>::type>::type Less;
+        input_<>, typename eager<Ts, typename BinaryPredicate::template f<
+                                         Ts, F>::type>::type...>::type>::type
+        Less;
     typedef typename sort_impl<typename flat<
         input_<>, typename eager<Ts, typename not_<BinaryPredicate>::template f<
-                                        Ts, F>::type>::type...>::type>::type
+                                         Ts, F>::type>::type...>::type>::type
         More;
 
     typedef typename flat<input_<>, Less, F, More>::type type;
