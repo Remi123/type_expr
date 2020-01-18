@@ -1,6 +1,7 @@
 ﻿#ifndef TYPE_EXPR_HPP
 #define TYPE_EXPR_HPP
 
+#include <ratio>
 #include <type_traits>
 #include <utility>
 
@@ -68,6 +69,12 @@ struct zero;
 template <typename T, T value>
 struct zero<std::integral_constant<T, value>> {
   typedef std::integral_constant<T, 0> type;
+};
+
+// Second specilisation of zero. The zero of  any ratio<N,D> is ratio<0>
+template <std::size_t num, std::size_t den>
+struct zero<std::ratio<num, den>> {
+  typedef std::ratio<0, den> type;
 };
 
 // B : Universal boolean type.
@@ -214,7 +221,15 @@ struct unwrap {
     typedef typename input_<Ts...>::type type;
   };
   template <template <typename... Ts> class F, typename... Ts>
+  struct f<const F<Ts...>> {
+    typedef typename input_<Ts...>::type type;
+  };
+  template <template <typename... Ts> class F, typename... Ts>
   struct f<F<Ts...>&> {
+    typedef typename input_<Ts...>::type type;
+  };
+  template <template <typename... Ts> class F, typename... Ts>
+  struct f<const F<Ts...>&> {
     typedef typename input_<Ts...>::type type;
   };
 };
@@ -247,6 +262,22 @@ struct isnt_<T, Ts...> {
     typedef typename is_not_same<ls_<T, Ts...>, ls_<Us...>>::type type;
   };
 };
+
+// CONTAINER : Continue with a type that can contain a template template
+// OR THE TYPE ITSELF IF NOT A TEMPLATE TEMPLATE;
+struct container {
+  struct sorry_not_implemented {};
+  template <typename T>
+  struct f : input_<T> {};
+  template <template <typename...> class F, typename... Ts>
+  struct f<F<Ts...>> : input_<quote_<F>> {};
+};
+
+template <template <typename...> class F>
+struct container_is_ : pipe_<container, is_<quote_<F>>> {};
+
+static_assert(eval_pipe_<input_<ls_<int>>, container, is_<quote_<ls_>>>::value,
+              "");
 
 // TRANSFORM_ : Similar to haskell's map. Also similar to std::transform
 template <typename F>
@@ -765,7 +796,7 @@ struct if_then_ : cond_<UnaryPredicate, F, identity> {};
 
 // This is for making std::integral_constant compatible with this library.
 
-// Integral operator
+// std::integral_constant's arithmetic operator
 template <typename T, T Tvalue, typename U, U Uvalue>
 std::integral_constant<decltype(Tvalue + Uvalue), Tvalue + Uvalue> operator+(
     std::integral_constant<T, Tvalue>, std::integral_constant<U, Uvalue>);
@@ -782,7 +813,7 @@ template <typename T, T Tvalue, typename U, U Uvalue>
 std::integral_constant<decltype(Tvalue % Uvalue), Tvalue % Uvalue> operator%(
     std::integral_constant<T, Tvalue>, std::integral_constant<U, Uvalue>);
 
-// Boolean operator
+// std::integral_constant's boolean operator
 template <typename T, T Tvalue, typename U, U Uvalue>
 std::integral_constant<bool, (Tvalue < Uvalue)> operator<(
     std::integral_constant<T, Tvalue>, std::integral_constant<U, Uvalue>);
@@ -795,6 +826,39 @@ std::integral_constant<bool, (Tvalue > Uvalue)> operator>(
 template <typename T, T Tvalue, typename U, U Uvalue>
 std::integral_constant<bool, (Tvalue >= Uvalue)> operator>=(
     std::integral_constant<T, Tvalue>, std::integral_constant<U, Uvalue>);
+template <typename T, T Tvalue, typename U, U Uvalue>
+std::integral_constant<bool, (Tvalue == Uvalue)> operator==(
+    std::integral_constant<T, Tvalue>, std::integral_constant<U, Uvalue>);
+
+// equivalents for std::ratio
+template <intmax_t nA, intmax_t dA, intmax_t nB, intmax_t dB>
+std::ratio_add<std::ratio<nA, dA>, std::ratio<nB, dB>> operator+(
+    const std::ratio<nA, dA>&, const std::ratio<nB, dB>&);
+template <intmax_t nA, intmax_t dA, intmax_t nB, intmax_t dB>
+std::ratio_subtract<std::ratio<nA, dA>, std::ratio<nB, dB>> operator-(
+    const std::ratio<nA, dA>&, const std::ratio<nB, dB>&);
+template <intmax_t nA, intmax_t dA, intmax_t nB, intmax_t dB>
+std::ratio_multiply<std::ratio<nA, dA>, std::ratio<nB, dB>> operator*(
+    const std::ratio<nA, dA>&, const std::ratio<nB, dB>&);
+template <intmax_t nA, intmax_t dA, intmax_t nB, intmax_t dB>
+std::ratio_divide<std::ratio<nA, dA>, std::ratio<nB, dB>> operator/(
+    const std::ratio<nA, dA>&, const std::ratio<nB, dB>&);
+
+template <intmax_t nA, intmax_t dA, intmax_t nB, intmax_t dB>
+std::ratio_less<std::ratio<nA, dA>, std::ratio<nB, dB>> operator<(
+    const std::ratio<nA, dA>&, const std::ratio<nB, dB>&);
+template <intmax_t nA, intmax_t dA, intmax_t nB, intmax_t dB>
+std::ratio_less_equal<std::ratio<nA, dA>, std::ratio<nB, dB>> operator<=(
+    const std::ratio<nA, dA>&, const std::ratio<nB, dB>&);
+template <intmax_t nA, intmax_t dA, intmax_t nB, intmax_t dB>
+std::ratio_greater<std::ratio<nA, dA>, std::ratio<nB, dB>> operator>(
+    const std::ratio<nA, dA>&, const std::ratio<nB, dB>&);
+template <intmax_t nA, intmax_t dA, intmax_t nB, intmax_t dB>
+std::ratio_greater_equal<std::ratio<nA, dA>, std::ratio<nB, dB>> operator>=(
+    const std::ratio<nA, dA>&, const std::ratio<nB, dB>&);
+template <intmax_t nA, intmax_t dA, intmax_t nB, intmax_t dB>
+std::ratio_equal<std::ratio<nA, dA>, std::ratio<nB, dB>> operator==(
+    const std::ratio<nA, dA>&, const std::ratio<nB, dB>&);
 
 // LESS
 template <typename... Ts>
@@ -959,6 +1023,29 @@ struct divide_<> {
     typedef decltype(std::declval<P>() / std::declval<B>()) type;
   };
 };
+
+// EQUAL
+template <typename... Ts>
+struct equal_ {
+  typedef error_<equal_<Ts...>> type;
+};
+template <typename P>
+struct equal_<P> {
+  template <typename... Ts>
+  struct f;
+  template <typename I>
+  struct f<I> {
+    typedef decltype(std::declval<I>() == std::declval<P>()) type;
+  };
+};
+template <>
+struct equal_<> {
+  template <typename P, typename B>
+  struct f {
+    typedef decltype(std::declval<P>() == std::declval<B>()) type;
+  };
+};
+
 // MODULO
 template <typename... Ts>
 struct modulo_ {
@@ -1011,6 +1098,10 @@ struct lcm {
   };
 };
 
+static_assert(eval_pipe_<input_<std::ratio<1, 4>>, plus_<std::ratio<2, 5>>,
+                         equal_<std::ratio<26, 40>>>::value,
+              "");
+
 static_assert(pipe_t<input_<i<3>>, plus_<i<1>>,
                      if_then_<is_<i<4>>, plus_<i<2>>>, is_<i<6>>>::value,
               "");
@@ -1039,7 +1130,10 @@ static_assert(pipe_t<input_<int, short, float>, insert_at_<1, identity>,
                      is_<int, int, short, float, short, float>>::value,
               "");
 
-// Below is not yet integrated into type_expr
+// SORT : Given a binary predicate, sort the types
+// note : it's implicit that you receive two types, so you probably need to
+// transform them. eg : sort by size : sort_<pipe_<transform_<pipe_<size>>,
+// less_<>>
 
 template <typename A, typename B>
 struct eager {
@@ -1078,35 +1172,6 @@ struct sort_ {
     typedef typename sort_impl<input_<Ts...>>::type type;
   };
 };
-
-/*template<typename ... Ts>*/
-// struct unique
-//{
-// typedef typename sort<Ts...>::type sorted;
-// typedef typename unique<sorted>::type type;
-//};
-
-// template<typename  T>
-// struct unique<T>
-//{typedef ls_<T> type;
-
-//};
-
-// template<typename ... Ts,typename ... Us>
-// struct unique<ls_<Ts...>,ls_<Us...>>
-//{
-// typedef typename flat<typename eager<Ts,typename
-// is_not_same<Ts,Us>::type>::type ... >::type type;
-//};
-
-// template<typename F,typename ... Ts>
-// struct unique<ls_<F,Ts...>>
-//{
-// typedef typename unique<ls_<F,Ts...>,ls_<Ts...,ls_<>>>::type type;
-/*};*/
-// int t2 = sort<float,int,int,void,void,float,short,double>::type{};
-// int t1 = unique<i<3>>::type {};
-// int t = unique<i<3>,i<1>,i<3>,i<4>,i<3>,i<1>,i<2>,i<3>,i<5>>::type {};
 
 };  // namespace type_expr
 #endif

@@ -67,10 +67,11 @@ tup<Types &&...> forward_as_tup(Types &&... args) noexcept {
 }
 
 namespace detail {
-template <typename Ret, typename... Is, typename... Ks, typename Tuples>
-Ret tuple_cat_(te::input_<Is...>, te::input_<Ks...>, Tuples tpls) {
-  return Ret{
-      std::move(tpls.template get<Is::value>().template get<Ks::value>())...};
+template <typename... Is, typename... Ks, typename... Ts, typename Tuples>
+te::tup<Ts...> tuple_cat_(te::input_<Is...>, te::input_<Ks...>,
+                          te::input_<Ts...>, Tuples tpls) {
+  return te::tup<Ts...>{std::forward<Ts>(
+      tpls.template get<Is::value>().template get<Ks::value>())...};
 }
 };  // namespace detail
 template <typename... Tups,
@@ -84,9 +85,9 @@ Ret tup_cat(Tups &&... tups) {
       te::zip_index, te::transform_<te::product>, te::flatten, te::unzip>;
   using tup_index = te::eval_pipe_<zip_indexes, te::first>;
   using types_index = te::eval_pipe_<zip_indexes, te::second>;
-  return detail::tuple_cat_<Ret>(
-      tup_index{}, types_index{},
-      te::forward_as_tup(std::forward<Tups>(tups)...));
+  return detail::tuple_cat_(tup_index{}, types_index{},
+                            eval_pipe_<te::input_<Ret>, te::unwrap>{},
+                            te::forward_as_tup(std::forward<Tups>(tups)...));
 };
 
 };  // namespace type_expr
