@@ -181,6 +181,13 @@ struct pipe_expr<error_<ErrorT>, G> {
 // PIPE_ : Universal container of metafunction.
 // The Bread and Butter of the library
 template <typename... Cs>
+struct pipe_;
+template <typename... Fs>
+using pipe_t = typename pipe_<Fs...>::template f<>::type;
+template <typename... Fs>
+using eval_pipe_ = typename pipe_<Fs...>::template f<>::type;
+
+template <typename... Cs>
 struct pipe_ {
   template <typename... Ts>
   struct f {
@@ -190,12 +197,21 @@ struct pipe_ {
   // No ::type. This is a problem since it's always instanciated even if not
   // asked. required to have an alias eval_pipe_ = typename
   // pipe_<Fs...>::template f<>::type; to instanciate to the result type;
+  
+  template<typename ... Ts, typename ... Us>
+constexpr pipe_<Cs..., Us...> 
+operator|(const pipe_<Us...>&){return {};};
+
 };
 
-template <typename... Fs>
-using pipe_t = typename pipe_<Fs...>::template f<>::type;
-template <typename... Fs>
-using eval_pipe_ = typename pipe_<Fs...>::template f<>::type;
+template<typename ... Fs, typename ... Args>
+constexpr eval_pipe_<Fs...>
+eval(const pipe_<Fs...>&, Args&&... args)
+{
+	return eval_pipe_<Fs...>{std::forward<Args>(args)...};
+}
+
+
 // template <typename... Fs> constexpr int eval_pipe_v =
 // eval_pipe_<Fs...>::value;
 
@@ -280,11 +296,11 @@ static_assert(eval_pipe_<input_<ls_<int>>, container, is_<quote_<ls_>>>::value,
               "");
 
 // TRANSFORM_ : Similar to haskell's map. Also similar to std::transform
-template <typename F>
+template <typename ... Fs>
 struct transform_ {
   template <typename... Ts>
   struct f {
-    typedef input_<typename F::template f<Ts>::type...> type;
+    typedef input_<typename pipe_expr<Ts,pipe_<Fs...>>::type...> type;
   };
 };
 
@@ -482,7 +498,7 @@ struct unzip {
   struct f<F<Fs, Gs>...> : input_<input_<Fs...>, input_<Gs...>> {};
 };
 
-// PUSH_FRONT_ : Add anything you want to the front of the input_s.
+// PUSH_FRONT_ : Add anything you want to the front of the inputs.
 template <typename... Ts>
 struct push_front_ {
   template <typename... Inputs>
@@ -491,7 +507,7 @@ struct push_front_ {
   };
 };
 
-// PUSH_BACK_ : Add anything you want to the back of the input_s
+// PUSH_BACK_ : Add anything you want to the back of the inputs
 template <typename... Ts>
 struct push_back_ {
   template <typename... Inputs>
