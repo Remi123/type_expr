@@ -49,6 +49,8 @@ ___
 ```C++
 // This example was inspired by Arthur O'Dwyer' s example at 
 // https://quuxplusone.github.io/blog/2019/12/28/metaprogramming-n-ways/
+  struct Z{}; // Empty class
+
   using Metafunction_example = te::pipe_<
     te::remove_if_<te::lift_<std::is_empty>>,
     te::sort_<te::pipe_<te::transform_<te::size>,te::greater_<>>>,
