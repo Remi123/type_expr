@@ -10,6 +10,10 @@
   > The CMake is not good at all.
   > The wiki is well started but I'm trying to give the correct definition and it's harder than initially thought.
 </details>
+<details>
+  <summary>Incoming breaking changes (click to expand)</summary>
+  > Most of the unary and binary meta-expression will now transition from having an meta-expression type to a variadic pack of meta-expression. The idea is to ease the parsing of multiples `f < te::input_<Ts...>, input_<Us...>` and requiring a lot less `te::pipe_<unpack, Fs...>` .This is a breaking changes and only `te::transform_<Fs...>` is currently implemented.
+</details>
 
 ```C++
 namespace te = type_expr;
@@ -33,7 +37,7 @@ Look at the doc | Unfortunately the doc is not complete since I think of adding 
   >// Cannot convert type B to std::integral_constant<bool,true>
 >```
 
-The Goal of this library :
+## The Goal of this library :
 >Implement a meta-programming library
 >Reimplement std::tuple, std::optional and std::variant and then rework the visitation pattern.
 >Provide some tutorial videos.
