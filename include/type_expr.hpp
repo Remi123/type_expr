@@ -664,66 +664,65 @@ struct alignment {
 };
 
 // NOT_ : Boolean metafunction are inversed
-template <typename P>
-struct not_ : cond_<P, input_<std::false_type>, input_<std::true_type>> {};
+template <typename... UnaryPredicate>
+struct not_ : cond_<pipe_<UnaryPredicate...>, input_<std::false_type>,
+                    input_<std::true_type>> {};
 
 // REMOVE_IF_ : Remove every type where the metafunction "returns"
 // std::true_type
-template <typename UnaryPredicate>
+template <typename... UnaryPredicate>
 struct remove_if_
-    : pipe_<transform_<cond_<UnaryPredicate, input_<>, quote_<input_>>>,
-            flatten> {};
+    : pipe_<
+          transform_<cond_<pipe_<UnaryPredicate...>, input_<>, quote_<input_>>>,
+          flatten> {};
 
 // PARTITION_ : Continue with two list. First predicate is true, Second
 // predicate is false
-template <typename...>
-struct partition_;
-template <typename UnaryPredicate>
-struct partition_<UnaryPredicate>
-    : fork_<pipe_<remove_if_<not_<UnaryPredicate>>, listify>,
-            pipe_<remove_if_<UnaryPredicate>, listify>> {};
+template <typename... UnaryPredicate>
+struct partition_ : fork_<pipe_<remove_if_<not_<UnaryPredicate...>>, listify>,
+                          pipe_<remove_if_<UnaryPredicate...>, listify>> {};
 
 // FILTER_ : Remove every type where the metafunction is false.
-template <typename UnaryPredicate>
-struct filter_ : remove_if_<not_<UnaryPredicate>> {};
+template <typename... UnaryPredicate>
+struct filter_ : remove_if_<not_<UnaryPredicate...>> {};
 
 // REPLACE_IF_ : Replace the type by another if the predicate is true
-template <typename... Ts>
-struct replace_if_;
-template <typename P, typename F>
-struct replace_if_<P, F> : transform_<cond_<P, F, identity>> {};
+template <typename UnaryPredicate, typename F>
+struct replace_if_ : transform_<cond_<UnaryPredicate, F, identity>> {};
 
 // ALL_OF_ : Thanks to Roland Bock for the inspiration
-template <typename UnaryPredicate>
+template <typename... UnaryPredicate>
 struct all_of_ {
   template <typename... Ts>
   struct f {
     typedef typename is_same<
-        ls_<b<true>, typename UnaryPredicate::template f<Ts>::type...>,
-        ls_<typename UnaryPredicate::template f<Ts>::type..., b<true>>>::type
-        type;
+        ls_<b<true>,
+            typename pipe_<UnaryPredicate...>::template f<Ts>::type...>,
+        ls_<typename pipe_<UnaryPredicate...>::template f<Ts>::type...,
+            b<true>>>::type type;
   };
 };
 
 // ANY_OF_ : Thanks to Roland Bock for the inspiration
-template <typename UnaryPredicate>
+template <typename... UnaryPredicate>
 struct any_of_ {
   template <typename... Ts>
   struct f {
     typedef typename is_not_same<
-        ls_<b<false>, typename UnaryPredicate::template f<Ts>::type...>,
-        ls_<typename UnaryPredicate::template f<Ts>::type..., b<false>>>::type
-        type;
+        ls_<b<false>,
+            typename pipe_<UnaryPredicate...>::template f<Ts>::type...>,
+        ls_<typename pipe_<UnaryPredicate...>::template f<Ts>::type...,
+            b<false>>>::type type;
   };
 };
 
 // NONE_OF : Simply the inverse of any_of_
-template <typename UnaryPredicate>
-struct none_of_ : not_<any_of_<UnaryPredicate>> {};
+template <typename... UnaryPredicate>
+struct none_of_ : not_<any_of_<UnaryPredicate...>> {};
 
 // COUNT_IF_ : Count the number of type where the predicate is true
-template <typename F>
-struct count_if_ : pipe_<remove_if_<not_<F>>, length> {};
+template <typename... F>
+struct count_if_ : pipe_<remove_if_<not_<F...>>, length> {};
 
 // FIND_IF_ : Return the first index that respond to the predicate, along with
 // the type.
@@ -1123,12 +1122,12 @@ static_assert(pipe_t<input_<i<3>>, plus_<i<1>>,
               "");
 
 // INSERT_AT
-template <int Index, typename F>
+template <int Index, typename... F>
 struct insert_at_
     : pipe_<
           fork_<pipe_<zip_index, filter_<pipe_<unwrap, first, less_<i<Index>>>>,
                       unzip_index>,
-                F,
+                pipe_<F...>,
                 pipe_<zip_index,
                       remove_if_<pipe_<unwrap, first, less_<i<Index>>>>,
                       unzip_index>>,
@@ -1158,7 +1157,7 @@ struct eager<A, std::true_type> {
   typedef input_<A> type;
 };
 
-template <typename BinaryPredicate>
+template <typename... BinaryPredicate>
 struct sort_ {
   template <typename... L>
   struct sort_impl;
@@ -1170,13 +1169,13 @@ struct sort_ {
   template <typename... Ts, typename F>
   struct sort_impl<input_<F, Ts...>> {
     typedef typename sort_impl<typename flat<
-        input_<>, typename eager<Ts, typename BinaryPredicate::template f<
-                                         Ts, F>::type>::type...>::type>::type
-        Less;
+        input_<>,
+        typename eager<Ts, typename pipe_<BinaryPredicate...>::template f<
+                               Ts, F>::type>::type...>::type>::type Less;
     typedef typename sort_impl<typename flat<
-        input_<>, typename eager<Ts, typename not_<BinaryPredicate>::template f<
-                                         Ts, F>::type>::type...>::type>::type
-        More;
+        input_<>,
+        typename eager<Ts, typename not_<pipe_<BinaryPredicate...>>::template f<
+                               Ts, F>::type>::type...>::type>::type More;
 
     typedef typename flat<input_<>, Less, F, More>::type type;
   };

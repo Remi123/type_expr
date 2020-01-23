@@ -74,14 +74,13 @@ te::tup<Ts...> tuple_cat_(te::input_<Is...>, te::input_<Ks...>,
       tpls.template get<Is::value>().template get<Ks::value>())...};
 }
 };  // namespace detail
-template <typename... Tups,
-          typename Ret = te::eval_pipe_<input_<Tups...>,
-                                        te::transform_<te::pipe_<te::unwrap>>,
-                                        te::flatten, quote_<te::tup>>>
+template <typename... Tups, typename Ret = te::eval_pipe_<
+                                input_<Tups...>, te::transform_<te::unwrap>,
+                                te::flatten, quote_<te::tup>>>
 Ret tup_cat(Tups &&... tups) {
   using zip_indexes = te::eval_pipe_<
       te::input_<Tups...>,
-      te::transform_<te::pipe_<te::unwrap, te::length, te::mkseq, te::listify>>,
+      te::transform_<te::unwrap, te::length, te::mkseq, te::listify>,
       te::zip_index, te::transform_<te::product>, te::flatten, te::unzip>;
   using tup_index = te::eval_pipe_<zip_indexes, te::first>;
   using types_index = te::eval_pipe_<zip_indexes, te::second>;
