@@ -1171,19 +1171,29 @@ struct sort_ {
     typedef typename sort_impl<typename flat<
         input_<>,
         typename eager<Ts, typename pipe_<BinaryPredicate...>::template f<
-                               Ts, F>::type>::type...>::type>::type Less;
+                               Ts, F>::type>::type...>::type>::type Yes_types;
     typedef typename sort_impl<typename flat<
         input_<>,
         typename eager<Ts, typename not_<pipe_<BinaryPredicate...>>::template f<
-                               Ts, F>::type>::type...>::type>::type More;
+                               Ts, F>::type>::type...>::type>::type No_types;
 
-    typedef typename flat<input_<>, Less, F, More>::type type;
+    typedef typename flat<input_<>, Yes_types, F, No_types>::type type;
   };
   template <typename... Ts>
   struct f {
     typedef typename sort_impl<input_<Ts...>>::type type;
   };
 };
+
+template <typename... Fs>
+struct group_ : sort_<transform_<Fs...>, lift_<std::is_same>> {};
+
+struct unique
+    : pipe_<group_<>, if_then_<pipe_<length, greater_<i<1>>>,
+                               pipe_<fork_<identity, rotate_<1>>, zip,
+                                     remove_if_<unwrap, lift_<std::is_same>>,
+                                     transform_<unwrap, first>>>> {};
+
 
 };  // namespace type_expr
 #endif
