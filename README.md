@@ -18,8 +18,10 @@
 ## Code in Actions :
 ```C++
 namespace te = type_expr;
-te::eval_pipe_<te::input<i<1>>, te::plus_<i<3>> , te::is_<i<4>> > is_it_4; // is_it_4 is an std::integral_constant<bool,true>
-static_assert(is_it_4.value,"");
+template<int N>
+using int_c = std::integral_constant<int,N>;
+te::eval_pipe_<te::input<int_c<1>>, te::plus_<int_c<3>> > is_it_4; // is_it_4 is an std::integral_constant<int,4>
+static_assert(is_it_4.value == 4,"");
 ```
 
 If you want to ... | Then ... 
