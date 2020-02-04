@@ -20,8 +20,14 @@
 namespace te = type_expr;
 template<int N>
 using int_c = std::integral_constant<int,N>;
-te::eval_pipe_<te::input<int_c<1>>, te::plus_<int_c<3>> > is_it_4; // is_it_4 is an std::integral_constant<int,4>
-static_assert(is_it_4.value == 4,"");
+te::eval_pipe_<te::input<int_c<1>>, te::plus_<int_c<3>> > std_int_c_4; // std_int_c_4 is an std::integral_constant<int,4>
+static_assert(std_int_c_4.value == 4,"");
+
+te::eval_pipe_<te::input<int_c<1>>, 
+                ,te::plus_<int_c<1>> 
+                ,te::plus_<int_c<2>>
+                > same_thing;
+ static_assert(std_int_c_4.value == same_thing.value,"");
 ```
 
 If you want to ... | Then ... 
