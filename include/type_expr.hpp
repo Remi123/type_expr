@@ -5,6 +5,13 @@
 #include <type_traits>
 #include <utility>
 
+#if __cplusplus < 201403L
+namespace std{
+template< class T, T... Ints >
+class integer_sequence;
+};
+#endif
+
 namespace type_expr {
 
 // -------------------------------------------------------
@@ -103,6 +110,13 @@ struct quote_ {
     typedef F<Ts...> type;
   };
 };
+struct quote_std_integer_sequence
+{
+        template<typename ... Is>
+        struct f {
+        typedef std::integer_sequence<int ,Is::value...> type;
+        };
+};
 
 // FOLD_LEFT_ : Fold expression
 // The Farmer of the library
@@ -199,13 +213,13 @@ struct pipe_ {
   // pipe_<Fs...>::template f<>::type; to instanciate to the result type;
 
   template <typename... Ts, typename... Us>
-  constexpr pipe_<Cs..., Us...> operator|(const pipe_<Us...>&) {
+  constexpr pipe_<Cs..., Us...> operator|(const pipe_<Us...> &) {
     return {};
   };
 };
 
 template <typename... Fs, typename... Args>
-constexpr eval_pipe_<Fs...> eval(const pipe_<Fs...>&, Args&&... args) {
+constexpr eval_pipe_<Fs...> eval(const pipe_<Fs...> &, Args &&... args) {
   return eval_pipe_<Fs...>{std::forward<Args>(args)...};
 }
 
@@ -238,11 +252,11 @@ struct unwrap {
     typedef typename input_<Ts...>::type type;
   };
   template <template <typename... Ts> class F, typename... Ts>
-  struct f<F<Ts...>&> {
+  struct f<F<Ts...> &> {
     typedef typename input_<Ts...>::type type;
   };
   template <template <typename... Ts> class F, typename... Ts>
-  struct f<const F<Ts...>&> {
+  struct f<const F<Ts...> &> {
     typedef typename input_<Ts...>::type type;
   };
 };
@@ -726,12 +740,13 @@ struct count_if_ : pipe_<remove_if_<not_<F...>>, length> {};
 
 // FIND_IF_ : Return the first index that respond to the predicate, along with
 // the type.
-template <typename F>
+template <typename ... F>
 struct find_if_
-    : pipe_<zip_index, filter_<pipe_<unwrap, second, F>>, first, unwrap> {};
+    : pipe_<zip_index, filter_< unwrap, second, F...>, first, unwrap > {};
 
-static_assert(pipe_t<input_<float, int, float, int>, find_if_<is_<int>>,
-                     is_<i<1>, int>>::value,
+static_assert(pipe_t<input_<float, int, float, int>, find_if_<is_<int>>
+                     ,is_<i<1>, int>
+                     >::value,
               "");
 
 // PRODUCT : Given two lists, continue with every possible lists of two types.
@@ -740,10 +755,10 @@ struct product {
   struct f;
   template <typename A, typename... Ts>
   struct f<ls_<A, ls_<Ts...>>> {
-    typedef input_<ls_<A, Ts>...> type;
+    typedef input_<input_<A, Ts>...> type;
   };
   template <typename... As, typename... Bs>
-  struct f<ls_<As...>, ls_<Bs...>>
+  struct f<input_<As...>, input_<Bs...>>
       : pipe_t<input_<ls_<As, ls_<Bs...>>...>, transform_<product>, flatten> {};
 };
 
@@ -845,32 +860,32 @@ std::integral_constant<bool, (Tvalue == Uvalue)> operator==(
 // equivalents for std::ratio
 template <intmax_t nA, intmax_t dA, intmax_t nB, intmax_t dB>
 std::ratio_add<std::ratio<nA, dA>, std::ratio<nB, dB>> operator+(
-    const std::ratio<nA, dA>&, const std::ratio<nB, dB>&);
+    const std::ratio<nA, dA> &, const std::ratio<nB, dB> &);
 template <intmax_t nA, intmax_t dA, intmax_t nB, intmax_t dB>
 std::ratio_subtract<std::ratio<nA, dA>, std::ratio<nB, dB>> operator-(
-    const std::ratio<nA, dA>&, const std::ratio<nB, dB>&);
+    const std::ratio<nA, dA> &, const std::ratio<nB, dB> &);
 template <intmax_t nA, intmax_t dA, intmax_t nB, intmax_t dB>
 std::ratio_multiply<std::ratio<nA, dA>, std::ratio<nB, dB>> operator*(
-    const std::ratio<nA, dA>&, const std::ratio<nB, dB>&);
+    const std::ratio<nA, dA> &, const std::ratio<nB, dB> &);
 template <intmax_t nA, intmax_t dA, intmax_t nB, intmax_t dB>
 std::ratio_divide<std::ratio<nA, dA>, std::ratio<nB, dB>> operator/(
-    const std::ratio<nA, dA>&, const std::ratio<nB, dB>&);
+    const std::ratio<nA, dA> &, const std::ratio<nB, dB> &);
 
 template <intmax_t nA, intmax_t dA, intmax_t nB, intmax_t dB>
 std::ratio_less<std::ratio<nA, dA>, std::ratio<nB, dB>> operator<(
-    const std::ratio<nA, dA>&, const std::ratio<nB, dB>&);
+    const std::ratio<nA, dA> &, const std::ratio<nB, dB> &);
 template <intmax_t nA, intmax_t dA, intmax_t nB, intmax_t dB>
 std::ratio_less_equal<std::ratio<nA, dA>, std::ratio<nB, dB>> operator<=(
-    const std::ratio<nA, dA>&, const std::ratio<nB, dB>&);
+    const std::ratio<nA, dA> &, const std::ratio<nB, dB> &);
 template <intmax_t nA, intmax_t dA, intmax_t nB, intmax_t dB>
 std::ratio_greater<std::ratio<nA, dA>, std::ratio<nB, dB>> operator>(
-    const std::ratio<nA, dA>&, const std::ratio<nB, dB>&);
+    const std::ratio<nA, dA> &, const std::ratio<nB, dB> &);
 template <intmax_t nA, intmax_t dA, intmax_t nB, intmax_t dB>
 std::ratio_greater_equal<std::ratio<nA, dA>, std::ratio<nB, dB>> operator>=(
-    const std::ratio<nA, dA>&, const std::ratio<nB, dB>&);
+    const std::ratio<nA, dA> &, const std::ratio<nB, dB> &);
 template <intmax_t nA, intmax_t dA, intmax_t nB, intmax_t dB>
 std::ratio_equal<std::ratio<nA, dA>, std::ratio<nB, dB>> operator==(
-    const std::ratio<nA, dA>&, const std::ratio<nB, dB>&);
+    const std::ratio<nA, dA> &, const std::ratio<nB, dB> &);
 
 // LESS
 template <typename... Ts>
@@ -1121,15 +1136,15 @@ static_assert(pipe_t<input_<i<3>>, plus_<i<1>>,
                      if_then_<is_<i<3>>, plus_<i<2>>>, is_<i<4>>>::value,
               "");
 
-// INSERT_AT
+// INSERT_AT : Insert the result of an function inside.
 template <int Index, typename... F>
 struct insert_at_
     : pipe_<
-          fork_<pipe_<zip_index, filter_<pipe_<unwrap, first, less_<i<Index>>>>,
+          fork_<pipe_<zip_index, filter_<unwrap ,first, less_<i<Index>>>,
                       unzip_index>,
                 pipe_<F...>,
                 pipe_<zip_index,
-                      remove_if_<pipe_<unwrap, first, less_<i<Index>>>>,
+                      remove_if_<unwrap,first, less_<i<Index>>>,
                       unzip_index>>,
           flatten> {};
 
@@ -1144,8 +1159,7 @@ static_assert(pipe_t<input_<int, short, float>, insert_at_<1, identity>,
 
 // SORT : Given a binary predicate, sort the types
 // note : it's implicit that you receive two types, so you probably need to
-// transform them. eg : sort by size : sort_<pipe_<transform_<pipe_<size>>,
-// less_<>>
+// transform them. eg : sort by size : sort_<transform_<size>, greater_<> >
 
 template <typename A, typename B>
 struct eager {
@@ -1185,15 +1199,43 @@ struct sort_ {
   };
 };
 
+// GROUP : Given a Unary Function, Gather those that give the same result
 template <typename... Fs>
 struct group_ : sort_<transform_<Fs...>, lift_<std::is_same>> {};
 
-struct unique
-    : pipe_<group_<>, if_then_<pipe_<length, greater_<i<1>>>,
-                               pipe_<fork_<identity, rotate_<1>>, zip,
-                                     remove_if_<unwrap, lift_<std::is_same>>,
-                                     transform_<unwrap, first>>>> {};
+// PUSH_OUT
+// A very strange algorithm that is technically half a quicksort.
+template <typename... BinaryPredicate>
+struct push_out_ {
+  template <typename... L>
+  struct sort_impl;
+  template <typename T>
+  struct sort_impl<T> {
+    typedef T type;
+  };
 
+  template <typename... Ts, typename F>
+  struct sort_impl<input_<F, Ts...>> {
+    typedef typename sort_impl<typename flat<
+        input_<>,
+        typename eager<Ts, typename not_<pipe_<BinaryPredicate...>>::template f<
+                               Ts, F>::type>::type...>::type>::type No_types;
+
+    typedef typename flat<input_<>, F, No_types>::type type;
+  };
+  template <typename... Ts>
+  struct f {
+    typedef typename sort_impl<input_<Ts...>>::type type;
+  };
+};
+
+// UNIQUE : Keep only one of each different types
+// The implementation is special but work.
+struct unique : push_out_<lift_<std::is_same>> {};
+
+static_assert(eval_pipe_<input_<void, int, void, float, float, int>, unique,
+                         is_<void, int, float>>::value,
+              "");
 
 };  // namespace type_expr
 #endif

@@ -172,9 +172,9 @@ int main() {
   // replace_if transform the type into another if the predicate is true
 
   static_assert(
-      te::eval_pipe_<input_<ls_<int, short>, ls_<float, char>>, product,
-                     is_<ls_<int, float>, ls_<int, char>, ls_<short, float>,
-                         ls_<short, char>>>::value,
+      te::eval_pipe_<input_<input_<int, short>, input_<float, char>>, product,
+                     is_<input_<int, float>, input_<int, char>, input_<short, float>,
+                         input_<short, char>>>::value,
       "");
   // product is a little bit special : given two lists, it return each
   // permutation possible while respecting the order
@@ -233,6 +233,24 @@ int main() {
   auto tt7 = tup_cat(tt2, tt3, tt2);
   assert(tt7.get<4>() == 3);
   // TYPE_TUP
+
+static_assert( te::pipe_t<
+            te::input_<tup<int,float,char>,tup<int*,char*>,tup<>>
+                ,te::transform_<te::unwrap,te::length,te::mkseq, listify>
+                   ,te::zip_index
+                   ,transform_<product>
+                   , flatten
+                   , unzip
+                   , transform_<quote_std_integer_sequence>
+                   , is_<std::integer_sequence<int,0,0,0,1,1>, std::integer_sequence<int,0,1,2,0,1>>
+                        >::value , "Eric Niebler Challenge");
+struct Z{};// EMPTY
+static_assert(te::pipe_t<
+    te::input_<Z,int[4],Z, int[1],Z,int[2], int[3]>,
+    te::remove_if_<te::lift_<std::is_empty>>,
+    te::sort_<te::transform_<te::size>,te::greater_<>>,
+    te::listify
+    ,is_<te::ls_<int[4],int[3], int[2], int[1]>>>::value, "Arthur O'Dwyer");
 
   return 0;
 }
