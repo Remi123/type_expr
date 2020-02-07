@@ -6,8 +6,8 @@
 #include <utility>
 
 #if __cplusplus < 201403L
-namespace std{
-template< class T, T... Ints >
+namespace std {
+template <class T, T... Ints>
 class integer_sequence;
 };
 #endif
@@ -110,12 +110,11 @@ struct quote_ {
     typedef F<Ts...> type;
   };
 };
-struct quote_std_integer_sequence
-{
-        template<typename ... Is>
-        struct f {
-        typedef std::integer_sequence<int ,Is::value...> type;
-        };
+struct quote_std_integer_sequence {
+  template <typename... Is>
+  struct f {
+    typedef std::integer_sequence<int, Is::value...> type;
+  };
 };
 
 // FOLD_LEFT_ : Fold expression
@@ -740,13 +739,12 @@ struct count_if_ : pipe_<remove_if_<not_<F...>>, length> {};
 
 // FIND_IF_ : Return the first index that respond to the predicate, along with
 // the type.
-template <typename ... F>
+template <typename... F>
 struct find_if_
-    : pipe_<zip_index, filter_< unwrap, second, F...>, first, unwrap > {};
+    : pipe_<zip_index, filter_<unwrap, second, F...>, first, unwrap> {};
 
-static_assert(pipe_t<input_<float, int, float, int>, find_if_<is_<int>>
-                     ,is_<i<1>, int>
-                     >::value,
+static_assert(pipe_t<input_<float, int, float, int>, find_if_<is_<int>>,
+                     is_<i<1>, int>>::value,
               "");
 
 // PRODUCT : Given two lists, continue with every possible lists of two types.
@@ -1139,14 +1137,12 @@ static_assert(pipe_t<input_<i<3>>, plus_<i<1>>,
 // INSERT_AT : Insert the result of an function inside.
 template <int Index, typename... F>
 struct insert_at_
-    : pipe_<
-          fork_<pipe_<zip_index, filter_<unwrap ,first, less_<i<Index>>>,
-                      unzip_index>,
-                pipe_<F...>,
-                pipe_<zip_index,
-                      remove_if_<unwrap,first, less_<i<Index>>>,
-                      unzip_index>>,
-          flatten> {};
+    : pipe_<fork_<pipe_<zip_index, filter_<unwrap, first, less_<i<Index>>>,
+                        unzip_index>,
+                  pipe_<F...>,
+                  pipe_<zip_index, remove_if_<unwrap, first, less_<i<Index>>>,
+                        unzip_index>>,
+            flatten> {};
 
 static_assert(pipe_t<input_<int, float, int[2], float[2]>,
                      insert_at_<2, input_<char, char[2]>>,
