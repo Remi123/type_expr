@@ -477,7 +477,7 @@ struct zip_index {
   };
   template <typename... Is, typename... Ts>
   struct f_impl<input_<Is...>, input_<Ts...>> {
-    typedef input_<ls_<Is, Ts>...> type;
+    typedef input_<input_<Is, Ts>...> type;
   };
 
   template <typename... Ts>
@@ -495,7 +495,7 @@ struct unzip_index {
     typedef error_<unzip_index_not_recognized> type;
   };
   template <typename... Is, typename... Ts>
-  struct f<ls_<Is, Ts>...> {
+  struct f<input_<Is, Ts>...> {
     typedef input_<Ts...> type;
   };
 };
@@ -740,15 +740,15 @@ struct count_if_ : pipe_<remove_if_<not_<F...>>, length> {};
 // FIND_IF_ : Return the first index that respond to the predicate, along with
 // the type.
 template <typename... F>
-struct find_if_
-    : pipe_<zip_index, filter_<unwrap, second, F...>, first, unwrap> {};
+struct find_if_ : pipe_<zip_index, transform_<listify>,
+                        filter_<unwrap, second, F...>, first, unwrap> {};
 
-static_assert(pipe_t<input_<float, int, float, int>, find_if_<is_<int>>,
-                     is_<i<1>, int>>::value,
+static_assert(eval_pipe_<input_<float, int, float, int>, find_if_<is_<int>>,
+                         is_<i<1>, int>>::value,
               "");
 
 // PRODUCT : Given two lists, continue with every possible lists of two types.
-struct product {
+struct product_old {
   template <typename... Ts>
   struct f;
   template <typename A, typename... Ts>
@@ -757,8 +757,61 @@ struct product {
   };
   template <typename... As, typename... Bs>
   struct f<input_<As...>, input_<Bs...>>
-      : pipe_t<input_<ls_<As, ls_<Bs...>>...>, transform_<product>, flatten> {};
+      : pipe_t<input_<ls_<As, ls_<Bs...>>...>, transform_<product_old>,
+               flatten> {};
 };
+
+struct product {
+ private:
+  template <typename... Ts>
+  struct impl;
+
+ public:
+  template <typename T, typename U>
+  struct f {
+    typedef input_<input_<input_<T, U>>> type;
+  };
+  template <typename As, typename... Bs>
+  struct f<As, input_<Bs...>> {
+    typedef input_<input_<As, Bs>...> type;
+  };
+  template <typename... As, typename Bs>
+  struct f<input_<As...>, input_<Bs>> {
+    typedef input_<input_<As, Bs>...> type;
+  };
+  template <typename A, typename... Bs>
+  struct f<input_<A>, input_<Bs...>> {
+    typedef input_<input_<A, Bs>...> type;
+  };
+  template <typename A, typename B>
+  struct f<input_<A>, input_<B>> {
+    typedef input_<A, B> type;
+  };
+
+  template <typename... As, typename... Bs>
+  struct f<input_<As...>, input_<Bs...>> {
+    typedef eval_pipe_<input_<input_<As, input_<Bs...>>...>,
+                       transform_<product>, flatten>
+        type;
+  };
+};
+
+static_assert(eval_pipe_<input_<input_<int[1]>, input_<float[1]>>, product,
+                         is_<int[1], float[1]>>::value,
+              "");
+static_assert(
+    eval_pipe_<input_<input_<int[1], int[2]>, input_<float[1]>>, product,
+               is_<input_<int[1], float[1]>, input_<int[2], float[1]>>>::value);
+static_assert(
+    eval_pipe_<input_<input_<int[1]>, input_<float[1], float[2]>>, product,
+               is_<input_<int[1], float[1]>, input_<int[1], float[2]>>>::value,
+    "");
+static_assert(
+    eval_pipe_<input_<input_<int[1], int[2]>, input_<float[1], float[2]>>,
+               product,
+               is_<input_<int[1], float[1]>, input_<int[1], float[2]>,
+                   input_<int[2], float[1]>, input_<int[2], float[2]>>>::value,
+    "");
 
 // ROTATE : rotate
 // The implementation may rely on undefined behavior.
@@ -1135,23 +1188,24 @@ static_assert(pipe_t<input_<i<3>>, plus_<i<1>>,
               "");
 
 // INSERT_AT : Insert the result of an function inside.
-template <int Index, typename... F>
-struct insert_at_
-    : pipe_<fork_<pipe_<zip_index, filter_<unwrap, first, less_<i<Index>>>,
-                        unzip_index>,
-                  pipe_<F...>,
-                  pipe_<zip_index, remove_if_<unwrap, first, less_<i<Index>>>,
-                        unzip_index>>,
-            flatten> {};
+/*template <int Index, typename... F>*/
+// struct insert_at_
+//: pipe_<fork_<pipe_<zip_index, filter_< first, less_<i<Index>>>,
+// transform_<second>,flatten>,
+// pipe_<F...>,
+// pipe_<zip_index, remove_if_< first, less_<i<Index>>>,
+// transform_<second>, flatten>>,
+// flatten> {};
 
-static_assert(pipe_t<input_<int, float, int[2], float[2]>,
-                     insert_at_<2, input_<char, char[2]>>,
-                     is_<int, float, char, char[2], int[2], float[2]>>::value,
-              "");
+// static_assert(pipe_t<input_<int, float, int[2], float[2]>,
+// insert_at_<2, input_<char, char[2]>>
+////,is_<int, float, char, char[2], int[2], float[2]>
+//>::valuetype,
+//"");
 
-static_assert(pipe_t<input_<int, short, float>, insert_at_<1, identity>,
-                     is_<int, int, short, float, short, float>>::value,
-              "");
+// static_assert(pipe_t<input_<int, short, float>, insert_at_<1, identity>,
+// is_<int, int, short, float, short, float>>::value,
+/*"");*/
 
 // SORT : Given a binary predicate, sort the types
 // note : it's implicit that you receive two types, so you probably need to
@@ -1232,6 +1286,13 @@ struct unique : push_out_<lift_<std::is_same>> {};
 static_assert(eval_pipe_<input_<void, int, void, float, float, int>, unique,
                          is_<void, int, float>>::value,
               "");
+
+template <unsigned int N>
+struct copy_ : eval_pipe_<input_<i<N>>, mkseq, transform_<input_<identity>>,
+                          quote_<fork_>> {};
+
+template <unsigned int N, typename... Es>
+struct repeat_ : eval_pipe_<input_<pipe_<Es...>>, copy_<N>, quote_<pipe_>> {};
 
 };  // namespace type_expr
 #endif

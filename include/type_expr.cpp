@@ -214,11 +214,12 @@ int main() {
                            input_<std::false_type>>>::value,
       "");
   static_assert(te::eval_pipe_<input_<float, int, float, int>,
-                               find_if_<is_<int>>, is_<i<1>, int>>::value,
-                "");
-  static_assert(te::eval_pipe_<input_<int, float>, zip_index,
-                               is_<ls_<i<0>, int>, ls_<i<1>, float>>>::value,
-                "");
+   find_if_<is_<int>>, is_<i<1>, int>>::value,
+  "");
+  static_assert(
+      te::eval_pipe_<input_<int, float>, zip_index,
+                     is_<input_<i<0>, int>, input_<i<1>, float>>>::value,
+      "");
   static_assert(
       te::eval_pipe_<input_<i<1>>, plus_<i<1>>, mkseq, is_<i<0>, i<1>>>::value,
       "");
@@ -235,12 +236,13 @@ int main() {
   // TYPE_TUP
 
   static_assert(
-      te::pipe_t<te::input_<tup<int, float, char>, tup<int*, char*>, tup<>>,
-                 te::transform_<te::unwrap, te::length, te::mkseq, listify>,
-                 te::zip_index, transform_<product>, flatten, unzip,
+      te::pipe_t<te::input_<te::ls_<int, float, char>, te::ls_<>,
+                            te::ls_<int*, char*>, te::ls_<int>>,
+                 te::transform_<te::unwrap, te::length, te::mkseq>,
+                 te::zip_index, transform_<te::product>, flatten, unzip,
                  transform_<quote_std_integer_sequence>,
-                 is_<std::integer_sequence<int, 0, 0, 0, 1, 1>,
-                     std::integer_sequence<int, 0, 1, 2, 0, 1>>>::value,
+                 is_<std::integer_sequence<int, 0, 0, 0, 2, 2, 3>,
+                     std::integer_sequence<int, 0, 1, 2, 0, 1, 0>>>::value,
       "Eric Niebler Challenge");
   struct Z {};  // EMPTY
   static_assert(te::pipe_t<te::input_<Z, int[4], Z, int[1], Z, int[2], int[3]>,

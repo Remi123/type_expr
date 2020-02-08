@@ -1,8 +1,9 @@
 #ifndef TYPE_EXPR_TUP_HPP
 #define TYPE_EXPR_TUP_HPP
 
-#include "type_expr.hpp"
 #include <utility>
+
+#include "type_expr.hpp"
 
 namespace type_expr {
 
@@ -79,10 +80,11 @@ template <typename... Tups, typename Ret = te::eval_pipe_<
                                 input_<Tups...>, te::transform_<te::unwrap>,
                                 te::flatten, quote_<te::tup>>>
 Ret tup_cat(Tups &&... tups) {
-  using zip_indexes = te::eval_pipe_<
-      te::input_<Tups...>,
-      te::transform_<te::unwrap, te::length, te::mkseq, te::listify>,
-      te::zip_index, te::transform_<te::product>, te::flatten, te::unzip>;
+  using zip_indexes =
+      te::eval_pipe_<te::input_<Tups...>,
+                     te::transform_<te::unwrap, te::length, te::mkseq>,
+                     te::zip_index, transform_<te::product>, flatten, unzip>;
+
   using tup_index = te::eval_pipe_<zip_indexes, te::first>;
   using types_index = te::eval_pipe_<zip_indexes, te::second>;
   return detail::tuple_cat_(tup_index{}, types_index{},
