@@ -224,19 +224,8 @@ int main() {
       te::eval_pipe_<input_<i<1>>, plus_<i<1>>, mkseq, is_<i<0>, i<1>>>::value,
       "");
 
-  // TYPE_TUP Test
-
-  te::tup<int, float> tt2{1, 2.0f};
-  tt2.get<0>() = 2;
-  assert(tt2.get<0>() == 2);
-  auto tt3 = te::make_tup(1, 2, 3);
-  assert(tt3.get<2>() == 3);
-  auto tt7 = tup_cat(tt2, tt3, tt2);
-  assert(tt7.get<4>() == 3);
-  // TYPE_TUP
-
-  static_assert(
-      te::pipe_t<te::input_<te::ls_<int, float, char>, te::ls_<>,
+    static_assert(
+      te::eval_pipe_<te::input_<te::ls_<int, float, char>, te::ls_<>,
                             te::ls_<int*, char*>, te::ls_<int>>,
                  te::transform_<te::unwrap, te::length, te::mkseq>,
                  te::zip_index, transform_<te::product>, flatten, unzip,
@@ -245,7 +234,7 @@ int main() {
                      std::integer_sequence<int, 0, 1, 2, 0, 1, 0>>>::value,
       "Eric Niebler Challenge");
   struct Z {};  // EMPTY
-  static_assert(te::pipe_t<te::input_<Z, int[4], Z, int[1], Z, int[2], int[3]>,
+  static_assert(te::eval_pipe_<te::input_<Z, int[4], Z, int[1], Z, int[2], int[3]>,
                            te::remove_if_<te::lift_<std::is_empty>>,
                            te::sort_<te::transform_<te::size>, te::greater_<>>,
                            te::listify,

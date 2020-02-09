@@ -1,4 +1,30 @@
-﻿#ifndef TYPE_EXPR_HPP
+﻿/**
+ * The MIT License (MIT)
+ *
+ * Webzash - Easy to use web based double entry accounting software
+ *
+ * Copyright (c) 2020 Remi123 <drolet.remi@gmail.com>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+#ifndef TYPE_EXPR_HPP
 #define TYPE_EXPR_HPP
 
 #include <ratio>
@@ -18,7 +44,7 @@ namespace type_expr {
 // FIRST CLASS CITIZEN OF TYPE_EXPR
 // -------------------------------------------------------
 
-// INPUT : Universal type container of metafunctions.
+// INPUT : Universal type container of types (aka typelist).
 template <typename... Ts>
 struct input_ {
   typedef input_ type;
@@ -40,11 +66,11 @@ struct input_<T> {
 using nothing = input_<>;
 
 // ERROR : Template used for debugging
-template <typename MSG>
+template <typename ... MSG>
 struct error_ {
   template <typename...>
   struct f {
-    typedef error_<MSG> type;
+    typedef error_<MSG...> type;
   };
 };
 
@@ -84,12 +110,19 @@ struct zero<std::ratio<num, den>> {
   typedef std::ratio<0, den> type;
 };
 
+// Third specialization of zero. The zero of any std::integer_sequence is with the same amount of zero
+template<typename T, T ... value>
+struct zero<std::integer_sequence<T,value...>>
+{
+        typedef std::integer_sequence<T,(value*0)...> type;
+};
+
 // B : Universal boolean type.
 template <bool B>
 using b = std::integral_constant<bool, B>;
 
 // -------------------------------------------------------
-// METAFUNCTION
+// METAEXPRESSION
 // -------------------------------------------------------
 
 // LIFT_ : Universal customization point using template template. Get the ::type
@@ -121,9 +154,9 @@ struct quote_std_integer_sequence {
 // The Farmer of the library
 template <typename F>
 struct fold_left_ {
-  template <typename...>
+  template <typename... Ts>
   struct f {
-    typedef error_<fold_left_<int>> type;
+    typedef error_<fold_left_<F,Ts...>> type;
   };
   template <typename A>
   struct f<A> {
@@ -195,10 +228,15 @@ struct pipe_expr<error_<ErrorT>, G> {
 // The Bread and Butter of the library
 template <typename... Cs>
 struct pipe_;
-template <typename... Fs>
-using pipe_t = typename pipe_<Fs...>::template f<>::type;
+
+// PIPE_ : Helper alias
 template <typename... Fs>
 using eval_pipe_ = typename pipe_<Fs...>::template f<>::type;
+#if __cplusplus > 201403L
+ template <typename... Fs> constexpr int eval_pipe_v =
+ eval_pipe_<Fs...>::value;
+#endif
+
 
 template <typename... Cs>
 struct pipe_ {
@@ -221,9 +259,6 @@ template <typename... Fs, typename... Args>
 constexpr eval_pipe_<Fs...> eval(const pipe_<Fs...> &, Args &&... args) {
   return eval_pipe_<Fs...>{std::forward<Args>(args)...};
 }
-
-// template <typename... Fs> constexpr int eval_pipe_v =
-// eval_pipe_<Fs...>::value;
 
 // FORK_ : Inputs are copied to each metafunctions
 // The Peanut Butter of the library
@@ -465,7 +500,7 @@ struct zip {
     typedef input_<ls_<Ts, Us>...> type;
   };
 };
-static_assert(pipe_t<input_<ls_<int, int>, ls_<float, char>>, zip,
+static_assert(eval_pipe_<input_<ls_<int, int>, ls_<float, char>>, zip,
                      is_<ls_<int, float>, ls_<int, char>>>::value,
               "");
 
@@ -602,7 +637,7 @@ typedef third _3rd;
 struct last {
   template <typename... Ts>
   struct f {
-    typedef pipe_t<input_<Ts...>, get_<sizeof...(Ts) - 1>> type;
+    typedef eval_pipe_<input_<Ts...>, get_<sizeof...(Ts) - 1>> type;
   };
 };
 
@@ -757,7 +792,7 @@ struct product_old {
   };
   template <typename... As, typename... Bs>
   struct f<input_<As...>, input_<Bs...>>
-      : pipe_t<input_<ls_<As, ls_<Bs...>>...>, transform_<product_old>,
+      : eval_pipe_<input_<ls_<As, ls_<Bs...>>...>, transform_<product_old>,
                flatten> {};
 };
 
@@ -829,11 +864,11 @@ struct rotate_ {
   struct f : f_impl<I % sizeof...(Ts), Ts...> {};
 };
 
-static_assert(pipe_t<input_<int, float, short, int[2]>, rotate_<5>,
+static_assert(eval_pipe_<input_<int, float, short, int[2]>, rotate_<5>,
                      is_<float, short, int[2], int>>::value,
               "");
 
-static_assert(pipe_t<input_<int, float, short, int[2]>, rotate_<-1>,
+static_assert(eval_pipe_<input_<int, float, short, int[2]>, rotate_<-1>,
                      is_<int[2], int, float, short>>::value,
               "");
 
@@ -849,8 +884,8 @@ struct is_zero {
   };
 };
 
-static_assert(pipe_t<input_<b<0>>, is_zero>::value, "");
-static_assert(pipe_t<input_<b<true>>, not_<is_zero>>::value, "");
+static_assert(eval_pipe_<input_<b<0>>, is_zero>::value, "");
+static_assert(eval_pipe_<input_<b<true>>, not_<is_zero>>::value, "");
 
 // IF, AND , OR : WIP
 // Not satisfying will revisit later
@@ -1180,10 +1215,10 @@ static_assert(eval_pipe_<input_<std::ratio<1, 4>>, plus_<std::ratio<2, 5>>,
                          equal_<std::ratio<26, 40>>>::value,
               "");
 
-static_assert(pipe_t<input_<i<3>>, plus_<i<1>>,
+static_assert(eval_pipe_<input_<i<3>>, plus_<i<1>>,
                      if_then_<is_<i<4>>, plus_<i<2>>>, is_<i<6>>>::value,
               "");
-static_assert(pipe_t<input_<i<3>>, plus_<i<1>>,
+static_assert(eval_pipe_<input_<i<3>>, plus_<i<1>>,
                      if_then_<is_<i<3>>, plus_<i<2>>>, is_<i<4>>>::value,
               "");
 
@@ -1197,13 +1232,13 @@ static_assert(pipe_t<input_<i<3>>, plus_<i<1>>,
 // transform_<second>, flatten>>,
 // flatten> {};
 
-// static_assert(pipe_t<input_<int, float, int[2], float[2]>,
+// static_assert(eval_pipe_<input_<int, float, int[2], float[2]>,
 // insert_at_<2, input_<char, char[2]>>
 ////,is_<int, float, char, char[2], int[2], float[2]>
 //>::valuetype,
 //"");
 
-// static_assert(pipe_t<input_<int, short, float>, insert_at_<1, identity>,
+// static_assert(eval_pipe_<input_<int, short, float>, insert_at_<1, identity>,
 // is_<int, int, short, float, short, float>>::value,
 /*"");*/
 

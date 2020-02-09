@@ -68,28 +68,43 @@ tup<Types &&...> forward_as_tup(Types &&... args) noexcept {
   return te::tup<Types &&...>(std::forward<Types>(args)...);
 }
 
+// TUP_CAT
+// Given multiple tup, concatenate them using the same expension trick than Eric
+// Niebler The trick is to get two std::integer_sequence which are the cartesian
+// product of each indexes of the tups with their respective index in the
+// concatenation function. given tup< tup<A,B,C>, tup<D>, tup<>, tup<E,F> > //
+// Tup_of_Tups index_of_tup           = std::integer_sequence<int,0,0,0,1,3,3>
+// index inside each tup  = std::integer_sequence<int,0,1,2,0,0,1>
+//
 namespace detail {
-template <typename... Is, typename... Ks, typename... Ts, typename Tuples>
-te::tup<Ts...> tuple_cat_(te::input_<Is...>, te::input_<Ks...>,
-                          te::input_<Ts...>, Tuples tpls) {
-  return te::tup<Ts...>{std::forward<Ts>(
-      tpls.template get<Is::value>().template get<Ks::value>())...};
+template <int... Is, int... Ks, typename... Ts, typename Tup_of_Tups>
+te::tup<Ts...> tup_cat_impl(std::integer_sequence<int, Is...>,
+                            std::integer_sequence<int, Ks...>, te::ls_<Ts...>,
+                            Tup_of_Tups &&tpls) {
+  return te::tup<Ts...>{
+      // get<0>().get<0>(), get<0>().get<1>(), ...
+      std::forward<Ts>(tpls.template get<Is>().template get<Ks>())...};
 }
 };  // namespace detail
 template <typename... Tups, typename Ret = te::eval_pipe_<
                                 input_<Tups...>, te::transform_<te::unwrap>,
                                 te::flatten, quote_<te::tup>>>
 Ret tup_cat(Tups &&... tups) {
+        // This do the magic of getting the cartesian product of each tup's types with the index inside
   using zip_indexes =
       te::eval_pipe_<te::input_<Tups...>,
                      te::transform_<te::unwrap, te::length, te::mkseq>,
                      te::zip_index, transform_<te::product>, flatten, unzip>;
 
-  using tup_index = te::eval_pipe_<zip_indexes, te::first>;
-  using types_index = te::eval_pipe_<zip_indexes, te::second>;
-  return detail::tuple_cat_(tup_index{}, types_index{},
-                            eval_pipe_<te::input_<Ret>, te::unwrap>{},
-                            te::forward_as_tup(std::forward<Tups>(tups)...));
+  using tup_index =
+      te::eval_pipe_<zip_indexes, te::first, te::quote_std_integer_sequence>;
+  using types_index =
+      te::eval_pipe_<zip_indexes, te::second, te::quote_std_integer_sequence>;
+  return detail::tup_cat_impl(
+      tup_index{}, // int_seq
+      types_index{}, // int_seq
+      eval_pipe_<te::input_<Ret>, te::unwrap, te::listify>{}, // typelist of all the types
+      te::forward_as_tup(std::forward<Tups>(tups)...));
 };
 
 };  // namespace type_expr
