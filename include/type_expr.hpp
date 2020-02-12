@@ -217,19 +217,19 @@ struct fold_left_ {
 // metafunction.
 // The Flour and Yeast of the library.
 template <typename...>
-struct pipe_expr {
+struct pipe_context {
   typedef nothing type;
 };
 template <typename T, typename G>
-struct pipe_expr<T, G> {
+struct pipe_context<T, G> {
   typedef typename G::template f<T>::type type;
 };
 template <typename... Ts, typename G>
-struct pipe_expr<input_<Ts...>, G> {
+struct pipe_context<input_<Ts...>, G> {
   typedef typename G::template f<Ts...>::type type;
 };
 template <typename ErrorT, typename G>
-struct pipe_expr<error_<ErrorT>, G> {
+struct pipe_context<error_<ErrorT>, G> {
   typedef error_<ErrorT> type;
 };
 
@@ -250,8 +250,9 @@ template <typename... Cs>
 struct pipe_ {
   template <typename... Ts>
   struct f {
-    typedef typename fold_left_<lift_<pipe_expr>>::template f<input_<Ts...>,
-                                                              Cs...>::type type;
+    typedef
+        typename fold_left_<lift_<pipe_context>>::template f<input_<Ts...>,
+                                                             Cs...>::type type;
   };
   // No ::type. This is a problem since it's always instanciated even if not
   // asked. required to have an alias eval_pipe_ = typename
@@ -353,7 +354,7 @@ template <typename... Fs>
 struct transform_ {
   template <typename... Ts>
   struct f {
-    typedef input_<typename pipe_expr<Ts, pipe_<Fs...>>::type...> type;
+    typedef input_<typename pipe_context<Ts, pipe_<Fs...>>::type...> type;
   };
 };
 
@@ -396,8 +397,15 @@ struct construct_fs_ : pipe_<Fs..., call_f> {
   struct f : pipe_<input_<Ts...>, Fs..., call_f> {};
 };
 
-template <typename... Ts>
-struct conditional;
+template <typename... Predicate>
+struct conditional {
+ private:
+  struct Type_not_a_predicate {};
+
+ public:
+  template <typename...>
+  struct f : input_<error_<Type_not_a_predicate, Predicate...>> {};
+};
 template <>
 struct conditional<std::true_type> {
   template <typename T, typename F>
