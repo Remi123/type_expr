@@ -214,8 +214,8 @@ int main() {
                            input_<std::false_type>>>::value,
       "");
   static_assert(te::eval_pipe_<input_<float, int, float, int>,
-   find_if_<is_<int>>, is_<i<1>, int>>::value,
-  "");
+                               find_if_<is_<int>>, is_<i<1>, int>>::value,
+                "");
   static_assert(
       te::eval_pipe_<input_<int, float>, zip_index,
                      is_<input_<i<0>, int>, input_<i<1>, float>>>::value,
@@ -224,22 +224,37 @@ int main() {
       te::eval_pipe_<input_<i<1>>, plus_<i<1>>, mkseq, is_<i<0>, i<1>>>::value,
       "");
 
-    static_assert(
+  // We will use te::ls_<...> instead of tuple but for the purpose of this test
+  // the same result is achieve
+  static_assert(
       te::eval_pipe_<te::input_<te::ls_<int, float, char>, te::ls_<>,
-                            te::ls_<int*, char*>, te::ls_<int>>,
-                 te::transform_<te::unwrap, te::length, te::mkseq>,
-                 te::zip_index, transform_<te::product>, flatten, unzip,
-                 transform_<quote_std_integer_sequence>,
-                 is_<std::integer_sequence<int, 0, 0, 0, 2, 2, 3>,
-                     std::integer_sequence<int, 0, 1, 2, 0, 1, 0>>>::value,
+                                te::ls_<int*, char*>, te::ls_<int>>,
+                     te::transform_<te::unwrap, te::length, te::mkseq>,
+                     te::zip_index, transform_<te::product>, flatten, unzip,
+                     transform_<quote_std_integer_sequence>,
+                     is_<std::integer_sequence<int, 0, 0, 0, 2, 2, 3>,
+                         std::integer_sequence<int, 0, 1, 2, 0, 1, 0>>>::value,
       "Eric Niebler Challenge");
-  struct Z {};  // EMPTY
-  static_assert(te::eval_pipe_<te::input_<Z, int[4], Z, int[1], Z, int[2], int[3]>,
-                           te::remove_if_<te::lift_<std::is_empty>>,
-                           te::sort_<te::transform_<te::size>, te::greater_<>>,
-                           te::listify,
-                           is_<te::ls_<int[4], int[3], int[2], int[1]>>>::value,
-                "Arthur O'Dwyer");
 
+  // On this challenge, the goal was to unwrap, remove empty class, sort them by
+  // size and rewrap them. on_args_<Es...> deals with the unwrap rewrap if the
+  // signature of the type accept only types.
+  struct Z {};  // EMPTY
+  static_assert(
+      te::eval_pipe_<
+          te::input_<te::ls_<Z, int[4], Z, int[1], Z, int[2], int[3]>>,
+          te::on_args_<te::remove_if_<te::lift_<std::is_empty>>,
+                       te::sort_<te::transform_<te::size>, te::greater_<>>>,
+          is_<te::ls_<int[4], int[3], int[2], int[1]>>>::value,
+      "Arthur O'Dwyer");
+
+  static_assert(
+      te::eval_pipe_<
+          te::input_<te::i<5>, te::i<3>, te::i<2>, te::i<1>, te::i<4>>,
+          te::fork_<te::sort_<te::less_<>>,
+                    te::sort_<te::greater_<>, te::not_<>>>,
+          te::lift_<std::is_same>>::value,
+      "");
+  
   return 0;
 }

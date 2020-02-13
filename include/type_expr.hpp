@@ -732,6 +732,11 @@ template <typename... UnaryPredicate>
 struct not_ : cond_<pipe_<UnaryPredicate...>, input_<std::false_type>,
                     input_<std::true_type>> {};
 
+template <>
+struct not_<> {
+  template <typename T>
+  struct f : input_<std::integral_constant<decltype(!T::value), !T::value>> {};
+};
 // REMOVE_IF_ : Remove every type where the metafunction "returns"
 // std::true_type
 template <typename... UnaryPredicate>
@@ -829,7 +834,8 @@ struct product {
   template <typename... As, typename... Bs>
   struct f<input_<As...>, input_<Bs...>> {
     typedef eval_pipe_<input_<input_<As, input_<Bs...>>...>,
-                       transform_<product>, flatten>
+                       transform_<product>,
+                       flatten>  // TODO : Maybe flatten inside the transform
         type;
   };
 };
@@ -1433,7 +1439,7 @@ static_assert(
 //
 template <typename... Es>
 struct on_args_ {
-  template <typename...>
+  template <typename... Ts>
   struct f : input_<error_<on_args_<Es...>>> {};
   template <template <typename... Ts> class F, typename... Ts>
   struct f<F<Ts...>> {
