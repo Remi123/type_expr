@@ -165,7 +165,7 @@ template <typename F>
 struct fold_left_ {
   template <typename... Ts>
   struct f {
-    typedef error_<fold_left_<F, Ts...>> type;
+    typedef error_<fold_left_<F>,Ts.. > type;
   };
   template <typename A>
   struct f<A> {
