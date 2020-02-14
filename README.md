@@ -1,6 +1,8 @@
 # Type_expr : C++11 Meta-programming library. 
 **This repo is still very early in the development.**
 
+![C/C++ CI](https://github.com/Remi123/type_expr/workflows/C/C++%20CI/badge.svg?branch=master)
+
 This library can be considered a fork of kvasir::mpl, but the core of the parsing is completly different.
 
 ## Code in Actions :
