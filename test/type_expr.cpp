@@ -1,4 +1,9 @@
-﻿#include "type_expr.hpp"
+﻿//     Copyright 2020 Remi Drolet (drolet.remi@gmail.com)
+// Distributed under the Boost Software License, Version 1.0.
+//      (See accompanying file LICENSE or copy at
+//        http://www.boost.org/LICENSE_1_0.txt)
+
+#include "type_expr.hpp"
 #include <assert.h>
 
 #include <type_traits>
@@ -38,7 +43,8 @@ int main() {
   // UNWRAP TESTING
   // There was a problem with unwrap...
   // those test stay there because I don't want to debug this again.
-
+  te::eval_pipe_<input_<std::array<int,5>>, unwrap>{} = input_<int,i<5>>{};
+  te::eval_pipe_<input_<std::integer_sequence<int,5,6>>, unwrap>{} = input_<i<5>,i<6>>{};
   te::eval_pipe_<input_<ls_<int, i<0>>>, unwrap, second> t11 = i<0>{};
   te::eval_pipe_<input_<ls_<int, i<0>>>, unwrap, pipe_<identity, second>> t12 =
       i<0>{};
@@ -50,7 +56,7 @@ int main() {
       b<true>{};
 
   constexpr te::eval_pipe_<input_<int>, unwrap> t =
-      type_expr::error_<type_expr::unwrap::unwrappable_type>{};
+      type_expr::error_<te::unspecialized,int>{};
   // Once an error_<Ts...> is discover, the pipe continue but doesn't evaluate.
   // a catch_ metafunction will never be implemented.
 

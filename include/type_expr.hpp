@@ -1,28 +1,7 @@
-﻿/**
- * The MIT License (MIT)
- *
- * Webzash - Easy to use web based double entry accounting software
- *
- * Copyright (c) 2020 Remi123 <drolet.remi@gmail.com>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
+﻿//     Copyright 2020 Remi Drolet (drolet.remi@gmail.com)
+// Distributed under the Boost Software License, Version 1.0.
+//      (See accompanying file LICENSE or copy at
+//        http://www.boost.org/LICENSE_1_0.txt)
 
 #ifndef TYPE_EXPR_HPP
 #define TYPE_EXPR_HPP
@@ -85,13 +64,17 @@ struct ls_ {};
 // IDENTITY : Continue with whatever the input_s were.
 struct identity {
   template <typename... Ts>
-  struct f {
-    typedef input_<Ts...> type;
-  };
-  template <typename T>
-  struct f<T> {
-    typedef T type;
-  };
+  struct f : input_<Ts...> {};
+};
+
+// SPECIALIZATION
+// Some errors could be avoided by letting the user specialize a function for a
+// given type While this is not a silver bullet and is not implemented
+// everywhere, we will favor this method
+struct unspecialized {};
+template <typename MetaFunction, typename... Ts>
+struct specialization {
+  typedef error_<unspecialized, Ts...> type;
 };
 
 // I : Universal integer type.
@@ -165,7 +148,7 @@ template <typename F>
 struct fold_left_ {
   template <typename... Ts>
   struct f {
-    typedef error_<fold_left_<F>,Ts... > type;
+    typedef error_<fold_left_<F>, Ts...> type;
   };
   template <typename A>
   struct f<A> {
@@ -281,29 +264,28 @@ struct fork_ {
 
 // UNWRAP : Universal unwrapper.
 struct unwrap {
-  struct unwrappable_type {};
-  template <typename... Ts>
+  template <typename T>
   struct f {
-    typedef error_<unwrappable_type> type;
+    typedef typename specialization<unwrap, T>::type type;
   };
-  template <template <typename... Ts> class F, typename... Ts>
-  struct f<F<Ts...>> {
-    typedef typename input_<Ts...>::type type;
-  };
-  template <template <typename... Ts> class F, typename... Ts>
-  struct f<const F<Ts...>> {
-    typedef typename input_<Ts...>::type type;
-  };
-  template <template <typename... Ts> class F, typename... Ts>
-  struct f<F<Ts...> &> {
-    typedef typename input_<Ts...>::type type;
-  };
-  template <template <typename... Ts> class F, typename... Ts>
-  struct f<const F<Ts...> &> {
-    typedef typename input_<Ts...>::type type;
-  };
-};
+  template <template <typename T, T...> class F, typename U, U... values>
+  struct f<F<U, values...>> : input_<std::integral_constant<U, values>...> {};
 
+  template <template <typename... Ts> class F, typename... Ts>
+  struct f<F<Ts...>> : input_<Ts...> {};
+  template <template <typename... Ts> class F, typename... Ts>
+  struct f<const F<Ts...>> : input_<Ts...> {};
+  template <template <typename... Ts> class F, typename... Ts>
+  struct f<F<Ts...> &> : input_<Ts...> {};
+  template <template <typename... Ts> class F, typename... Ts>
+  struct f<const F<Ts...> &> : input_<Ts...> {};
+};
+// specialization unwrap for std::array
+// Caution about std::size_t to int conversion
+template <typename T, std::size_t value>
+struct specialization<unwrap, std::array<T, value>> : input_<T, i<value>> {};
+
+// IS_ : Comparaison metafunction.
 template <typename A, typename B>
 struct is_same : std::false_type {};
 template <typename A>
@@ -313,7 +295,6 @@ struct is_not_same : std::true_type {};
 template <typename A>
 struct is_not_same<A, A> : std::false_type {};
 
-// IS_ : Comparaison metafunction.
 template <typename... Ts>
 struct is_ {
   template <typename... Us>
@@ -505,19 +486,19 @@ struct mkseq {
   };
 };
 
-// ZIP : Join together two list of type in multiple ls_
+// ZIP : Join together two list of type in multiple inputs
 struct zip {
   template <typename...>
   struct f {
     typedef error_<zip> type;
   };
-  template <template <typename...> class F, typename... Ts, typename... Us>
-  struct f<F<Ts...>, F<Us...>> {
-    typedef input_<ls_<Ts, Us>...> type;
+  template <template <typename...> class F,template <typename...> class G, typename... Ts, typename... Us>
+  struct f<F<Ts...>, G<Us...>> {
+    typedef input_<input_<Ts, Us>...> type;
   };
 };
-static_assert(eval_pipe_<input_<ls_<int, int>, ls_<float, char>>, zip,
-                         is_<ls_<int, float>, ls_<int, char>>>::value,
+static_assert(eval_pipe_<input_<input_<int, int>, input_<float, char>>, zip,
+                         is_<input_<int, float>, input_<int, char>>>::value,
               "");
 
 // ZIP_INDEX
@@ -845,7 +826,8 @@ static_assert(eval_pipe_<input_<input_<int[1]>, input_<float[1]>>, product,
               "");
 static_assert(
     eval_pipe_<input_<input_<int[1], int[2]>, input_<float[1]>>, product,
-               is_<input_<int[1], float[1]>, input_<int[2], float[1]>>>::value, "");
+               is_<input_<int[1], float[1]>, input_<int[2], float[1]>>>::value,
+    "");
 static_assert(
     eval_pipe_<input_<input_<int[1]>, input_<float[1], float[2]>>, product,
                is_<input_<int[1], float[1]>, input_<int[1], float[2]>>>::value,
