@@ -83,16 +83,17 @@ My favorite method to debug is to write a class with no conversion operator like
 ___
 
 ## The Goal of this Library :
-Implement a meta-programming library
-Reimplement std::tuple, std::optional and std::variant and then rework the visitation pattern.
-Provide some tutorial videos and improve the documention in the wiki.
-Any other ideas that come along the way
-
+1. Implement a pure type-based meta-programming library
+> I believe the base is solid enough to be reviewed by peers. I need to see what  Boost.Mp11, metal, kvasir.Mpl, Boost.Hana and other are doing that I'm not yet able. 
+2. I'll see how I'll be able to provide a complementary library to reproduce some of the stuff in Boost.Fusion.
+> Not started yet.
+3. Any other funny idea that come along the way.
+> There might be surprise... ;)
 ___
 
 ## Why Another Meta-Programming Library :
  I think I've finally found a way to provide the interface I wanted to play with types. All the other similar library use a lot of nesting to parse the meta-functions with the form of `G(F())`which call G() with the output of F(). Type_expr allows you to do the same with a syntax similar to  `F() | G(g_args) | H() | I()...` 
-Obviously, since this is template meta-programming the real form is `eval_pipe_<input_<Ts...>, F, G<g_args>, H, I>;` but let's agree that this is better than `call< F< G<g_args,H< I<>>>>,Ts...>;`
+Obviously, since this is template meta-programming the real form is `eval_pipe_<input_<Ts...>, F, G<g_args>, H, I>;` but let's agree that this is better than nested meta-functions monster.
 
 This nicer syntax allows for easier concatenation of meta-expressions to be more readable. You can also alias another meta-expression under te::pipe_<Fs...> to use it later.
 

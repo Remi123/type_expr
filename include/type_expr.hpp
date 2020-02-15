@@ -259,7 +259,7 @@ struct pipe_ {
   // pipe_<Fs...>::template f<>::type; to instanciate to the result type;
 
   template <typename... Ts, typename... Us>
-  constexpr pipe_<Cs..., Us...> operator|(const pipe_<Us...> &) {
+  constexpr pipe_<Cs..., Us...> const operator|(const pipe_<Us...> &) {
     return {};
   };
 };
@@ -845,7 +845,7 @@ static_assert(eval_pipe_<input_<input_<int[1]>, input_<float[1]>>, product,
               "");
 static_assert(
     eval_pipe_<input_<input_<int[1], int[2]>, input_<float[1]>>, product,
-               is_<input_<int[1], float[1]>, input_<int[2], float[1]>>>::value);
+               is_<input_<int[1], float[1]>, input_<int[2], float[1]>>>::value, "");
 static_assert(
     eval_pipe_<input_<input_<int[1]>, input_<float[1], float[2]>>, product,
                is_<input_<int[1], float[1]>, input_<int[1], float[2]>>>::value,
