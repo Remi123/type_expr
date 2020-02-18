@@ -4,7 +4,7 @@
 ![C/C++ CI](https://github.com/Remi123/type_expr/workflows/C/C++%20CI/badge.svg?branch=master)
 
 This library can be considered a fork of kvasir::mpl, but the core of the parsing is completly different.
->The major difference is "range-like" meta-expression required much fewer nesting than most other libraries.
+>The major difference is "range-like" meta-expression requiring much fewer nesting than most other libraries.
 
 ## Code in Actions :
 ```C++
