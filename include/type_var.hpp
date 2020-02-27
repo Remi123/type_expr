@@ -21,36 +21,100 @@ class var_impl {
   storage_t m_storage;
 
  public:
-  ~var_impl();           // Dtor
-  var_impl() = default;  // Default Ctor
+  // -------------------------------------------------------------------------
+  // Rule Of Five
+  ~var_impl() { destroy(); }  // Dtor
+  var_impl() = default;       // Default Ctor
+  // -------------------------------------------------------------------------
+  // Rules of 5 for var_impl<Ts...> type
+  constexpr var_impl(var_impl<Ts...>&& other)
+      : m_index(other.m_index) {  // Move Ctor
+    const bool fold_trick[] = {(other.is<Ts>()
+                                ? new (&m_storage) Ts(std::forward<Ts>(
+                                      reinterpret_cast<Ts&>(other.m_storage))),
+                                true : false)...};
+  }
+  constexpr var_impl(var_impl& other) : m_index(other.m_index) {  // Copy Ctor
+    const bool fold_trick[] = {
+        (other.is<Ts>() ? new (&m_storage)
+                              const Ts(reinterpret_cast<Ts&>(other.m_storage)),
+         true : false)...};
+  }
+  constexpr var_impl& operator=(var_impl&& other) {  // Move Assign
+    destroy();
+    const bool fold_trick[] = {(other.is<Ts>()
+                                ? new (&m_storage) Ts(std::forward<Ts>(
+                                      reinterpret_cast<Ts&>(other.m_storage))),
+                                true : false)...};
+    m_index = other.m_index;
+    return *this;
+  }
+  constexpr var_impl& operator=(const var_impl& other) {  // Copy Assign
+    destroy();
+    const bool fold_trick[] = {
+        (other.is<Ts>() ? new (&m_storage)
+                              Ts(reinterpret_cast<Ts&>(other.m_storage)),
+         true : false)...};
+    m_index = other.m_index;
+    return *this;
+  }
+  // -------------------------------------------------------------------------
+  // Rules of 5 for types that can be contained
+  //
+  // simple helper to retrive the index from the type list
   template <typename T>
-  var_impl(T&& value)
-      : m_index(te::eval_pipe_<te::input_<Ts...>, te::find_if_<te::is_<T>>,
-                               first>::value) {
+  using index_helper = te::eval_pipe_<
+      te::input_<Ts...>, te::zip_index, te::filter_<te::second, te::is_<T>>,
+      te::cond_<not_<te::is_<>>, te::first, te::input_<te::i<-1>>>>;
+  //
+  template <typename T>
+  var_impl(T&& value) : m_index(index_helper<T>::value), m_storage{} {
     new (&m_storage) T(std::forward<T>(value));
   }
   template <typename T>
-  var_impl(const T& value)
-      : m_index(te::eval_pipe_<te::input_<Ts...>, te::find_if_<te::is_<T>>,
-                               first>::value) {
+  constexpr var_impl(T& value) : m_index(index_helper<T>::value) {
     new (&m_storage) T(value);
   }
+  template <typename T>
+  constexpr var_impl& operator=(T&& value) {
+    destroy();
+    new (&m_storage) T{std::forward<T>(value)};
+    m_index = index_helper<T>::value;
+    return *this;
+  }
+  template <typename T>
+  constexpr var_impl& operator=(T& value) {
+    destroy();
+    new (&m_storage) T{value};
+    m_index = index_helper<T>::value;
+    return *this;
+  }
 
+  // -------------------------------------------------------------------------
+  // Other functions
+  //
+  constexpr void destroy() {
+    if (m_index != -1) {
+      const bool fold_trick[] = {
+          (is<Ts>() ? reinterpret_cast<Ts&>(m_storage).~Ts(), true : false)...};
+      m_index = -1;
+    }
+  }
   template <typename T>
   operator T() = delete;
 
   template <typename T>
-  T* get_if() {
+  constexpr T* get_if() noexcept {
     if (m_index == -1 || not is<T>())
       return nullptr;
     else
       return reinterpret_cast<T*>(&m_storage);
   }
 
-  bool is_empty() { return m_index == -1; }
+  constexpr inline bool is_empty() const noexcept { return m_index == -1; }
 
   template <typename T>
-  bool is() {
+  constexpr inline bool is() const noexcept {
     return m_index == te::eval_pipe_<te::input_<Ts...>,
                                      te::find_if_<te::is_<T>>, first>::value;
   }
@@ -68,16 +132,6 @@ class var_impl {
       te::eval_pipe_<te::input_<Ts...>, te::none_of_<te::is_<void>>>::value,
       "No reference accepted");
 };
-
-// DTOR
-template <typename... Ts>
-var_impl<Ts...>::~var_impl() {
-  if (m_index != -1) {
-    const bool fold_trick[] = {
-        (is<Ts>() ? reinterpret_cast<Ts&>(m_storage).~Ts(), true : false)...};
-    m_index = -1;
-  }
-}
 
 // VAR
 template <typename... Ts>
