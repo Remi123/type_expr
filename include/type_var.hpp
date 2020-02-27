@@ -21,14 +21,23 @@ class var_impl {
   storage_t m_storage;
 
  public:
-  ~var_impl();  // Dtor
-  var_impl() = default; // Default Ctor
+  ~var_impl();           // Dtor
+  var_impl() = default;  // Default Ctor
   template <typename T>
   var_impl(T&& value)
       : m_index(te::eval_pipe_<te::input_<Ts...>, te::find_if_<te::is_<T>>,
                                first>::value) {
     new (&m_storage) T(std::forward<T>(value));
   }
+  template <typename T>
+  var_impl(const T& value)
+      : m_index(te::eval_pipe_<te::input_<Ts...>, te::find_if_<te::is_<T>>,
+                               first>::value) {
+    new (&m_storage) T(value);
+  }
+
+  template <typename T>
+  operator T() = delete;
 
   template <typename T>
   T* get_if() {
@@ -38,7 +47,8 @@ class var_impl {
       return reinterpret_cast<T*>(&m_storage);
   }
 
-  uint32_t index() const { return m_index; }
+  bool is_empty() { return m_index == -1; }
+
   template <typename T>
   bool is() {
     return m_index == te::eval_pipe_<te::input_<Ts...>,
@@ -57,8 +67,7 @@ class var_impl {
   static_assert(
       te::eval_pipe_<te::input_<Ts...>, te::none_of_<te::is_<void>>>::value,
       "No reference accepted");
-
-};  
+};
 
 // DTOR
 template <typename... Ts>
@@ -74,9 +83,8 @@ var_impl<Ts...>::~var_impl() {
 template <typename... Ts>
 using var =
     te::eval_pipe_<te::input_<Ts...>, te::unique, te::quote_<te::var_impl>>;
-template<typename T>
-using opt = 
-    te::var<T>;
+template <typename T>
+using opt = te::var<T>;
 
 }  // namespace type_expr
 #endif
