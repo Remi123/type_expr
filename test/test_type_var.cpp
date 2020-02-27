@@ -14,11 +14,11 @@ namespace te = type_expr;
 // TYPE_TUP Test
 int main() {
   te::var<int, float> vnull{};
-  assert(vnull.index() == -1 && vnull.get_if<int>() == nullptr);
+  assert(vnull.is_empty() && vnull.get_if<int>() == nullptr);
   te::var<int, float, short> va{1}, vb{0.9f};
-  assert(va.index() == 0 && va.is<int>());
+  assert(not va.is_empty() && va.is<int>());
   assert(*va.get_if<int>() == 1 && va.get_if<short>() == nullptr);
-  assert(vb.index() == 1 && vb.is<float>());
+  assert(not vb.is_empty() && vb.is<float>());
   assert(*vb.get_if<float>() == 0.9f);
   te::var<std::string, int> vsi{std::string("Hello World")};
   assert(vsi.is<std::string>() && *vsi.get_if<std::string>() == "Hello World");
