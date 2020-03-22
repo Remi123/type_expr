@@ -256,6 +256,22 @@ int main() {
 
   static_assert(
       te::eval_pipe_<
+          te::input_<
+            te::ls_<Z, int[4], Z, int[1], Z, int[2], int[3]>,
+            te::ls_<int[2], Z, int[1], Z, int[3]>
+          >,
+          te::transform_<
+              te::on_args_<te::remove_if_<te::lift_<std::is_empty>>,
+                           te::sort_<te::transform_<te::size>, te::greater_<>>
+                            >
+                        >,
+          is_<te::ls_<int[4], int[3], int[2], int[1]>
+                ,te::ls_<int[3],int[2],int[1]>>>::value,
+      "Arthur O'Dwyer but with multiple types");
+
+
+  static_assert(
+      te::eval_pipe_<
           te::input_<te::i<5>, te::i<3>, te::i<2>, te::i<1>, te::i<4>>,
           te::fork_<te::sort_<te::less_<>>,
                     te::sort_<te::greater_<>, te::not_<>>>,
