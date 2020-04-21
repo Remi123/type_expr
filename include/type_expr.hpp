@@ -1494,5 +1494,31 @@ static_assert(eval_pipe_<input_<ls_<int, int[2], int[3]>>,
                          is_<ls_<int[3], int[2], int>>>::value,
               "");
 
+// ARRAYIFY
+// If all types receive are the same, continue with std::array with the correct
+// size.
+struct arrayify {
+  struct not_all_types_received_are_the_same;
+  template <bool b, typename Head, typename... Rest>
+  struct f_impl
+      : error_<arrayify, not_all_types_received_are_the_same, Head, Rest...> {};
+  template <typename Head, typename... Rest>
+  struct f_impl<true, Head, Rest...> {
+    typedef std::array<Head, sizeof...(Rest) + 1> type;
+  };
+
+  template <typename... Ts>
+  struct f;
+  template <typename Head, typename... Rest>
+  struct f<Head, Rest...>
+      : f_impl<is_<Head, Rest...>::template f<Rest..., Head>::type::value, Head,
+               Rest...> {};
+};
+
+static_assert(eval_pipe_<input_<int, float, int, float, float>,
+                         recursive_partition_<>, transform_<arrayify>,
+                         is_<std::array<int, 2>, std::array<float, 3>>>::value,
+              "");
+
 };  // namespace type_expr
 #endif
