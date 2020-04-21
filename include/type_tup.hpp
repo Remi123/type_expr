@@ -76,7 +76,7 @@ tup<Types &&...> forward_as_tup(Types &&... args) noexcept {
 // TUP_CAT
 // Given multiple tup, concatenate them using the same expension trick than Eric
 // Niebler The trick is to get two std::integer_sequence which are the cartesian
-// product of each indexes of the tups with their respective index in the
+// cartesian of each indexes of the tups with their respective index in the
 // concatenation function. given tup< tup<A,B,C>, tup<D>, tup<>, tup<E,F> > //
 // Tup_of_Tups index_of_tup           = std::integer_sequence<int,0,0,0,1,3,3>
 // index inside each tup  = std::integer_sequence<int,0,1,2,0,0,1>
@@ -95,11 +95,11 @@ template <typename... Tups, typename Ret = te::eval_pipe_<
                                 input_<Tups...>, te::transform_<te::unwrap>,
                                 te::flatten, quote_<te::tup>>>
 Ret tup_cat(Tups &&... tups) {
-        // This do the magic of getting the cartesian product of each tup's types with the index inside
+        // This do the magic of getting the cartesian cartesian of each tup's types with the index inside
   using zip_indexes =
       te::eval_pipe_<te::input_<Tups...>,
                      te::transform_<te::unwrap, te::length, te::mkseq>,
-                     te::zip_index, transform_<te::product>, flatten, unzip>;
+                     te::zip_index, transform_<te::cartesian>, flatten, unzip>;
 
   using tup_index =
       te::eval_pipe_<zip_indexes, te::first, te::quote_std_integer_sequence>;

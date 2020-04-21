@@ -178,11 +178,11 @@ int main() {
   // replace_if transform the type into another if the predicate is true
 
   static_assert(
-      te::eval_pipe_<input_<input_<int, short>, input_<float, char>>, product,
+      te::eval_pipe_<input_<input_<int, short>, input_<float, char>>, cartesian,
                      is_<input_<int, float>, input_<int, char>,
                          input_<short, float>, input_<short, char>>>::value,
       "");
-  // product is a little bit special : given two lists, it return each
+  // cartesian is a little bit special : given two lists, it return each
   // permutation possible while respecting the order
 
   static_assert(te::eval_pipe_<input_<i<1>, i<2>, i<3>, i<4>, i<5>>,
@@ -236,7 +236,7 @@ int main() {
       te::eval_pipe_<te::input_<te::ls_<int, float, char>, te::ls_<>,
                                 te::ls_<int*, char*>, te::ls_<int>>,
                      te::transform_<te::unwrap, te::length, te::mkseq>,
-                     te::zip_index, transform_<te::product>, flatten, unzip,
+                     te::zip_index, transform_<te::cartesian>, flatten, unzip,
                      transform_<quote_std_integer_sequence>,
                      is_<std::integer_sequence<int, 0, 0, 0, 2, 2, 3>,
                          std::integer_sequence<int, 0, 1, 2, 0, 1, 0>>>::value,

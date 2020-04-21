@@ -773,7 +773,7 @@ struct none_of_ : not_<any_of_<UnaryPredicate...>> {};
 
 // COUNT_IF_ : Count the number of type where the predicate is true
 template <typename... F>
-struct count_if_ : pipe_<remove_if_<not_<F...>>, length> {};
+struct count_if_ : pipe_<filter_<F...>, length> {};
 
 // FIND_IF_ : Return the first index that respond to the predicate, along with
 // the type.
@@ -786,7 +786,7 @@ static_assert(eval_pipe_<input_<float, int, float, int>, find_if_<is_<int>>,
               "");
 
 // PRODUCT : Given two lists, continue with every possible lists of two types.
-struct product {
+struct cartesian {
  private:
   template <typename... Ts>
   struct impl;
@@ -816,26 +816,26 @@ struct product {
   template <typename... As, typename... Bs>
   struct f<input_<As...>, input_<Bs...>> {
     typedef eval_pipe_<input_<input_<As, input_<Bs...>>...>,
-                       transform_<product>,
+                       transform_<cartesian>,
                        flatten>  // TODO : Maybe flatten inside the transform
         type;
   };
 };
 
-static_assert(eval_pipe_<input_<input_<int[1]>, input_<float[1]>>, product,
+static_assert(eval_pipe_<input_<input_<int[1]>, input_<float[1]>>, cartesian,
                          is_<int[1], float[1]>>::value,
               "");
 static_assert(
-    eval_pipe_<input_<input_<int[1], int[2]>, input_<float[1]>>, product,
+    eval_pipe_<input_<input_<int[1], int[2]>, input_<float[1]>>, cartesian,
                is_<input_<int[1], float[1]>, input_<int[2], float[1]>>>::value,
     "");
 static_assert(
-    eval_pipe_<input_<input_<int[1]>, input_<float[1], float[2]>>, product,
+    eval_pipe_<input_<input_<int[1]>, input_<float[1], float[2]>>, cartesian,
                is_<input_<int[1], float[1]>, input_<int[1], float[2]>>>::value,
     "");
 static_assert(
     eval_pipe_<input_<input_<int[1], int[2]>, input_<float[1], float[2]>>,
-               product,
+               cartesian,
                is_<input_<int[1], float[1]>, input_<int[1], float[2]>,
                    input_<int[2], float[1]>, input_<int[2], float[2]>>>::value,
     "");
