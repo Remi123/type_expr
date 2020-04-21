@@ -1346,18 +1346,6 @@ struct sort_ {
   };
 };
 
-// GROUP : Given a Unary Function, Gather those that give the same result
-template <typename... Fs>
-struct group_by_ : sort_<transform_<Fs...>, not_<lift_<std::is_same>>> {};
-
-static_assert(
-    eval_pipe_<
-        input_<i<1>, i<2>, i<3>, i<4>>, group_by_<modulo_<i<2>>>,
-        is_<std::integral_constant<int, 2>, std::integral_constant<int, 4>,
-            std::integral_constant<int, 1>,
-            std::integral_constant<int, 3>>>::value,
-    "");
-
 // PUSH_OUT
 // A very strange algorithm that is technically half a quicksort.
 template <typename... BinaryPredicate>
@@ -1384,6 +1372,8 @@ struct push_out_ {
   };
 };
 
+// RECURSIVE_PARTITION
+// Recursively partition into two groups which result of those UnaryFunction is the same as the first. Basically it group all the types that have the same result into subrange.
 template<typename ... UnaryFunction>
 struct recursive_partition_
 {
@@ -1421,6 +1411,7 @@ static_assert(
 		transform_<first>,
 		is_<i<1>,i<2>>
 	>::value,"");
+
 // UNIQUE : Keep only one of each different types
 // The implementation is special but work.
 //struct unique : push_out_<lift_<std::is_same>> {};
@@ -1429,6 +1420,22 @@ struct unique : pipe_<recursive_partition_<>,transform_<first>> {};
 static_assert(eval_pipe_<input_<void, int, void, float, float, int>, unique,
                          is_<void, int, float>>::value,
               "");
+
+// GROUP : Given a Unary Function, Gather those that give the same result
+template <typename... UnaryFunction>
+struct group_by_ : pipe_<recursive_partition_<UnaryFunction...>,flatten>{};
+
+static_assert(
+    eval_pipe_<
+        input_<i<1>, i<2>, i<3>, i<4>>, group_by_<modulo_<i<2>>>,
+        is_<std::integral_constant<int, 1>, std::integral_constant<int, 3>,
+            std::integral_constant<int, 2>,
+            std::integral_constant<int, 4>>>::value,
+    "");
+
+template<typename ... UnaryFunction>
+using group_range_ = recursive_partition_<UnaryFunction...>;
+
 
 // COPY_ : Copy N times the inputs.
 // Implemented as a higher meta-expression
