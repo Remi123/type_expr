@@ -492,7 +492,8 @@ struct zip {
   struct f {
     typedef error_<zip> type;
   };
-  template <template <typename...> class F,template <typename...> class G, typename... Ts, typename... Us>
+  template <template <typename...> class F, template <typename...> class G,
+            typename... Ts, typename... Us>
   struct f<F<Ts...>, G<Us...>> {
     typedef input_<input_<Ts, Us>...> type;
   };
@@ -1373,49 +1374,59 @@ struct push_out_ {
 };
 
 // RECURSIVE_PARTITION
-// Recursively partition into two groups which result of those UnaryFunction is the same as the first. Basically it group all the types that have the same result into subrange.
-template<typename ... UnaryFunction>
-struct recursive_partition_
-{
-    template<typename ... Ts>
-        struct f_impl;
-    template<typename ... Results>
-        struct f_impl<input_<Results...>,input_<>>
-        {typedef input_<Results...> type; };
-	template<typename ... Results,typename Head>
-        struct f_impl<input_<Results...>,input_<Head>>
-		{typedef input_<Results...,Head> type; };
+// Recursively partition into two groups which result of those UnaryFunction is
+// the same as the first. Basically it group all the types that have the same
+// result into subrange.
+template <typename... UnaryFunction>
+struct recursive_partition_ {
+  template <typename... Ts>
+  struct f_impl;
+  template <typename... Results>
+  struct f_impl<input_<Results...>, input_<>> {
+    typedef input_<Results...> type;
+  };
+  template <typename... Results, typename Head>
+  struct f_impl<input_<Results...>, input_<Head>> {
+    typedef input_<Results..., Head> type;
+  };
 
-     template<typename ... Results,typename Head>
-        struct f_impl<input_<Results...>,Head>
-        {typedef input_<Results...,Head> type; };
-    
-    template<typename ... Results, typename Head, typename ... Tails>
-        struct f_impl<input_<Results...>,input_<Head,Tails...>> :
-        f_impl<input_<Results...,eval_pipe_<input_<Head,Tails...>,
-                                    remove_if_<UnaryFunction...,isnt_<typename pipe_<UnaryFunction...>::template f<Head>::type>>,flatten>>,
-               eval_pipe_<input_<Tails...>,remove_if_<UnaryFunction...,is_<typename pipe_<UnaryFunction...>::template f<Head>::type>>,flatten > 
-            >{};
+  template <typename... Results, typename Head>
+  struct f_impl<input_<Results...>, Head> {
+    typedef input_<Results..., Head> type;
+  };
 
-    template<typename ... Ts>
-        struct f: f_impl<input_<>,input_<Ts...>>{};
+  template <typename... Results, typename Head, typename... Tails>
+  struct f_impl<input_<Results...>, input_<Head, Tails...>>
+      : f_impl<input_<Results...,
+                      eval_pipe_<
+                          input_<Head, Tails...>,
+                          remove_if_<UnaryFunction...,
+                                     isnt_<typename pipe_<UnaryFunction...>::
+                                               template f<Head>::type>>,
+                          flatten>>,
+               eval_pipe_<input_<Tails...>,
+                          remove_if_<UnaryFunction...,
+                                     is_<typename pipe_<UnaryFunction...>::
+                                             template f<Head>::type>>,
+                          flatten>> {};
+
+  template <typename... Ts>
+  struct f : f_impl<input_<>, input_<Ts...>> {};
 };
 
-static_assert(eval_pipe_<input_<char,int,float,int,float,char,char>,
-    recursive_partition_<>,
-    flatten,
-    is_<char,char,char,int,int,float,float>>::value,"");
-static_assert(
-	eval_pipe_<input_<	i<1>,i<2>,i<2>,i<4>	>,
-		recursive_partition_<modulo_<i<3>>>,
-		transform_<first>,
-		is_<i<1>,i<2>>
-	>::value,"");
+static_assert(eval_pipe_<input_<char, int, float, int, float, char, char>,
+                         recursive_partition_<>, flatten,
+                         is_<char, char, char, int, int, float, float>>::value,
+              "");
+static_assert(eval_pipe_<input_<i<1>, i<2>, i<2>, i<4>>,
+                         recursive_partition_<modulo_<i<3>>>, transform_<first>,
+                         is_<i<1>, i<2>>>::value,
+              "");
 
 // UNIQUE : Keep only one of each different types
 // The implementation is special but work.
-//struct unique : push_out_<lift_<std::is_same>> {};
-struct unique : pipe_<recursive_partition_<>,transform_<first>> {};
+// struct unique : push_out_<lift_<std::is_same>> {};
+struct unique : pipe_<recursive_partition_<>, transform_<first>> {};
 
 static_assert(eval_pipe_<input_<void, int, void, float, float, int>, unique,
                          is_<void, int, float>>::value,
@@ -1423,7 +1434,7 @@ static_assert(eval_pipe_<input_<void, int, void, float, float, int>, unique,
 
 // GROUP : Given a Unary Function, Gather those that give the same result
 template <typename... UnaryFunction>
-struct group_by_ : pipe_<recursive_partition_<UnaryFunction...>,flatten>{};
+struct group_by_ : pipe_<recursive_partition_<UnaryFunction...>, flatten> {};
 
 static_assert(
     eval_pipe_<
@@ -1433,9 +1444,8 @@ static_assert(
             std::integral_constant<int, 4>>>::value,
     "");
 
-template<typename ... UnaryFunction>
+template <typename... UnaryFunction>
 using group_range_ = recursive_partition_<UnaryFunction...>;
-
 
 // COPY_ : Copy N times the inputs.
 // Implemented as a higher meta-expression
@@ -1474,7 +1484,9 @@ struct on_args_ {
   };
   template <template <typename... Ts> class F, typename... Ts>
   struct f<F<Ts...> &> {
-    typedef eval_pipe_<input_<Ts...>, Es..., quote_<F>> type;
+    typedef eval_pipe_<input_<Ts...>, Es..., quote_<F>,
+                       lift_<std::add_lvalue_reference>>
+        type;
   };
 };
 static_assert(eval_pipe_<input_<ls_<int, int[2], int[3]>>,
