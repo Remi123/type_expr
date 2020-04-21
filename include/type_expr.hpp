@@ -1423,8 +1423,8 @@ static_assert(
 	>::value,"");
 // UNIQUE : Keep only one of each different types
 // The implementation is special but work.
-struct unique : push_out_<lift_<std::is_same>> {};
-//struct unique : pipe_<recursive_partition_<>,transform_<first>> {};
+//struct unique : push_out_<lift_<std::is_same>> {};
+struct unique : pipe_<recursive_partition_<>,transform_<first>> {};
 
 static_assert(eval_pipe_<input_<void, int, void, float, float, int>, unique,
                          is_<void, int, float>>::value,
