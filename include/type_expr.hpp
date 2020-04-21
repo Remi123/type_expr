@@ -897,6 +897,21 @@ static_assert(eval_pipe_<input_<b<true>>, not_<is_zero>>::value, "");
 template <typename UnaryPredicate, typename F>
 struct if_then_ : cond_<UnaryPredicate, F, identity> {};
 
+// if_ and then_
+// This is more of an hack but is cool nonetheless
+template <typename... Predicate>
+struct if_ {
+  template <typename... Es>
+  struct then_ : if_then_<pipe_<Predicate...>, pipe_<Es...>> {};
+};
+
+static_assert(
+    eval_pipe_<
+        input_<int *>,
+        if_<lift_<std::is_pointer>>::template then_<lift_<std::remove_pointer>>,
+        is_<int>>::value,
+    "");
+
 // ARITHMETIC METAFUNCTIONS
 
 // std::integral_constant's boolean operator
