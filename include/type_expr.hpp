@@ -1384,9 +1384,47 @@ struct push_out_ {
   };
 };
 
+template<typename ... UnaryFunction>
+struct recursive_partition_
+{
+    template<typename ... Ts>
+        struct f_impl;
+    template<typename ... Results>
+        struct f_impl<input_<Results...>,input_<>>
+        {typedef input_<Results...> type; };
+	template<typename ... Results,typename Head>
+        struct f_impl<input_<Results...>,input_<Head>>
+		{typedef input_<Results...,Head> type; };
+
+     template<typename ... Results,typename Head>
+        struct f_impl<input_<Results...>,Head>
+        {typedef input_<Results...,Head> type; };
+    
+    template<typename ... Results, typename Head, typename ... Tails>
+        struct f_impl<input_<Results...>,input_<Head,Tails...>> :
+        f_impl<input_<Results...,eval_pipe_<input_<Head,Tails...>,
+                                    remove_if_<UnaryFunction...,isnt_<typename pipe_<UnaryFunction...>::template f<Head>::type>>,flatten>>,
+               eval_pipe_<input_<Tails...>,remove_if_<UnaryFunction...,is_<typename pipe_<UnaryFunction...>::template f<Head>::type>>,flatten > 
+            >{};
+
+    template<typename ... Ts>
+        struct f: f_impl<input_<>,input_<Ts...>>{};
+};
+
+static_assert(eval_pipe_<input_<char,int,float,int,float,char,char>,
+    recursive_partition_<>,
+    flatten,
+    is_<char,char,char,int,int,float,float>>::value,"");
+static_assert(
+	eval_pipe_<input_<	i<1>,i<2>,i<2>,i<4>	>,
+		recursive_partition_<modulo_<i<3>>>,
+		transform_<first>,
+		is_<i<1>,i<2>>
+	>::value,"");
 // UNIQUE : Keep only one of each different types
 // The implementation is special but work.
 struct unique : push_out_<lift_<std::is_same>> {};
+//struct unique : pipe_<recursive_partition_<>,transform_<first>> {};
 
 static_assert(eval_pipe_<input_<void, int, void, float, float, int>, unique,
                          is_<void, int, float>>::value,

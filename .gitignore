@@ -1,6 +1,9 @@
 # Build Folder
 build/*
 
+#AsyncTask file
+.tasks
+
 # Prerequisites
 *.d
 
