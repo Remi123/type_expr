@@ -130,18 +130,34 @@ struct quote_ {
     typedef F<Ts...> type;
   };
 };
+
+// QUOTE_STD_INTEGER_SEQUENCE
+// Specialization for std::integer_sequence
 struct quote_std_integer_sequence {
   template <typename... Is>
   struct f {
     typedef std::integer_sequence<int, Is::value...> type;
   };
 };
+
+// QUOTE_STD_ARRAY
+// Specialization for std::array
 struct quote_std_array {
   template <typename T, typename N>
   struct f {
     typedef std::array<int, N::value> type;
   };
 };
+
+// GET_TYPE
+// Given a type, get the inner ::type
+struct get_type {
+  template <typename T>
+  struct f {
+    typedef typename T::type type;
+  };
+};
+
 // FOLD_LEFT_ : Fold expression
 // The Farmer of the library
 template <typename F>
@@ -229,20 +245,20 @@ template <typename... Fs>
 constexpr eval_pipe_<Fs...> eval_pipe_v = eval_pipe_<Fs...>::value;
 #endif
 
-template <typename... Cs>
+template <typename... Es>
 struct pipe_ {
   template <typename... Ts>
   struct f {
     typedef
         typename fold_left_<lift_<pipe_context>>::template f<input_<Ts...>,
-                                                             Cs...>::type type;
+                                                             Es...>::type type;
   };
   // No ::type. This is a problem since it's always instanciated even if not
   // asked. required to have an alias eval_pipe_ = typename
   // pipe_<Fs...>::template f<>::type; to instanciate to the result type;
 
   template <typename... Ts, typename... Us>
-  constexpr pipe_<Cs..., Us...> const operator|(const pipe_<Us...> &) {
+  constexpr pipe_<Es..., Us...> const operator|(const pipe_<Us...> &) {
     return {};
   };
 };
@@ -426,7 +442,6 @@ struct index_sequence {
 };
 
 // this structure doubles index_sequence elements.
-// s- is number of template arguments in IS.
 template <std::size_t s, typename IS>
 struct doubled_index_sequence;
 
@@ -785,7 +800,7 @@ static_assert(eval_pipe_<input_<float, int, float, int>, find_if_<is_<int>>,
                          is_<i<1>, int>>::value,
               "");
 
-// PRODUCT : Given two lists, continue with every possible lists of two types.
+// CARTESIAN : Given two lists, continue with every possible lists of two types.
 struct cartesian {
  private:
   template <typename... Ts>
