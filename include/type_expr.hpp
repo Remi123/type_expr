@@ -774,7 +774,7 @@ template <typename... UnaryPredicate>
 struct any_of_ {
   template <typename... Ts>
   struct f {
-    typedef typename is_not_same<
+   typedef typename is_not_same<
         ls_<b<false>,
             typename pipe_<UnaryPredicate...>::template f<Ts>::type...>,
         ls_<typename pipe_<UnaryPredicate...>::template f<Ts>::type...,
@@ -816,7 +816,7 @@ struct cartesian {
     typedef input_<input_<As, Bs>...> type;
   };
   template <typename... As, typename Bs>
-  struct f<input_<As...>, input_<Bs>> {
+  struct f<input_<As...>, Bs> {
     typedef input_<input_<As, Bs>...> type;
   };
   template <typename A, typename... Bs>
@@ -831,18 +831,20 @@ struct cartesian {
   template <typename... As, typename... Bs>
   struct f<input_<As...>, input_<Bs...>> {
     typedef eval_pipe_<input_<input_<As, input_<Bs...>>...>,
-                       transform_<cartesian>,
-                       flatten>  // TODO : Maybe flatten inside the transform
+                       transform_<cartesian>
+                       ,flatten>  // TODO : Maybe flatten inside the transform
         type;
   };
 };
 
-static_assert(eval_pipe_<input_<input_<int[1]>, input_<float[1]>>, cartesian,
-                         is_<int[1], float[1]>>::value,
+static_assert(eval_pipe_<input_<input_<int[1]>, input_<float[1]>>, cartesian
+                  ,is_<int[1], float[1]>
+                  >::value,
               "");
 static_assert(
-    eval_pipe_<input_<input_<int[1], int[2]>, input_<float[1]>>, cartesian,
-               is_<input_<int[1], float[1]>, input_<int[2], float[1]>>>::value,
+    eval_pipe_<input_<input_<int[1], int[2]>, float[1]>, cartesian
+               ,is_<input_<int[1], float[1]>, input_<int[2], float[1]>>
+               >::value,
     "");
 static_assert(
     eval_pipe_<input_<input_<int[1]>, input_<float[1], float[2]>>, cartesian,
