@@ -12,7 +12,7 @@ template <class ForwardIt, typename Cmp>
     
     ForwardIt middle1 = std::partition(first, last, 
             [pivot,cmp](const auto& em){ return cmp(pivot,em); });
-    {quick_unique_step(middle1, last,cmp);}    
+    quick_unique_step(middle1, last,cmp);   
  }
 
 template<typename ForwardIt, typename Cmp >
