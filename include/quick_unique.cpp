@@ -1,31 +1,61 @@
-#include <cstdio>
 #include <algorithm>
-#include <functional>
-#include <vector>
+#include <forward_list>
+#include <iterator>
 
-template <class ForwardIt, typename Cmp>
- void quick_unique_step(ForwardIt first, ForwardIt last, Cmp cmp)
+// QUICK_UNIQUE
+// Reorders the elements in the range [first, last) in such a way that 
+// all elements for which all the first instance of the value precede
+// the duplicated elements . 
+// Relative order of the elements is not preserved.  
+// RETURN : Iterator to the first element of the second group
+// IF given a unary function, the comparaison is made with the return
+// value of each element
+template <class ForwardIt>
+ ForwardIt quick_unique(ForwardIt first, ForwardIt last)
  {
-    if(first == last) 
-        return;
-    auto pivot = *first;
-    
-    ForwardIt middle1 = std::partition(first, last, 
-            [pivot,cmp](const auto& em){ return cmp(pivot,em); });
-    quick_unique_step(middle1, last,cmp);   
+    if(first == last) return first;
+    auto _next = std::next(first);
+    ForwardIt _mid = std::partition(_next, last, 
+        [first](decltype(*first) em){ return !(*first == em); });
+    return quick_unique(_next, _mid);
  }
 
-template<typename ForwardIt, typename Cmp >
- ForwardIt quick_unique(ForwardIt begin, ForwardIt end, Cmp cmp )
+template <class ForwardIt, typename UnaryFunc>
+ ForwardIt quick_unique(ForwardIt first, ForwardIt last,UnaryFunc func)
  {
-     quick_unique_step(begin,end,
-     cmp
-     );
-     return std::unique(begin,end,cmp);
+    if(first == last) return first;
+    auto _next = std::next(first);
+    auto _cmp = func(*first);
+    ForwardIt _mid = std::partition(_next, last, 
+        [_cmp,func](decltype(_cmp) em){ return !(_cmp == func(em)); });
+    return quick_unique(_next, _mid,func);
  }
- template<typename ForwardIt>
- ForwardIt quick_unique(ForwardIt begin, ForwardIt end)
+
+// QUICK_GROUP
+// Reorders the elements in the range [first, last) in such a way that 
+// all elements for which are equal to each other are grouped.
+// Relative order of the elements is not preserved.  
+// RETURN : Iterator to the last element.
+// IF given a unary function, the comparaison is made with the return
+// value of each element
+template <class ForwardIt>
+ ForwardIt quick_group(ForwardIt first, ForwardIt last)
  {
-    //typedef decltype(*begin) value_type;
-     return quick_unique(begin,end,std::equal_to<>{});
+    if(first == last) return first;
+    auto _next = std::next(first);
+    ForwardIt _mid = std::partition(_next, last, 
+        [first](decltype(*first) em){ return *first == em; });
+    return quick_group(_mid, last);
  }
+
+template <class ForwardIt, typename UnaryFunc>
+ ForwardIt quick_group(ForwardIt first, ForwardIt last, UnaryFunc func)
+ {
+    if(first == last) return first;
+    auto _next = std::next(first);
+    auto _cmp = func(*first);
+    ForwardIt _mid = std::partition(_next, last, 
+        [_cmp,func](decltype(_cmp)& em){ return _cmp == func(em); });
+    return quick_group(_mid, last,func);
+ }
+
