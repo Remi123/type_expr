@@ -20,22 +20,25 @@
 // value of each element
 template <class ForwardIt>
 ForwardIt quick_unique(ForwardIt first, ForwardIt last) {
-  if (first == last) return first;
-  auto _next = std::next(first);
-  ForwardIt _mid = std::partition(
-      _next, last, [first](decltype(*first) em) { return !(*first == em); });
-  return quick_unique(_next, _mid);
+  while (first != last) {
+    auto _cmp = *first;
+    first = std::next(first);
+    last = std::partition(
+        first, last, [&_cmp](decltype(_cmp)& em) { return !(_cmp == em); });
+  }
+  return last;
 }
 
 template <class ForwardIt, typename UnaryFunc>
 ForwardIt quick_unique(ForwardIt first, ForwardIt last, UnaryFunc func) {
-  if (first == last) return first;
-  auto _next = std::next(first);
-  auto _cmp = func(*first);
-  ForwardIt _mid = std::partition(_next, last, [_cmp, func](decltype(_cmp) em) {
-    return !(_cmp == func(em));
-  });
-  return quick_unique(_next, _mid, func);
+  while (first != last) {
+    auto _cmp = func(*first);
+    first = std::next(first);
+    last = std::partition(first, last, [&_cmp, func](decltype(_cmp)& em) {
+      return !(_cmp == func(em));
+    });
+  }
+  return last;
 }
 
 // QUICK_GROUP
@@ -47,22 +50,27 @@ ForwardIt quick_unique(ForwardIt first, ForwardIt last, UnaryFunc func) {
 // value of each element
 template <class ForwardIt>
 ForwardIt quick_group(ForwardIt first, ForwardIt last) {
-  if (first == last) return first;
-  auto _next = std::next(first);
-  ForwardIt _mid = std::partition(
-      _next, last, [first](decltype(*first) em) { return *first == em; });
-  return quick_group(_mid, last);
+  while (first != last) {
+    auto _cmp = *first;
+    auto _next = std::next(first);
+
+    first = std::partition(_next, last,
+                           [&_cmp](decltype(_cmp)& em) { return _cmp == em; });
+  }
+  return first;
 }
 
 template <class ForwardIt, typename UnaryFunc>
 ForwardIt quick_group(ForwardIt first, ForwardIt last, UnaryFunc func) {
-  if (first == last) return first;
-  auto _next = std::next(first);
-  auto _cmp = func(*first);
-  ForwardIt _mid = std::partition(
-      _next, last,
-      [_cmp, func](decltype(_cmp)& em) { return _cmp == func(em); });
-  return quick_group(_mid, last, func);
+  while (first != last) {
+    auto _cmp = func(*first);
+    auto _next = std::next(first);
+
+    first = std::partition(_next, last, [&_cmp, func](decltype(_cmp)& em) {
+      return _cmp == func(em);
+    });
+  }
+  return first;
 }
 
 #endif
