@@ -278,6 +278,15 @@ struct fork_ {
   };
 };
 
+//EACH : Badly named mix between fork and transform. Requiere the same number of functions as arguments than inputs.
+template<typename... Es>
+struct each_ {
+    template <typename ... Ts>
+    struct f {
+        typedef input_<eval_pipe_<input_<Ts>,Es>...> type;
+    };
+};
+
 // UNWRAP : Universal unwrapper.
 struct unwrap {
   template <typename T>
