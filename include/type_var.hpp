@@ -64,8 +64,8 @@ class var_impl {
   // simple helper to retrive the index from the type list
   template <typename T>
   using index_helper = te::eval_pipe_<
-      te::input_<Ts...>, te::zip_index, te::filter_<te::second, te::is_<T>>,
-      te::cond_<not_<te::is_<>>, te::first, te::input_<te::i<-1>>>>;
+      te::input_<Ts...>, te::zip_index, te::filter_<te::second, te::same_as_<T>>,
+      te::cond_<not_<te::same_as_<>>, te::first, te::input_<te::i<-1>>>>;
   //
   template <typename T>
   var_impl(T&& value) : m_index(index_helper<T>::value), m_storage{} {
@@ -116,7 +116,7 @@ class var_impl {
   template <typename T>
   constexpr inline bool is() const noexcept {
     return m_index == te::eval_pipe_<te::input_<Ts...>,
-                                     te::find_if_<te::is_<T>>, first>::value;
+                                     te::find_if_<te::same_as_<T>>, first>::value;
   }
 
   // STATIC ASSERTION
@@ -129,7 +129,7 @@ class var_impl {
                      te::none_of_<te::lift_<std::is_reference>>>::value,
       "No reference accepted");
   static_assert(
-      te::eval_pipe_<te::input_<Ts...>, te::none_of_<te::is_<void>>>::value,
+      te::eval_pipe_<te::input_<Ts...>, te::none_of_<te::same_as_<void>>>::value,
       "No reference accepted");
 };
 
