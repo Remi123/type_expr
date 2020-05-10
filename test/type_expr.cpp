@@ -170,6 +170,13 @@ int main() {
   // Partition , like the std counterpart, result in two
   // containers : first one with predicate == true,
   //              second one with predicate == false
+  
+  static_assert(te::eval_pipe_<te::input_<int,te::input_<float,float>,char>
+                , te::each_<te::is_<int>,te::is_<float,float>,te::is_<char>>
+                , te::all_of_<te::is_<std::true_type>>
+                >::value,"");
+  // Each isn't my favorite fonction, but is there nonetheless.
+  //
 
   static_assert(te::eval_pipe_<input_<int, float, int, short>,
                                replace_if_<is_<int>, input_<float>>,
@@ -246,11 +253,14 @@ int main() {
   // size and rewrap them. on_args_<Es...> deals with the unwrap rewrap if the
   // signature of the type accept only types.
   struct Z {};  // EMPTY
+
+  using ArthurODwyer_metafunction = te::on_args_<te::remove_if_<te::lift_<std::is_empty>>,
+                       te::sort_<te::transform_<te::size>, te::greater_<>>>;
+
   static_assert(
       te::eval_pipe_<
           te::input_<te::ls_<Z, int[4], Z, int[1], Z, int[2], int[3]>>,
-          te::on_args_<te::remove_if_<te::lift_<std::is_empty>>,
-                       te::sort_<te::transform_<te::size>, te::greater_<>>>,
+          ArthurODwyer_metafunction,
           is_<te::ls_<int[4], int[3], int[2], int[1]>>>::value,
       "Arthur O'Dwyer");
 
@@ -260,11 +270,7 @@ int main() {
             te::ls_<Z, int[4], Z, int[1], Z, int[2], int[3]>,
             te::ls_<int[2], Z, int[1], Z, int[3]>
           >,
-          te::transform_<
-              te::on_args_<te::remove_if_<te::lift_<std::is_empty>>,
-                           te::sort_<te::transform_<te::size>, te::greater_<>>
-                            >
-                        >,
+          te::transform_< ArthurODwyer_metafunction>,
           is_<te::ls_<int[4], int[3], int[2], int[1]>
                 ,te::ls_<int[3],int[2],int[1]>>>::value,
       "Arthur O'Dwyer but with multiple types");
