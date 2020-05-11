@@ -900,38 +900,51 @@ struct is_zero {
 static_assert(eval_pipe_<input_<b<0>>, is_zero>::value, "");
 static_assert(eval_pipe_<input_<b<true>>, not_<is_zero>>::value, "");
 
-// IF, AND , OR : WIP
-// Not satisfying will revisit later
-/*template<typename ... Ps>*/
-// struct if_ : pipe_<Ps..., cond_<is_zero,input_<b<false>>,input_< b<true>>> >
-//{};
-// template<typename P>
-// struct and_: pipe_<P,cond_<is_zero,input_<b<false>>,identity>>
-//{};
-// template<typename P>
-// struct or_: pipe_<P,cond_<not_<is_zero>,input_<b<true>>, identity>>
-//{};
+// detail : then_context
+namespace detail {
+template<bool,typename ... Ts>
+struct __then_context{};
+}
 
-// static_assert(pipe_<input_<b<false>>, if_< is_zero , and_<same_as_<b<true>>>
-// >>::type::value,"");
+// IF, AND , OR , ENDIF
+// If_ must be followed by endif. This is synthaxic sugar
+template<typename ... NPred>
+struct if_{
+    template<typename ... Ts>
+    struct f {
+        typedef typename cond_<pipe_<NPred...>
+                                    ,detail::__then_context<true,Ts...>
+                                     ,detail::__then_context<false,Ts...>>::template f<Ts...>::type type;
+    };
+};
+
+template<typename ... Es>
+struct then_{
+    template<typename ... Ts>
+    struct f{};
+    template<typename ... Ts>
+    struct f<detail::__then_context<true,Ts...>>
+    {
+        typedef eval_pipe_<input_<Ts...>,Es...> type;
+    };
+    template<typename ... Ts>
+    struct f<detail::__then_context<false,Ts...>>
+    {
+        typedef detail::__then_context<false,Ts...> type;
+    };
+};
+
+struct endif
+{
+    template<typename ... Ts>
+    struct f{};
+    template<bool B,typename ... Ts>
+    struct f<detail::__then_context<B,Ts...>>
+    {typedef input_<Ts...> type;};
+};
 
 template <typename UnaryPredicate, typename F>
 struct if_then_ : cond_<UnaryPredicate, F, identity> {};
-
-// if_ and then_
-// This is more of an hack but is cool nonetheless
-template <typename... Predicate>
-struct if_ {
-  template <typename... Es>
-  struct then_ : if_then_<pipe_<Predicate...>, pipe_<Es...>> {};
-};
-
-static_assert(
-    eval_pipe_<
-        input_<int *>,
-        if_<lift_<std::is_pointer>>::template then_<lift_<std::remove_pointer>>,
-        same_as_<int>>::value,
-    "");
 
 // ARITHMETIC METAFUNCTIONS
 
