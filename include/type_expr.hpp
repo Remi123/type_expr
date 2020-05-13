@@ -902,45 +902,118 @@ static_assert(eval_pipe_<input_<b<true>>, not_<is_zero>>::value, "");
 
 // detail : then_context
 namespace detail {
-template<bool,typename ... Ts>
-struct __then_context{};
-}
+template <bool, typename... Ts>
+struct __then_context {};
+}  // namespace detail
 
 // IF, AND , OR , ENDIF
 // If_ must be followed by endif. This is synthaxic sugar
-template<typename ... NPred>
-struct if_{
-    template<typename ... Ts>
-    struct f {
-        typedef typename cond_<pipe_<NPred...>
-                                    ,detail::__then_context<true,Ts...>
-                                     ,detail::__then_context<false,Ts...>>::template f<Ts...>::type type;
-    };
+template <typename... NPred>
+struct if_ {
+  template <typename... Ts>
+  struct f {
+    typedef typename cond_<
+        pipe_<NPred...>, input_<detail::__then_context<true, Ts...>>,
+        input_<detail::__then_context<false, Ts...>>>::template f<Ts...>::type
+        type;
+  };
 };
 
-template<typename ... Es>
-struct then_{
-    template<typename ... Ts>
-    struct f{};
-    template<typename ... Ts>
-    struct f<detail::__then_context<true,Ts...>>
-    {
-        typedef eval_pipe_<input_<Ts...>,Es...> type;
-    };
-    template<typename ... Ts>
-    struct f<detail::__then_context<false,Ts...>>
-    {
-        typedef detail::__then_context<false,Ts...> type;
-    };
+template <typename... NPred>
+struct or_if_ {
+  template <typename... Ts>
+  struct f {
+    typedef input_<Ts...> type;
+  };
+  template <typename... Ts>
+  struct f<detail::__then_context<true, Ts...>> {
+    typedef detail::__then_context<true, Ts...> type;
+  };
+  template <typename... Ts>
+  struct f<detail::__then_context<false, Ts...>> {
+    typedef detail::__then_context<eval_pipe_<input_<Ts...>, NPred...>::value,
+                                   Ts...>
+        type;
+  };
 };
 
-struct endif
-{
-    template<typename ... Ts>
-    struct f{};
-    template<bool B,typename ... Ts>
-    struct f<detail::__then_context<B,Ts...>>
-    {typedef input_<Ts...> type;};
+template <typename... NPred>
+struct and_if_ {
+  template <typename... Ts>
+  struct f {
+    typedef input_<Ts...> type;
+  };
+  template <typename... Ts>
+  struct f<detail::__then_context<false, Ts...>> {
+    typedef detail::__then_context<false, Ts...> type;
+  };
+  template <typename... Ts>
+  struct f<detail::__then_context<true, Ts...>> {
+    typedef detail::__then_context<eval_pipe_<input_<Ts...>, NPred...>::value,
+                                   Ts...>
+        type;
+  };
+};
+
+template <typename... NPred>
+struct else_if_ {
+  template <typename... Ts>
+  struct f {
+    typedef input_<Ts...> type;
+  };
+  template <typename... Ts>
+  struct f<detail::__then_context<false, Ts...>> {
+    typedef detail::__then_context<eval_pipe_<input_<Ts...>, NPred...>::value,
+                                   Ts...>
+        type;
+  };
+  template <typename... Ts>
+  struct f<detail::__then_context<true, Ts...>> {
+    typedef error_<else_if_, Ts...> type;
+  };
+};
+
+template <typename... Es>
+struct then_ {
+  template <typename... Ts>
+  struct f {
+    typedef input_<Ts...> type;
+  };
+  template <typename... Ts>
+  struct f<detail::__then_context<false, Ts...>> {
+    typedef detail::__then_context<false, Ts...> type;
+  };
+  template <typename... Ts>
+  struct f<detail::__then_context<true, Ts...>> {
+    typedef eval_pipe_<input_<Ts...>, Es...> type;
+  };
+};
+
+template <typename... Es>
+struct else_ {
+  template <typename... Ts>
+  struct f {
+    typedef input_<Ts...> type;
+  };
+  template <typename... Ts>
+  struct f<detail::__then_context<false, Ts...>> {
+    typedef eval_pipe_<input_<Ts...>, Es...> type;
+  };
+  template <typename... Ts>
+  struct f<detail::__then_context<true, Ts...>> {
+    typedef error_<else_, Ts...> type;
+  };
+};
+
+struct endif {
+  template <typename... Ts>
+  struct f {
+    typedef input_<Ts...> type;
+  };
+  template <bool B, typename... Ts>
+  struct f<detail::__then_context<B, Ts...>> {
+    typedef input_<Ts...> type;
+  };
 };
 
 template <typename UnaryPredicate, typename F>

@@ -251,8 +251,8 @@ int main() {
   // the same result is achieve
   static_assert(
       te::eval_pipe_<
-          te::input_<te::ls_<int, float, char>, te::ls_<>, te::ls_<int*, char*>,
-                     te::ls_<int>>,
+          te::input_<te::ls_<int, float, char>, te::ls_<>,
+                     te::ls_<int *, char *>, te::ls_<int>>,
           te::transform_<te::unwrap, te::length, te::mkseq>, te::zip_index,
           transform_<te::cartesian>, flatten, unzip,
           transform_<quote_std_integer_sequence>,
@@ -291,6 +291,25 @@ int main() {
                     te::sort_<te::greater_<>, te::not_<>>>,
           te::lift_<std::is_same>>::value,
       "");
+
+  static_assert(eval_pipe_<input_<int>, if_<same_as_<int>>,
+                           then_<input_<int *>>, endif, same_as_<int *>>::value,
+                "");
+  static_assert(
+      eval_pipe_<input_<float>, if_<same_as_<int>>,
+                 then_<lift_<std::add_pointer>>, else_if_<same_as_<float>>,
+                 then_<lift_<std::add_const>>, endif,
+                 same_as_<const float>>::value,
+      "");
+  static_assert(
+      eval_pipe_<input_<char, int>, if_<same_as_<char, float>>,
+                 or_if_<same_as_<char, int>>, then_<listify>,
+                 else_<input_<int>>, endif, same_as_<ls_<char, int>>>::value,
+      "");
+  static_assert(eval_pipe_<input_<char, int>, if_<same_as_<char, float>>,
+                           and_if_<same_as_<char, int>>, then_<listify>,
+                           else_<input_<int>>, endif, same_as_<int>>::value,
+                "");
 
   return 0;
 }
