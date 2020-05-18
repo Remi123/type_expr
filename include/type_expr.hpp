@@ -1518,7 +1518,7 @@ static_assert(
 template <typename... Es>
 struct on_args_ {
   template <typename... Ts>
-  struct f : input_<error_<on_args_<Es...>>> {};
+  struct f : input_<error_<on_args_<Es...>,Ts...>> {};
   template <template <typename... Ts> class F, typename... Ts>
   struct f<F<Ts...>> {
     typedef eval_pipe_<input_<Ts...>, Es..., quote_<F>> type;
