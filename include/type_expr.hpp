@@ -44,6 +44,8 @@ struct input_<T> {
     typedef T type;
   };
 };
+// template<typename ... Ts>
+// struct input_<input_<Ts...>> : input_<Ts...>{};
 
 // NOTHING : Universal representation of the concept of nothing
 using nothing = input_<>;
@@ -1604,7 +1606,7 @@ static_assert(
 template <typename... Es>
 struct on_args_ {
   template <typename... Ts>
-  struct f : input_<error_<on_args_<Es...>,Ts...>> {};
+  struct f : input_<error_<on_args_<Es...>, Ts...>> {};
   template <template <typename... Ts> class F, typename... Ts>
   struct f<F<Ts...>> {
     typedef eval_pipe_<input_<Ts...>, Es..., quote_<F>> type;
@@ -1641,6 +1643,21 @@ struct arrayify {
       : f_impl<same_as_<Head, Rest...>::template f<Rest..., Head>::type::value,
                Head, Rest...> {};
 };
+
+// BIND
+template <int I, typename... Es>
+struct bind_ {
+  template <typename... Ts>
+  struct f : eval_pipe_<input_<i<sizeof...(Ts)>>, mkseq,
+                        transform_<cond_<same_as_<i<I>>, input_<pipe_<Es...>>,
+                                         input_<identity>>>,
+                        quote_<each_>>::template f<Ts...> {};
+};
+
+static_assert(
+    eval_pipe_<input_<int, float, char>, bind_<0, lift_<std::add_pointer>>,
+               same_as_<int *, float, char>>::value,
+    "");
 
 static_assert(
     eval_pipe_<input_<int, float, int, float, float>, recursive_partition_<>,

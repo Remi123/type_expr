@@ -254,7 +254,7 @@ int main() {
           te::input_<te::ls_<int, float, char>, te::ls_<>,
                      te::ls_<int *, char *>, te::ls_<int>>,
           te::transform_<te::unwrap, te::length, te::mkseq>, te::zip_index,
-          transform_<te::cartesian>, flatten, unzip,
+          transform_<te::cartesian>, te::flatten, te::unzip,
           transform_<quote_std_integer_sequence>,
           same_as_<std::integer_sequence<int, 0, 0, 0, 2, 2, 3>,
                    std::integer_sequence<int, 0, 1, 2, 0, 1, 0>>>::value,
