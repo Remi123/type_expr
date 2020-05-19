@@ -44,8 +44,8 @@ struct input_<T> {
     typedef T type;
   };
 };
-// template<typename ... Ts>
-// struct input_<input_<Ts...>> : input_<Ts...>{};
+ template<typename ... Ts>
+ struct input_<input_<Ts...>> : input_<Ts...>{};
 
 // NOTHING : Universal representation of the concept of nothing
 using nothing = input_<>;
@@ -270,18 +270,28 @@ constexpr eval_pipe_<Fs...> eval(const pipe_<Fs...> &, Args &&... args) {
   return eval_pipe_<Fs...>{std::forward<Args>(args)...};
 }
 
+// TRANSFORM_ :
+// Similar to haskell's map. Also similar to std::transform
+template <typename... Fs>
+struct transform_ {
+  template <typename... Ts>
+  struct f {
+    typedef input_<eval_pipe_<input_<Ts>,pipe_<Fs...>>...> type;
+  };
+};
+
 // FORK_ : Inputs are copied to each metafunctions
 // The Peanut Butter of the library
 template <typename... Cs>
 struct fork_ {
   template <typename... Ts>
   struct f {
-    typedef input_<typename Cs::template f<Ts...>::type...> type;
+    typedef input_<eval_pipe_<input_<Ts...>,Cs>...> type;
   };
 };
 
 // EACH : Badly named mix between fork and transform. Requiere the same number
-// of functions as arguments than inputs.
+// of expressions as arguments than inputs.
 template <typename... Es>
 struct each_ {
   template <typename... Ts>
@@ -348,15 +358,6 @@ struct container_is_ : pipe_<container, same_as_<quote_<F>>> {};
 
 static_assert(
     eval_pipe_<input_<ls_<int>>, container, same_as_<quote_<ls_>>>::value, "");
-
-// TRANSFORM_ : Similar to haskell's map. Also similar to std::transform
-template <typename... Fs>
-struct transform_ {
-  template <typename... Ts>
-  struct f {
-    typedef input_<typename pipe_context<Ts, pipe_<Fs...>>::type...> type;
-  };
-};
 
 // LISTIFY_ : wrap input_s into ls_
 // Could have been implemented by struct listify : quote_<ls_>{}

@@ -101,6 +101,8 @@ int main() {
   // This is such a good feature; instead of always listify then compare with
   // ls_<...>
 
+  static_assert(eval_pipe_<input_<input_<int,float>>, same_as_<int,float>>::value,"input_ is recursive");
+
   auto pipe_isnt_ = te::eval_pipe_<input_<i<1>, i<2>>, not_same_as_<int>>{};
   static_assert(pipe_isnt_.value, "");
   // Isnt_ is the opposite of is_
@@ -249,17 +251,30 @@ int main() {
 
   // We will use te::ls_<...> instead of tuple but for the purpose of this test
   // the same result is achieve
-  static_assert(
+  /*static_assert(*/
+      //te::eval_pipe_<
+          //te::input_<te::ls_<int, float, char>, te::ls_<>,
+                     //te::ls_<int *, char *>, te::ls_<int>>,
+          //te::transform_<te::unwrap, te::length, te::mkseq>, te::zip_index,
+          //transform_<te::cartesian>, te::flatten, te::unzip,
+          //transform_<quote_std_integer_sequence>,
+          //same_as_<std::integer_sequence<int, 0, 0, 0, 2, 2, 3>,
+                   //std::integer_sequence<int, 0, 1, 2, 0, 1, 0>>>::value,
+      /*"Eric Niebler Challenge");*/
+static_assert(
       te::eval_pipe_<
           te::input_<te::ls_<int, float, char>, te::ls_<>,
                      te::ls_<int *, char *>, te::ls_<int>>,
           te::transform_<te::unwrap, te::length, te::mkseq>, te::zip_index,
-          transform_<te::cartesian>, te::flatten, te::unzip,
-          transform_<quote_std_integer_sequence>,
-          same_as_<std::integer_sequence<int, 0, 0, 0, 2, 2, 3>,
-                   std::integer_sequence<int, 0, 1, 2, 0, 1, 0>>>::value,
+          transform_<te::cartesian,transform_<listify>>
+          , te::flatten
+          //,transform_<te::unwrap>
+          , te::unzip
+          ,transform_<quote_std_integer_sequence>
+          ,same_as_<std::integer_sequence<int, 0, 0, 0, 2, 2, 3>,
+                   std::integer_sequence<int, 0, 1, 2, 0, 1, 0>>
+            >::value,
       "Eric Niebler Challenge");
-
   // On this challenge, the goal was to unwrap, remove empty class, sort them by
   // size and rewrap them. on_args_<Es...> deals with the unwrap rewrap if the
   // signature of the type accept only types.
