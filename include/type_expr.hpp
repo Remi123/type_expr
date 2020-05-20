@@ -1644,6 +1644,11 @@ struct arrayify {
       : f_impl<same_as_<Head, Rest...>::template f<Rest..., Head>::type::value,
                Head, Rest...> {};
 };
+static_assert(
+    eval_pipe_<input_<int, float, int, float, float>, recursive_partition_<>,
+               transform_<arrayify>,
+               same_as_<std::array<int, 2>, std::array<float, 3>>>::value,
+    "");
 
 // BIND
 template <int I, typename... Es>
@@ -1654,7 +1659,7 @@ struct bind_ {
             input_<i<sizeof...(Ts)>>, mkseq,
             transform_<cond_<
                 same_as_<i<I >= 0 ? I % sizeof...(Ts)
-                                  : (I % sizeof...(Ts) + sizeof...(Ts) - 1)>>,
+                                  : (sizeof...(Ts) - (-I % sizeof...(Ts)))>>,
                 input_<pipe_<Es...>>, input_<identity>>>,
             quote_<each_>>::template f<Ts...> {};
 };
@@ -1667,11 +1672,30 @@ static_assert(
     eval_pipe_<input_<int, float, char>, bind_<-1, lift_<std::add_pointer>>,
                same_as_<int, float, char *>>::value,
     "");
-
 static_assert(
-    eval_pipe_<input_<int, float, int, float, float>, recursive_partition_<>,
-               transform_<arrayify>,
-               same_as_<std::array<int, 2>, std::array<float, 3>>>::value,
+    eval_pipe_<input_<int, float, char>, bind_<-2, lift_<std::add_pointer>>,
+               same_as_<int, float *, char>>::value,
+    "");
+// BIND_ON_ARGS_
+template <int I, typename... Es>
+struct bind_on_args_ {
+  template <typename... Ts>
+  struct f
+      : eval_pipe_<
+            input_<i<sizeof...(Ts)>>, mkseq,
+            transform_<cond_<
+                same_as_<i<I >= 0 ? I % sizeof...(Ts)
+                                  : (sizeof...(Ts) - (-I % sizeof...(Ts)))>>,
+                input_<pipe_<input_<Ts...>, Es...>>, input_<identity>>>,
+            quote_<each_>>::template f<Ts...> {};
+};
+static_assert(
+    eval_pipe_<input_<i<1>, i<2>, i<3>>, bind_on_args_<-1, fold_left_<plus_<>>>,
+               same_as_<i<1>, i<2>, i<6>>>::value,
+    "");
+static_assert(
+    eval_pipe_<input_<int, float, char>, bind_on_args_<-2, first, listify>,
+               same_as_<int, ls_<int>, char>>::value,
     "");
 
 };  // namespace type_expr
