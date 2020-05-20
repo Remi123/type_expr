@@ -44,8 +44,8 @@ struct input_<T> {
     typedef T type;
   };
 };
- template<typename ... Ts>
- struct input_<input_<Ts...>> : input_<Ts...>{};
+template <typename... Ts>
+struct input_<input_<Ts...>> : input_<Ts...> {};
 
 // NOTHING : Universal representation of the concept of nothing
 using nothing = input_<>;
@@ -276,7 +276,7 @@ template <typename... Fs>
 struct transform_ {
   template <typename... Ts>
   struct f {
-    typedef input_<eval_pipe_<input_<Ts>,pipe_<Fs...>>...> type;
+    typedef input_<eval_pipe_<input_<Ts>, pipe_<Fs...>>...> type;
   };
 };
 
@@ -286,7 +286,7 @@ template <typename... Cs>
 struct fork_ {
   template <typename... Ts>
   struct f {
-    typedef input_<eval_pipe_<input_<Ts...>,Cs>...> type;
+    typedef input_<eval_pipe_<input_<Ts...>, Cs>...> type;
   };
 };
 
@@ -1649,15 +1649,21 @@ struct arrayify {
 template <int I, typename... Es>
 struct bind_ {
   template <typename... Ts>
-  struct f : eval_pipe_<input_<i<sizeof...(Ts)>>, mkseq,
-                        transform_<cond_<same_as_<i<I>>, input_<pipe_<Es...>>,
-                                         input_<identity>>>,
-                        quote_<each_>>::template f<Ts...> {};
+  struct f
+      : eval_pipe_<
+            input_<i<sizeof...(Ts)>>, mkseq,
+            transform_<cond_<same_as_<i<(I + sizeof...(Ts)) % sizeof...(Ts)>>,
+                             input_<pipe_<Es...>>, input_<identity>>>,
+            quote_<each_>>::template f<Ts...> {};
 };
 
 static_assert(
     eval_pipe_<input_<int, float, char>, bind_<0, lift_<std::add_pointer>>,
                same_as_<int *, float, char>>::value,
+    "");
+static_assert(
+    eval_pipe_<input_<int, float, char>, bind_<-1, lift_<std::add_pointer>>,
+               same_as_<int, float, char *>>::value,
     "");
 
 static_assert(

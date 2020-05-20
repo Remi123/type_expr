@@ -11,9 +11,10 @@
 
 #include "type_tup.hpp"
 
+namespace te = type_expr;
+
 int main() {
   using namespace type_expr;
-  namespace te = type_expr;
 
   static_assert(std::is_same<i<(4 + 3 * 2 / 1)>, i<10>>::value, "");
 
@@ -101,7 +102,9 @@ int main() {
   // This is such a good feature; instead of always listify then compare with
   // ls_<...>
 
-  static_assert(eval_pipe_<input_<input_<int,float>>, same_as_<int,float>>::value,"input_ is recursive");
+  static_assert(
+      eval_pipe_<input_<input_<int, float>>, same_as_<int, float>>::value,
+      "input_ is recursive");
 
   auto pipe_isnt_ = te::eval_pipe_<input_<i<1>, i<2>>, not_same_as_<int>>{};
   static_assert(pipe_isnt_.value, "");
@@ -252,28 +255,27 @@ int main() {
   // We will use te::ls_<...> instead of tuple but for the purpose of this test
   // the same result is achieve
   /*static_assert(*/
-      //te::eval_pipe_<
-          //te::input_<te::ls_<int, float, char>, te::ls_<>,
-                     //te::ls_<int *, char *>, te::ls_<int>>,
-          //te::transform_<te::unwrap, te::length, te::mkseq>, te::zip_index,
-          //transform_<te::cartesian>, te::flatten, te::unzip,
-          //transform_<quote_std_integer_sequence>,
-          //same_as_<std::integer_sequence<int, 0, 0, 0, 2, 2, 3>,
-                   //std::integer_sequence<int, 0, 1, 2, 0, 1, 0>>>::value,
-      /*"Eric Niebler Challenge");*/
-static_assert(
+  // te::eval_pipe_<
+  // te::input_<te::ls_<int, float, char>, te::ls_<>,
+  // te::ls_<int *, char *>, te::ls_<int>>,
+  // te::transform_<te::unwrap, te::length, te::mkseq>, te::zip_index,
+  // transform_<te::cartesian>, te::flatten, te::unzip,
+  // transform_<quote_std_integer_sequence>,
+  // same_as_<std::integer_sequence<int, 0, 0, 0, 2, 2, 3>,
+  // std::integer_sequence<int, 0, 1, 2, 0, 1, 0>>>::value,
+  /*"Eric Niebler Challenge");*/
+  static_assert(
       te::eval_pipe_<
           te::input_<te::ls_<int, float, char>, te::ls_<>,
                      te::ls_<int *, char *>, te::ls_<int>>,
           te::transform_<te::unwrap, te::length, te::mkseq>, te::zip_index,
-          transform_<te::cartesian,transform_<listify>>
-          , te::flatten
+          transform_<te::cartesian, transform_<listify>>,
+          te::flatten
           //,transform_<te::unwrap>
-          , te::unzip
-          ,transform_<quote_std_integer_sequence>
-          ,same_as_<std::integer_sequence<int, 0, 0, 0, 2, 2, 3>,
-                   std::integer_sequence<int, 0, 1, 2, 0, 1, 0>>
-            >::value,
+          ,
+          te::unzip, transform_<quote_std_integer_sequence>,
+          same_as_<std::integer_sequence<int, 0, 0, 0, 2, 2, 3>,
+                   std::integer_sequence<int, 0, 1, 2, 0, 1, 0>>>::value,
       "Eric Niebler Challenge");
   // On this challenge, the goal was to unwrap, remove empty class, sort them by
   // size and rewrap them. on_args_<Es...> deals with the unwrap rewrap if the
@@ -328,3 +330,32 @@ static_assert(
 
   return 0;
 }
+
+template <char C>
+using c_t = std::integral_constant<char, C>;
+
+template <char... C>
+using Row = te::input_<c_t<C>...>;
+
+template <typename Top, typename Bot>
+using Domino = te::input_<Top, Bot>;
+
+using d0 = Domino<Row<'b', 'b', 'a'>, Row<'b', 'b'>>;
+using d1 = Domino<Row<'a', 'b'>, Row<'a', 'a'>>;
+using d2 = Domino<Row<'a'>, Row<'b', 'a'>>;
+using dnull = Domino<Row<>, Row<>>;  // Adding a Domino without value to have
+                                     // fun
+
+static_assert(
+    te::eval_pipe_<te::input_<d0, d1, dnull, d2>  // Input types
+                   ,
+                   te::unzip  // Unzip into input_<LeftRows...> and
+                              // input_<RightRows...>
+                   ,
+                   te::transform_<te::flatten>  // Each of the two input_<...>
+                                                // concatenate their char_type
+                   ,
+                   te::lift_<std::is_same>  // Compare if they are the same to
+                                            // std::true_type or std::false_type
+                   >::value,
+    "Comment each line from bottom to top to see how it work");
