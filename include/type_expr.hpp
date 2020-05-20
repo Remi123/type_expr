@@ -1652,8 +1652,10 @@ struct bind_ {
   struct f
       : eval_pipe_<
             input_<i<sizeof...(Ts)>>, mkseq,
-            transform_<cond_<same_as_<i<(I + sizeof...(Ts)) % sizeof...(Ts)>>,
-                             input_<pipe_<Es...>>, input_<identity>>>,
+            transform_<cond_<
+                same_as_<i<I >= 0 ? I % sizeof...(Ts)
+                                  : (I % sizeof...(Ts) + sizeof...(Ts) - 1)>>,
+                input_<pipe_<Es...>>, input_<identity>>>,
             quote_<each_>>::template f<Ts...> {};
 };
 
