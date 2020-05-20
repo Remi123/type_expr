@@ -15,6 +15,7 @@ namespace te = type_expr;
 
 int main() {
   using namespace type_expr;
+  namespace te = type_expr;
 
   static_assert(std::is_same<i<(4 + 3 * 2 / 1)>, i<10>>::value, "");
 
