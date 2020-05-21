@@ -11,11 +11,9 @@
 
 #include "type_tup.hpp"
 
-namespace te = type_expr;
 
 int main() {
-  using namespace type_expr;
-  namespace te = type_expr;
+  using namespace te;
 
   static_assert(std::is_same<i<(4 + 3 * 2 / 1)>, i<10>>::value, "");
 
@@ -60,7 +58,7 @@ int main() {
                  same_as_<int>>{} = b<true>{};
 
   constexpr te::eval_pipe_<input_<int>, unwrap> unwrap_error =
-      type_expr::error_<te::unspecialized, int>{};
+      te::error_<te::unspecialized, int>{};
   // Once an error_<Ts...> is discover, the pipe continue but doesn't evaluate.
   // a catch_ metafunction will never be implemented.
 
@@ -227,9 +225,9 @@ int main() {
                                same_as_<int>>::value,
                 "");
   constexpr te::eval_pipe_<input_<i<1>, i<2>, i<3>>, get_<-1>, same_as_<>>
-      t_err = type_expr::error_<type_expr::get_<-1>::index_out_of_range>{};
+      t_err = te::error_<te::get_<-1>::index_out_of_range>{};
   constexpr te::eval_pipe_<input_<int, int, int>, pipe_<get_<3>>, same_as_<>>
-      t_err2 = type_expr::error_<type_expr::get_<3>::index_out_of_range>{};
+      t_err2 = te::error_<te::get_<3>::index_out_of_range>{};
 
   static_assert(
       te::eval_pipe_<input_<i<2>>, mkseq, same_as_<i<0>, i<1>>>::value, "");

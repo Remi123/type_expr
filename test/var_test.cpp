@@ -10,7 +10,6 @@
 
 #include "type_var.hpp"
 
-namespace te = type_expr;
 // TYPE_TUP Test
 int main() {
   {

@@ -21,7 +21,7 @@ template <typename T, std::size_t N>
 class array;
 };  // namespace std
 
-namespace type_expr {
+namespace te {
 
 // -------------------------------------------------------
 // FIRST CLASS CITIZEN OF TYPE_EXPR

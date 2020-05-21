@@ -8,7 +8,6 @@
 #include <type_traits>
 #include "type_tup.hpp"
 
-namespace te = type_expr;
 // TYPE_TUP Test
 int main()
 {
