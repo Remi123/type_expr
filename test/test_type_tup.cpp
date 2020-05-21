@@ -12,13 +12,14 @@ namespace te = type_expr;
 // TYPE_TUP Test
 int main()
 {
-  te::tup<int, float> tt2{1, 2.0f};
+  te::tup<int> tt1{1};
+  te::tup<int, float> tt2{-2, 3.0f};
   tt2.get<0>() = 2;
   assert(tt2.get<0>() == 2);
-  auto tt3 = te::make_tup(1, 2, 3);
-  assert(tt3.get<2>() == 3);
-  auto tt7 = tup_cat(tt2, tt3, tt2);
-  assert(tt7.get<4>() == 3);
+  auto tt3 = te::make_tup(4, 5, 6);
+  assert(tt3.get<2>() == 6);
+  auto tt6 = tup_cat(tt1, tt2, tt3);
+  assert(tt6.get<4>() == 5);
   // TYPE_TUP
   return 0;
 }
