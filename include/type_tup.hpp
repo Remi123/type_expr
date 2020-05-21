@@ -10,9 +10,8 @@
 
 #include "type_expr.hpp"
 
-namespace type_expr {
+namespace te {
 
-namespace te = type_expr;
 // FORWARD DECLARATION
 
 // TUP_INST

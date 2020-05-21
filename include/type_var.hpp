@@ -9,9 +9,7 @@
 
 #include "type_expr.hpp"
 
-namespace type_expr {
-
-namespace te = type_expr;
+namespace te {
 
 // VAR_IMPL
 template <typename... Ts>
