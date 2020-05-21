@@ -3,14 +3,15 @@
 //      (See accompanying file LICENSE or copy at
 //        http://www.boost.org/LICENSE_1_0.txt)
 
-#include "type_expr.hpp"
 #include <assert.h>
+
 #include <type_traits>
+
+#include "type_expr.hpp"
 #include "type_tup.hpp"
 
 // TYPE_TUP Test
-int main()
-{
+int main() {
   te::tup<int> tt1{1};
   te::tup<int, float> tt2{-2, 3.0f};
   tt2.get<0>() = 2;
@@ -22,4 +23,3 @@ int main()
   // TYPE_TUP
   return 0;
 }
-

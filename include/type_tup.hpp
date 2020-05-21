@@ -94,23 +94,25 @@ template <typename... Tups, typename Ret = te::eval_pipe_<
                                 input_<Tups...>, te::transform_<te::unwrap>,
                                 te::flatten, quote_<te::tup>>>
 Ret tup_cat(Tups &&... tups) {
-        // This do the magic of getting the cartesian cartesian of each tup's types with the index inside
-  using zip_indexes =
-      te::eval_pipe_<te::input_<Tups...>,
-                     te::transform_<te::unwrap, te::length, te::mkseq>,
-                     te::zip_index, transform_<te::cartesian,te::transform_<te::listify>>, flatten, unzip>;
+  // This do the magic of getting the cartesian cartesian of each tup's types
+  // with the index inside
+  using zip_indexes = te::eval_pipe_<
+      te::input_<Tups...>, te::transform_<te::unwrap, te::length, te::mkseq>,
+      te::zip_index, transform_<te::cartesian, te::transform_<te::listify>>,
+      flatten, unzip>;
 
   using tup_index =
       te::eval_pipe_<zip_indexes, te::first, te::quote_std_integer_sequence>;
   using types_index =
       te::eval_pipe_<zip_indexes, te::second, te::quote_std_integer_sequence>;
   return detail::tup_cat_impl(
-      tup_index{}, // int_seq
-      types_index{}, // int_seq
-      eval_pipe_<te::input_<Ret>, te::unwrap, te::listify>{}, // typelist of all the types
+      tup_index{},    // int_seq
+      types_index{},  // int_seq
+      eval_pipe_<te::input_<Ret>, te::unwrap,
+                 te::listify>{},  // typelist of all the types
       te::forward_as_tup(std::forward<Tups>(tups)...));
 };
 
-};  // namespace type_expr
+};  // namespace te
 
 #endif  // TYPE_EXPR_TUP_HPP

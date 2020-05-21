@@ -3,14 +3,12 @@
 //      (See accompanying file LICENSE or copy at
 //        http://www.boost.org/LICENSE_1_0.txt)
 
-#include "type_expr.hpp"
-
 #include <assert.h>
 
 #include <type_traits>
 
+#include "type_expr.hpp"
 #include "type_tup.hpp"
-
 
 int main() {
   using namespace te;
