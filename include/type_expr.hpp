@@ -1698,5 +1698,5 @@ static_assert(
                same_as_<int, ls_<int>, char>>::value,
     "");
 
-};  // namespace type_expr
+};  // namespace te
 #endif

@@ -1,0 +1,8 @@
+*Start of the changelogs. Previous changes were logged in the git commit with varying quality of message. Just scroll down until you see the most recent changes
+
+May 20th 2020
+type_expr.hpp
+BREAKING CHANGE:
+the namespace type_expr:: was replaced by te::
+    It was previously used everywhere with namespace te = type_expr, but I got sick of it and it's less character, which matter during compilation error where my screen real estate is severly overrun by template error novel.
+Except for this no other changes should impact any user.
