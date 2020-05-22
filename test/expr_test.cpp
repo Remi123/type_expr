@@ -249,18 +249,6 @@ int main() {
                                same_as_<i<0>, i<1>>>::value,
                 "");
 
-  // We will use te::ls_<...> instead of tuple but for the purpose of this test
-  // the same result is achieve
-  /*static_assert(*/
-  // te::eval_pipe_<
-  // te::input_<te::ls_<int, float, char>, te::ls_<>,
-  // te::ls_<int *, char *>, te::ls_<int>>,
-  // te::transform_<te::unwrap, te::length, te::mkseq>, te::zip_index,
-  // transform_<te::cartesian>, te::flatten, te::unzip,
-  // transform_<quote_std_integer_sequence>,
-  // same_as_<std::integer_sequence<int, 0, 0, 0, 2, 2, 3>,
-  // std::integer_sequence<int, 0, 1, 2, 0, 1, 0>>>::value,
-  /*"Eric Niebler Challenge");*/
   static_assert(
       te::eval_pipe_<
           te::input_<te::ls_<int, float, char>, te::ls_<>,
@@ -270,7 +258,7 @@ int main() {
           te::flatten
           //,transform_<te::unwrap>
           ,
-          te::unzip, transform_<quote_std_integer_sequence>,
+          te::unzip, transform_<quote_std_integer_sequence_<int>>,
           same_as_<std::integer_sequence<int, 0, 0, 0, 2, 2, 3>,
                    std::integer_sequence<int, 0, 1, 2, 0, 1, 0>>>::value,
       "Eric Niebler Challenge");
@@ -340,19 +328,19 @@ using Domino = te::input_<Top, Bot>;
 using d0 = Domino<Row<'b', 'b', 'a'>, Row<'b', 'b'>>;
 using d1 = Domino<Row<'a', 'b'>, Row<'a', 'a'>>;
 using d2 = Domino<Row<'a'>, Row<'b', 'a'>>;
-using dnull = Domino<Row<>, Row<>>;  // Adding a Domino without value to have
-                                     // fun
+// Adding a Domino without value to have fun
+using dnull = Domino<Row<>, Row<>>;
 
 static_assert(
-    te::eval_pipe_<te::input_<d0, d1, dnull, d2>  // Input types
-                   ,
-                   te::unzip  // Unzip into input_<LeftRows...> and
-                              // input_<RightRows...>
-                   ,
-                   te::transform_<te::flatten>  // Each of the two input_<...>
-                                                // concatenate their char_type
-                   ,
-                   te::lift_<std::is_same>  // Compare if they are the same to
-                                            // std::true_type or std::false_type
-                   >::value,
+    te::eval_pipe_<
+        // Input types
+        te::input_<d0, d1, dnull, d2>,
+        // Unzip into input_<LeftRows...> and input_<RightRows...>
+        te::unzip,
+        // Each of the two input_<...> // concatenate their char_type
+        // Then quote it to a integer_sequence_<char,...>
+        te::transform_<te::flatten, te::quote_std_integer_sequence_<char>>,
+        // Compare if they are the same to
+        // std::true_type or std::false_type
+        te::lift_<std::is_same>>::value,
     "Comment each line from bottom to top to see how it work");

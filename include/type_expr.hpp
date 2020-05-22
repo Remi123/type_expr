@@ -135,10 +135,11 @@ struct quote_ {
 
 // QUOTE_STD_INTEGER_SEQUENCE
 // Specialization for std::integer_sequence
-struct quote_std_integer_sequence {
+template<typename T>
+struct quote_std_integer_sequence_{
   template <typename... Is>
   struct f {
-    typedef std::integer_sequence<int, Is::value...> type;
+    typedef std::integer_sequence<T, Is::value...> type;
   };
 };
 
@@ -328,7 +329,7 @@ template <typename... Ts>
 struct same_as_ {
   template <typename... Us>
   struct f {
-    typedef typename std::is_same<ls_<Ts...>, ls_<Us...>>::type type;
+    typedef typename std::is_same<input_<Ts...>, input_<Us...>>::type type;
   };
 };
 
@@ -337,8 +338,8 @@ template <typename... Ts>
 struct not_same_as_ {
   template <typename... Us>
   struct f {
-    typedef std::integral_constant<bool,
-                                   !std::is_same<ls_<Ts...>, ls_<Us...>>::value>
+    typedef std::integral_constant<
+        bool, !std::is_same<input_<Ts...>, input_<Us...>>::value>
         type;
   };
 };
@@ -1676,6 +1677,7 @@ static_assert(
     eval_pipe_<input_<int, float, char>, bind_<-2, lift_<std::add_pointer>>,
                same_as_<int, float *, char>>::value,
     "");
+
 // BIND_ON_ARGS_
 template <int I, typename... Es>
 struct bind_on_args_ {
@@ -1692,7 +1694,7 @@ struct bind_on_args_ {
 static_assert(
     eval_pipe_<input_<i<1>, i<2>, i<3>>, bind_on_args_<-1, fold_left_<plus_<>>>,
                same_as_<i<1>, i<2>, i<6>>>::value,
-    "");
+    "Replace the last with the sum of all");
 static_assert(
     eval_pipe_<input_<int, float, char>, bind_on_args_<-2, first, listify>,
                same_as_<int, ls_<int>, char>>::value,

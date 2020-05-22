@@ -102,9 +102,9 @@ Ret tup_cat(Tups &&... tups) {
       flatten, unzip>;
 
   using tup_index =
-      te::eval_pipe_<zip_indexes, te::first, te::quote_std_integer_sequence>;
+      te::eval_pipe_<zip_indexes, te::first, te::quote_std_integer_sequence_<int>>;
   using types_index =
-      te::eval_pipe_<zip_indexes, te::second, te::quote_std_integer_sequence>;
+      te::eval_pipe_<zip_indexes, te::second, te::quote_std_integer_sequence_<int>>;
   return detail::tup_cat_impl(
       tup_index{},    // int_seq
       types_index{},  // int_seq
