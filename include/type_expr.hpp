@@ -135,8 +135,8 @@ struct quote_ {
 
 // QUOTE_STD_INTEGER_SEQUENCE
 // Specialization for std::integer_sequence
-template<typename T>
-struct quote_std_integer_sequence_{
+template <typename T>
+struct quote_std_integer_sequence_ {
   template <typename... Is>
   struct f {
     typedef std::integer_sequence<T, Is::value...> type;
@@ -810,61 +810,43 @@ static_assert(eval_pipe_<input_<float, int, float, int>,
               "");
 
 // CARTESIAN : Given two lists, continue with every possible lists of two types.
-struct cartesian {
- private:
+template <typename... BinF>  // Binary Function
+struct cartesian_ {
   template <typename... Ts>
-  struct impl;
-
- public:
-  template <typename T, typename U>
   struct f {
-    typedef input_<input_<input_<T, U>>> type;
-  };
-  template <typename As, typename... Bs>
-  struct f<As, input_<Bs...>> {
-    typedef input_<input_<As, Bs>...> type;
-  };
-  template <typename... As, typename Bs>
-  struct f<input_<As...>, Bs> {
-    typedef input_<input_<As, Bs>...> type;
-  };
-  template <typename A, typename... Bs>
-  struct f<input_<A>, input_<Bs...>> {
-    typedef input_<input_<A, Bs>...> type;
+    typedef input_<Ts...> type;
   };
   template <typename A, typename B>
-  struct f<input_<A>, input_<B>> {
-    typedef input_<A, B> type;
+  struct f<A, B> {
+    typedef typename pipe_<BinF...>::template f<A, B>::type type;
   };
-
-  template <typename... As, typename... Bs>
-  struct f<input_<As...>, input_<Bs...>> {
-    typedef eval_pipe_<input_<input_<As, input_<Bs...>>...>,
-                       transform_<cartesian>,
-                       flatten>  // TODO : Maybe flatten inside the transform
+  template <typename A, typename... B>
+  struct f<A, input_<B...>> : input_<eval_pipe_<input_<A, B>, BinF...>...> {};
+  template <typename... A, typename B>
+  struct f<input_<A...>, B> : input_<eval_pipe_<input_<A, B>, BinF...>...> {};
+  template <typename... A, typename... B>
+  struct f<input_<A...>, input_<B...>> {
+    typedef eval_pipe_<
+        fork_<pipe_<input_<A, input_<B...>>, cartesian_<BinF...>>...>, flatten>
         type;
   };
 };
-
-static_assert(eval_pipe_<input_<input_<int[1]>, input_<float[1]>>, cartesian,
-                         same_as_<int[1], float[1]>>::value,
+static_assert(
+    eval_pipe_<input_<int, float>, cartesian_<>, same_as_<int, float>>::value,
+    "");
+static_assert(eval_pipe_<input_<int, input_<float>>, cartesian_<>,
+                         same_as_<int, float>>::value,
               "");
-static_assert(eval_pipe_<input_<input_<int[1], int[2]>, float[1]>, cartesian,
-                         same_as_<input_<int[1], float[1]>,
-                                  input_<int[2], float[1]>>>::value,
+static_assert(eval_pipe_<input_<int, input_<float, int>>, cartesian_<listify>,
+                         same_as_<ls_<int, float>, ls_<int, int>>>::value,
               "");
 static_assert(
     eval_pipe_<
-        input_<input_<int[1]>, input_<float[1], float[2]>>, cartesian,
-        same_as_<input_<int[1], float[1]>, input_<int[1], float[2]>>>::value,
+        input_<input_<int[1], int[2]>, input_<int[3], int[4]>>,
+        cartesian_<listify>,
+        same_as_<te::ls_<int[1], int[3]>, te::ls_<int[1], int[4]>,
+                 te::ls_<int[2], int[3]>, te::ls_<int[2], int[4]>>>::value,
     "");
-static_assert(
-    eval_pipe_<
-        input_<input_<int[1], int[2]>, input_<float[1], float[2]>>, cartesian,
-        same_as_<input_<int[1], float[1]>, input_<int[1], float[2]>,
-                 input_<int[2], float[1]>, input_<int[2], float[2]>>>::value,
-    "");
-
 // ROTATE : rotate
 // The implementation may rely on undefined behavior.
 // But so far clang and gcc are compliant
