@@ -271,6 +271,14 @@ constexpr eval_pipe_<Fs...> eval(const pipe_<Fs...> &, Args &&... args) {
   return eval_pipe_<Fs...>{std::forward<Args>(args)...};
 }
 
+// same_as_ : Comparaison metafunction.
+template <typename... Ts>
+struct same_as_ {
+  template <typename... Us>
+  struct f {
+    typedef typename std::is_same<input_<Ts...>, input_<Us...>>::type type;
+  };
+};
 // TRANSFORM_ :
 // Similar to haskell's map. Also similar to std::transform
 template <typename... Fs>
@@ -301,6 +309,23 @@ struct each_ {
   };
 };
 
+// DRAW_EVAL : Construct a function using the inputs, then evaluate using the
+// inputs
+template <typename... PipableFct>
+struct draw_eval_ {
+  template <typename... Ts>
+  struct f {
+    using metafct = eval_pipe_<input_<Ts...>, PipableFct..., quote_<pipe_>>;
+    using type = typename metafct::template f<Ts...>::type;
+  };
+};
+
+static_assert(
+    eval_pipe_<input_<int, float, char>,
+               draw_eval_<transform_<input_<identity>>, quote_<each_>>,
+               same_as_<int, float, char>>::value,
+    "");
+
 // UNWRAP : Universal unwrapper.
 struct unwrap {
   template <typename T>
@@ -324,16 +349,7 @@ struct unwrap {
 template <typename T, std::size_t value>
 struct specialization<unwrap, std::array<T, value>> : input_<T, i<value>> {};
 
-// IS_ : Comparaison metafunction.
-template <typename... Ts>
-struct same_as_ {
-  template <typename... Us>
-  struct f {
-    typedef typename std::is_same<input_<Ts...>, input_<Us...>>::type type;
-  };
-};
-
-// ISNT_
+// NOT_SAME_AS_
 template <typename... Ts>
 struct not_same_as_ {
   template <typename... Us>
