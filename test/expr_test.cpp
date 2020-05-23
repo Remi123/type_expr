@@ -192,10 +192,35 @@ int main() {
   // replace_if transform the type into another if the predicate is true
 
   static_assert(te::eval_pipe_<
-                    input_<input_<int, short>, input_<float, char>>, cartesian,
+                    input_<input_<int, short>, input_<float, char>>, cartesian_<>,
                     same_as_<input_<int, float>, input_<int, char>,
                              input_<short, float>, input_<short, char>>>::value,
                 "");
+  static_assert(eval_pipe_<input_<input_<i<1>, i<2>>, input_<i<3>, i<4>>>,
+                           cartesian_<multiply_<>>,
+                           same_as_<i<3>, i<4>, i<6>, i<8>>>::value,
+                "");
+  static_assert(eval_pipe_<input_<input_<int[1]>, input_<float[1]>>,
+                           cartesian_<>, same_as_<int[1], float[1]>>::value,
+                "");
+  static_assert(
+      eval_pipe_<
+          input_<input_<int[1], int[2]>, float[1]>, cartesian_<>,
+          same_as_<input_<int[1], float[1]>, input_<int[2], float[1]>>>::value,
+      "");
+  static_assert(
+      eval_pipe_<
+          input_<input_<int[1]>, input_<float[1], float[2]>>, cartesian_<>,
+          same_as_<input_<int[1], float[1]>, input_<int[1], float[2]>>>::value,
+      "");
+  static_assert(
+      eval_pipe_<
+          input_<input_<int[1], int[2]>, input_<float[1], float[2]>>,
+          cartesian_<>,
+          same_as_<input_<int[1], float[1]>, input_<int[1], float[2]>,
+                   input_<int[2], float[1]>, input_<int[2], float[2]>>>::value,
+      "");
+
   // cartesian is a little bit special : given two lists, it return each
   // permutation possible while respecting the order
 
@@ -254,7 +279,7 @@ int main() {
           te::input_<te::ls_<int, float, char>, te::ls_<>,
                      te::ls_<int *, char *>, te::ls_<int>>,
           te::transform_<te::unwrap, te::length, te::mkseq>, te::zip_index,
-          transform_<te::cartesian, transform_<listify>>,
+          transform_<te::cartesian_<listify>>,
           te::flatten
           //,transform_<te::unwrap>
           ,
