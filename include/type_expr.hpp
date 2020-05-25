@@ -21,6 +21,25 @@ template <typename T, std::size_t N>
 class array;
 };  // namespace std
 
+namespace kvasir::mpl {
+template <typename... Ts>
+struct list;
+};
+namespace metal {
+template <typename... Ts>
+struct list;
+};
+namespace boost {
+namespace mp11 {
+template <class... T>
+struct mp_list;
+};
+namespace fusion {
+template <class... Ts>
+struct list;
+}
+};  // namespace boost
+
 namespace te {
 
 // -------------------------------------------------------
@@ -63,7 +82,7 @@ struct error_ {
 template <typename...>
 struct ls_ {};
 
-// IDENTITY : Continue with whatever the input_s were.
+// IDENTITY : Continue with whatever the ts_ were.
 struct identity {
   template <typename... Ts>
   struct f : ts_<Ts...> {};
@@ -114,6 +133,22 @@ using b = std::integral_constant<bool, B>;
 // METAEXPRESSION
 // -------------------------------------------------------
 
+// INPUT : Dedicated meta-expression to send types to the next functions.
+template <typename... Ts>
+struct input_ : ts_<Ts...> {};
+
+template <typename... Ts>
+struct input_<kvasir::mpl::list<Ts...>> : ts_<Ts...> {};
+
+template <typename... Ts>
+struct input_<metal::list<Ts...>> : ts_<Ts...> {};
+
+template <typename... Ts>
+struct input_<boost::mp11::mp_list<Ts...>> : ts_<Ts...> {};
+
+template <typename... Ts>
+struct input_<boost::fusion::list<Ts...>> : ts_<Ts...> {};
+
 // LIFT_ : Universal customization point using template template. Get the ::type
 // The Farming field of our library
 template <template <typename...> class F>
@@ -123,6 +158,7 @@ struct lift_ {
     typedef typename F<Ts...>::type type;
   };
 };
+
 // QUOTE_ : Universal wrapper. Doesn't get the ::type. Use with template alias
 // The Other Farming field of our library
 template <template <typename...> class F>
@@ -215,7 +251,7 @@ struct fold_left_ {
           Ts...> {};
 };
 
-// PIPE_EXPR : Internal-only. Take a type and send it as input_ to the next
+// PIPE_EXPR : Internal-only. Take a type and send it as input to the next
 // metafunction.
 // The Flour and Yeast of the library.
 template <typename...>
@@ -260,7 +296,7 @@ struct pipe_ {
   // asked. required to have an alias eval_pipe_ = typename
   // pipe_<Fs...>::template f<>::type; to instanciate to the result type;
 
-  template <typename... Ts, typename... Us>
+  template <typename... Us>
   constexpr pipe_<Es..., Us...> const operator|(const pipe_<Us...> &) {
     return {};
   };
@@ -285,7 +321,7 @@ template <typename... Fs>
 struct transform_ {
   template <typename... Ts>
   struct f {
-    typedef ts_<eval_pipe_<ts_<Ts>, pipe_<Fs...>>...> type;
+    typedef ts_<eval_pipe_<input_<Ts>, pipe_<Fs...>>...> type;
   };
 };
 
@@ -295,7 +331,7 @@ template <typename... Cs>
 struct fork_ {
   template <typename... Ts>
   struct f {
-    typedef ts_<eval_pipe_<ts_<Ts...>, Cs>...> type;
+    typedef ts_<eval_pipe_<input_<Ts...>, Cs>...> type;
   };
 };
 
@@ -305,7 +341,7 @@ template <typename... Es>
 struct each_ {
   template <typename... Ts>
   struct f {
-    typedef ts_<eval_pipe_<ts_<Ts>, Es>...> type;
+    typedef ts_<eval_pipe_<input_<Ts>, Es>...> type;
   };
 };
 
@@ -315,16 +351,15 @@ template <typename... PipableFct>
 struct draw_eval_ {
   template <typename... Ts>
   struct f {
-    using metafct = eval_pipe_<ts_<Ts...>, PipableFct..., quote_<pipe_>>;
+    using metafct = eval_pipe_<input_<Ts...>, PipableFct..., quote_<pipe_>>;
     using type = typename metafct::template f<Ts...>::type;
   };
 };
 
-static_assert(
-    eval_pipe_<ts_<int, float, char>,
-               draw_eval_<transform_<ts_<identity>>, quote_<each_>>,
-               same_as_<int, float, char>>::value,
-    "");
+static_assert(eval_pipe_<input_<int, float, char>,
+                         draw_eval_<transform_<ts_<identity>>, quote_<each_>>,
+                         same_as_<int, float, char>>::value,
+              "");
 
 // UNWRAP : Universal unwrapper.
 struct unwrap {
@@ -354,8 +389,8 @@ template <typename... Ts>
 struct not_same_as_ {
   template <typename... Us>
   struct f {
-    typedef std::integral_constant<
-        bool, !std::is_same<ts_<Ts...>, ts_<Us...>>::value>
+    typedef std::integral_constant<bool,
+                                   !std::is_same<ts_<Ts...>, ts_<Us...>>::value>
         type;
   };
 };
@@ -374,9 +409,9 @@ template <template <typename...> class F>
 struct container_is_ : pipe_<container, same_as_<quote_<F>>> {};
 
 static_assert(
-    eval_pipe_<ts_<ls_<int>>, container, same_as_<quote_<ls_>>>::value, "");
+    eval_pipe_<input_<ls_<int>>, container, same_as_<quote_<ls_>>>::value, "");
 
-// LISTIFY_ : wrap input_s into ls_
+// LISTIFY_ : wrap ts_ into ls_
 // Could have been implemented by struct listify : quote_<ls_>{}
 struct listify {
   template <typename... Ts>
@@ -397,18 +432,17 @@ struct reverse {
   template <typename... Ts>
   struct f {
     typedef
-        typename pipe_<ts_<ts_<>, Ts...>, fold_left_<lift_<f_impl>>>::type
-            type;
+        typename pipe_<ts_<ts_<>, Ts...>, fold_left_<lift_<f_impl>>>::type type;
   };
 };
 
-// CALL_F : The input_ is a metafunction. Call it.
+// CALL_F : The input is a metafunction. Call it.
 struct call_f {
   template <typename... T>
   struct f : pipe_<T...> {};
 };
 
-// CONSTRUCT_FS : Construct a metafunction from the input_s. and call it.
+// CONSTRUCT_FS : Construct a metafunction from the types. and call it.
 template <typename... Fs>
 struct construct_fs_ : pipe_<Fs..., call_f> {
   template <typename... Ts>
@@ -534,10 +568,9 @@ struct zip {
     typedef ts_<ts_<Ts, Us>...> type;
   };
 };
-static_assert(
-    eval_pipe_<ts_<ts_<int, int>, ts_<float, char>>, zip,
-               same_as_<ts_<int, float>, ts_<int, char>>>::value,
-    "");
+static_assert(eval_pipe_<input_<ts_<int, int>, ts_<float, char>>, zip,
+                         same_as_<ts_<int, float>, ts_<int, char>>>::value,
+              "");
 
 // ZIP_INDEX
 struct zip_index {
@@ -672,7 +705,7 @@ typedef third _3rd;
 struct last {
   template <typename... Ts>
   struct f {
-    typedef eval_pipe_<ts_<Ts...>, get_<sizeof...(Ts) - 1>> type;
+    typedef eval_pipe_<input_<Ts...>, get_<sizeof...(Ts) - 1>> type;
   };
 };
 
@@ -689,8 +722,7 @@ struct flat<ts_<Ls...>, T, ts_<Is...>, Ts...>
     : flat<ts_<Ls..., T, Is...>, Ts...> {};
 
 template <typename... Ls, typename... Fs, typename... Ts>
-struct flat<ts_<Ls...>, ts_<Fs...>, Ts...>
-    : flat<ts_<Ls..., Fs...>, Ts...> {};
+struct flat<ts_<Ls...>, ts_<Fs...>, Ts...> : flat<ts_<Ls..., Fs...>, Ts...> {};
 template <typename... Fs, typename... Gs, typename... Ls, typename... Ts>
 struct flat<ts_<Ls...>, ts_<Fs...>, ts_<Gs...>, Ts...>
     : flat<ts_<Ls..., Fs..., Gs...>, Ts...> {};
@@ -700,8 +732,7 @@ struct flat<ts_<Ls...>, ts_<Fs...>, ts_<Gs...>, ts_<Hs...>, Ts...>
     : flat<ts_<Ls..., Fs..., Gs..., Hs...>, Ts...> {};
 template <typename... Fs, typename... Gs, typename... Hs, typename... Is,
           typename... Ls, typename... Ts>
-struct flat<ts_<Ls...>, ts_<Fs...>, ts_<Gs...>, ts_<Hs...>,
-            ts_<Is...>, Ts...>
+struct flat<ts_<Ls...>, ts_<Fs...>, ts_<Gs...>, ts_<Hs...>, ts_<Is...>, Ts...>
     : flat<ts_<Ls..., Fs..., Gs..., Hs..., Is...>, Ts...> {};
 
 template <typename T>
@@ -713,7 +744,7 @@ struct flat_impl<ts_<Ts...>> {
   typedef ts_<Ts...> type;
 };
 
-// FLATTEN : Continue with only one input_. Sub-input_ are removed.
+// FLATTEN : Continue with only one ts_. Sub-ts_ are removed.
 // The dirty but necessary tool of our library
 struct flatten {
   template <typename... Ts>
@@ -722,7 +753,7 @@ struct flatten {
   };
 };
 
-// LENGTH : Continue with the number of types in the input_s.
+// LENGTH : Continue with the number of types in the ts_.
 struct length {
   template <typename... Ts>
   struct f {
@@ -760,9 +791,8 @@ struct not_<> {
 // std::true_type
 template <typename... UnaryPredicate>
 struct remove_if_
-    : pipe_<
-          transform_<cond_<pipe_<UnaryPredicate...>, ts_<>, identity>>,
-          flatten> {};
+    : pipe_<transform_<cond_<pipe_<UnaryPredicate...>, ts_<>, identity>>,
+            flatten> {};
 
 // PARTITION_ : Continue with two list. First predicate is true, Second
 // predicate is false
@@ -821,8 +851,8 @@ template <typename... F>
 struct find_if_ : pipe_<zip_index, transform_<listify>,
                         filter_<unwrap, second, F...>, first, unwrap> {};
 
-static_assert(eval_pipe_<ts_<float, int, float, int>,
-                         find_if_<same_as_<int>>, same_as_<i<1>, int>>::value,
+static_assert(eval_pipe_<input_<float, int, float, int>, find_if_<same_as_<int>>,
+                         same_as_<i<1>, int>>::value,
               "");
 
 // CARTESIAN : Given two lists, continue with every possible lists of two types.
@@ -837,29 +867,27 @@ struct cartesian_ {
     typedef typename pipe_<BinF...>::template f<A, B>::type type;
   };
   template <typename A, typename... B>
-  struct f<A, ts_<B...>> : ts_<eval_pipe_<ts_<A, B>, BinF...>...> {};
+  struct f<A, ts_<B...>> : ts_<eval_pipe_<input_<A, B>, BinF...>...> {};
   template <typename... A, typename B>
-  struct f<ts_<A...>, B> : ts_<eval_pipe_<ts_<A, B>, BinF...>...> {};
+  struct f<ts_<A...>, B> : ts_<eval_pipe_<input_<A, B>, BinF...>...> {};
   template <typename... A, typename... B>
   struct f<ts_<A...>, ts_<B...>> {
-    typedef eval_pipe_<
-        fork_<pipe_<ts_<A, ts_<B...>>, cartesian_<BinF...>>...>, flatten>
+    typedef eval_pipe_<fork_<pipe_<ts_<A, ts_<B...>>, cartesian_<BinF...>>...>,
+                       flatten>
         type;
   };
 };
 static_assert(
-    eval_pipe_<ts_<int, float>, cartesian_<>, same_as_<int, float>>::value,
+    eval_pipe_<input_<int, float>, cartesian_<>, same_as_<int, float>>::value, "");
+static_assert(
+    eval_pipe_<input_<int, ts_<float>>, cartesian_<>, same_as_<int, float>>::value,
     "");
-static_assert(eval_pipe_<ts_<int, ts_<float>>, cartesian_<>,
-                         same_as_<int, float>>::value,
-              "");
-static_assert(eval_pipe_<ts_<int, ts_<float, int>>, cartesian_<listify>,
+static_assert(eval_pipe_<input_<int, ts_<float, int>>, cartesian_<listify>,
                          same_as_<ls_<int, float>, ls_<int, int>>>::value,
               "");
 static_assert(
     eval_pipe_<
-        ts_<ts_<int[1], int[2]>, ts_<int[3], int[4]>>,
-        cartesian_<listify>,
+        input_<ts_<int[1], int[2]>, ts_<int[3], int[4]>>, cartesian_<listify>,
         same_as_<te::ls_<int[1], int[3]>, te::ls_<int[1], int[4]>,
                  te::ls_<int[2], int[3]>, te::ls_<int[2], int[4]>>>::value,
     "");
@@ -879,15 +907,15 @@ struct rotate_ {
   struct f : f_impl<I % sizeof...(Ts), Ts...> {};
 };
 
-static_assert(eval_pipe_<ts_<int, float, short, int[2]>, rotate_<5>,
+static_assert(eval_pipe_<input_<int, float, short, int[2]>, rotate_<5>,
                          same_as_<float, short, int[2], int>>::value,
               "");
 
-static_assert(eval_pipe_<ts_<int, float, short, int[2]>, rotate_<-1>,
+static_assert(eval_pipe_<input_<int, float, short, int[2]>, rotate_<-1>,
                          same_as_<int[2], int, float, short>>::value,
               "");
 
-// IS_ZERO : return if the input_ is it's type_zero
+// IS_ZERO : return if the type is it's type_zero
 struct is_zero {
   template <typename... T>
   struct f {
@@ -899,8 +927,8 @@ struct is_zero {
   };
 };
 
-static_assert(eval_pipe_<ts_<b<0>>, is_zero>::value, "");
-static_assert(eval_pipe_<ts_<b<true>>, not_<is_zero>>::value, "");
+static_assert(eval_pipe_<input_<b<0>>, is_zero>::value, "");
+static_assert(eval_pipe_<input_<b<true>>, not_<is_zero>>::value, "");
 
 // detail : then_context
 namespace detail {
@@ -933,7 +961,7 @@ struct or_if_ {
   };
   template <typename... Ts>
   struct f<detail::__then_context<false, Ts...>> {
-    typedef detail::__then_context<eval_pipe_<ts_<Ts...>, NPred...>::value,
+    typedef detail::__then_context<eval_pipe_<input_<Ts...>, NPred...>::value,
                                    Ts...>
         type;
   };
@@ -951,7 +979,7 @@ struct and_if_ {
   };
   template <typename... Ts>
   struct f<detail::__then_context<true, Ts...>> {
-    typedef detail::__then_context<eval_pipe_<ts_<Ts...>, NPred...>::value,
+    typedef detail::__then_context<eval_pipe_<input_<Ts...>, NPred...>::value,
                                    Ts...>
         type;
   };
@@ -965,7 +993,7 @@ struct else_if_ {
   };
   template <typename... Ts>
   struct f<detail::__then_context<false, Ts...>> {
-    typedef detail::__then_context<eval_pipe_<ts_<Ts...>, NPred...>::value,
+    typedef detail::__then_context<eval_pipe_<input_<Ts...>, NPred...>::value,
                                    Ts...>
         type;
   };
@@ -987,7 +1015,7 @@ struct then_ {
   };
   template <typename... Ts>
   struct f<detail::__then_context<true, Ts...>> {
-    typedef eval_pipe_<ts_<Ts...>, Es...> type;
+    typedef eval_pipe_<input_<Ts...>, Es...> type;
   };
 };
 
@@ -999,7 +1027,7 @@ struct else_ {
   };
   template <typename... Ts>
   struct f<detail::__then_context<false, Ts...>> {
-    typedef eval_pipe_<ts_<Ts...>, Es...> type;
+    typedef eval_pipe_<input_<Ts...>, Es...> type;
   };
   template <typename... Ts>
   struct f<detail::__then_context<true, Ts...>> {
@@ -1418,16 +1446,16 @@ struct lcm {
   };
 };
 
-static_assert(eval_pipe_<ts_<std::ratio<1, 4>>, plus_<std::ratio<2, 5>>,
+static_assert(eval_pipe_<input_<std::ratio<1, 4>>, plus_<std::ratio<2, 5>>,
                          equal_<std::ratio<26, 40>>>::value,
               "");
 
 static_assert(
-    eval_pipe_<ts_<i<3>>, plus_<i<1>>, if_then_<same_as_<i<4>>, plus_<i<2>>>,
+    eval_pipe_<input_<i<3>>, plus_<i<1>>, if_then_<same_as_<i<4>>, plus_<i<2>>>,
                same_as_<i<6>>>::value,
     "");
 static_assert(
-    eval_pipe_<ts_<i<3>>, plus_<i<1>>, if_then_<same_as_<i<3>>, plus_<i<2>>>,
+    eval_pipe_<input_<i<3>>, plus_<i<1>>, if_then_<same_as_<i<3>>, plus_<i<2>>>,
                same_as_<i<4>>>::value,
     "");
 
@@ -1524,15 +1552,14 @@ struct recursive_partition_ {
   template <typename... Results, typename Head, typename... Tails>
   struct f_impl<ts_<Results...>, ts_<Head, Tails...>>
       : f_impl<
-            ts_<
-                Results...,
+            ts_<Results...,
                 eval_pipe_<
-                    ts_<Head, Tails...>,
+                    input_<Head, Tails...>,
                     remove_if_<UnaryFunction...,
                                not_same_as_<typename pipe_<
                                    UnaryFunction...>::template f<Head>::type>>,
                     flatten>>,
-            eval_pipe_<ts_<Tails...>,
+            eval_pipe_<input_<Tails...>,
                        remove_if_<UnaryFunction...,
                                   same_as_<typename pipe_<UnaryFunction...>::
                                                template f<Head>::type>>,
@@ -1543,21 +1570,21 @@ struct recursive_partition_ {
 };
 
 static_assert(
-    eval_pipe_<ts_<char, int, float, int, float, char, char>,
+    eval_pipe_<input_<char, int, float, int, float, char, char>,
                recursive_partition_<>, flatten,
                same_as_<char, char, char, int, int, float, float>>::value,
     "");
-static_assert(eval_pipe_<ts_<i<1>, i<2>, i<2>, i<4>>,
-                         recursive_partition_<modulo_<i<3>>>, transform_<first>,
-                         same_as_<i<1>, i<2>>>::value,
-              "");
+static_assert(
+    eval_pipe_<input_<i<1>, i<2>, i<2>, i<4>>, recursive_partition_<modulo_<i<3>>>,
+               transform_<first>, same_as_<i<1>, i<2>>>::value,
+    "");
 
 // UNIQUE : Keep only one of each different types
 // The implementation is special but work.
 // struct unique : push_out_<lift_<std::is_same>> {};
 struct unique : pipe_<recursive_partition_<>, transform_<first>> {};
 
-static_assert(eval_pipe_<ts_<void, int, void, float, float, int>, unique,
+static_assert(eval_pipe_<input_<void, int, void, float, float, int>, unique,
                          same_as_<void, int, float>>::value,
               "");
 
@@ -1565,13 +1592,12 @@ static_assert(eval_pipe_<ts_<void, int, void, float, float, int>, unique,
 template <typename... UnaryFunction>
 struct group_by_ : pipe_<recursive_partition_<UnaryFunction...>, flatten> {};
 
-static_assert(
-    eval_pipe_<
-        ts_<i<1>, i<2>, i<3>, i<4>>, group_by_<modulo_<i<2>>>,
-        same_as_<std::integral_constant<int, 1>, std::integral_constant<int, 3>,
-                 std::integral_constant<int, 2>,
-                 std::integral_constant<int, 4>>>::value,
-    "");
+static_assert(eval_pipe_<input_<i<1>, i<2>, i<3>, i<4>>, group_by_<modulo_<i<2>>>,
+                         same_as_<std::integral_constant<int, 1>,
+                                  std::integral_constant<int, 3>,
+                                  std::integral_constant<int, 2>,
+                                  std::integral_constant<int, 4>>>::value,
+              "");
 
 template <typename... UnaryFunction>
 using group_range_ = recursive_partition_<UnaryFunction...>;
@@ -1579,15 +1605,15 @@ using group_range_ = recursive_partition_<UnaryFunction...>;
 // COPY_ : Copy N times the inputs.
 // Implemented as a higher meta-expression
 template <unsigned int N>
-struct copy_ : eval_pipe_<ts_<i<N>>, mkseq, transform_<ts_<identity>>,
-                          quote_<fork_>> {};
+struct copy_
+    : eval_pipe_<input_<i<N>>, mkseq, transform_<ts_<identity>>, quote_<fork_>> {};
 
 // REPEAT_ : Repeat N times the meta-expression
 template <std::size_t N, typename... Es>
-struct repeat_ : eval_pipe_<ts_<Es...>, copy_<N>, flatten, quote_<pipe_>> {};
+struct repeat_ : eval_pipe_<input_<Es...>, copy_<N>, flatten, quote_<pipe_>> {};
 
 static_assert(
-    eval_pipe_<ts_<int>,
+    eval_pipe_<input_<int>,
                repeat_<2, lift_<std::add_pointer>, lift_<std::add_const>>,
                same_as_<int *const *const>>::value,
     "");
@@ -1597,7 +1623,7 @@ template <std::size_t... Is>
 struct swizzle_ : fork_<get_<Is>...> {};
 
 static_assert(
-    eval_pipe_<ts_<int, int *, int **, int ***>, swizzle_<2, 1, 0, 3, 1>,
+    eval_pipe_<input_<int, int *, int **, int ***>, swizzle_<2, 1, 0, 3, 1>,
                same_as_<int **, int *, int, int ***, int *>>::value,
     "");
 
@@ -1609,16 +1635,16 @@ struct on_args_ {
   struct f : ts_<error_<on_args_<Es...>, Ts...>> {};
   template <template <typename... Ts> class F, typename... Ts>
   struct f<F<Ts...>> {
-    typedef eval_pipe_<ts_<Ts...>, Es..., quote_<F>> type;
+    typedef eval_pipe_<input_<Ts...>, Es..., quote_<F>> type;
   };
   template <template <typename... Ts> class F, typename... Ts>
   struct f<F<Ts...> &> {
-    typedef eval_pipe_<ts_<Ts...>, Es..., quote_<F>,
+    typedef eval_pipe_<input_<Ts...>, Es..., quote_<F>,
                        lift_<std::add_lvalue_reference>>
         type;
   };
 };
-static_assert(eval_pipe_<ts_<ls_<int, int[2], int[3]>>,
+static_assert(eval_pipe_<input_<ls_<int, int[2], int[3]>>,
                          on_args_<sort_<transform_<size>, greater_<>>>,
                          same_as_<ls_<int[3], int[2], int>>>::value,
               "");
@@ -1644,7 +1670,7 @@ struct arrayify {
                Head, Rest...> {};
 };
 static_assert(
-    eval_pipe_<ts_<int, float, int, float, float>, recursive_partition_<>,
+    eval_pipe_<input_<int, float, int, float, float>, recursive_partition_<>,
                transform_<arrayify>,
                same_as_<std::array<int, 2>, std::array<float, 3>>>::value,
     "");
@@ -1655,7 +1681,7 @@ struct bind_ {
   template <typename... Ts>
   struct f
       : eval_pipe_<
-            ts_<i<sizeof...(Ts)>>, mkseq,
+            input_<i<sizeof...(Ts)>>, mkseq,
             transform_<cond_<
                 same_as_<i<I >= 0 ? I % sizeof...(Ts)
                                   : (sizeof...(Ts) - (-I % sizeof...(Ts)))>>,
@@ -1664,15 +1690,15 @@ struct bind_ {
 };
 
 static_assert(
-    eval_pipe_<ts_<int, float, char>, bind_<0, lift_<std::add_pointer>>,
+    eval_pipe_<input_<int, float, char>, bind_<0, lift_<std::add_pointer>>,
                same_as_<int *, float, char>>::value,
     "");
 static_assert(
-    eval_pipe_<ts_<int, float, char>, bind_<-1, lift_<std::add_pointer>>,
+    eval_pipe_<input_<int, float, char>, bind_<-1, lift_<std::add_pointer>>,
                same_as_<int, float, char *>>::value,
     "");
 static_assert(
-    eval_pipe_<ts_<int, float, char>, bind_<-2, lift_<std::add_pointer>>,
+    eval_pipe_<input_<int, float, char>, bind_<-2, lift_<std::add_pointer>>,
                same_as_<int, float *, char>>::value,
     "");
 
@@ -1682,7 +1708,7 @@ struct bind_on_args_ {
   template <typename... Ts>
   struct f
       : eval_pipe_<
-            ts_<i<sizeof...(Ts)>>, mkseq,
+            input_<i<sizeof...(Ts)>>, mkseq,
             transform_<cond_<
                 same_as_<i<I >= 0 ? I % sizeof...(Ts)
                                   : (sizeof...(Ts) - (-I % sizeof...(Ts)))>>,
@@ -1690,11 +1716,11 @@ struct bind_on_args_ {
             quote_<each_>>::template f<Ts...> {};
 };
 static_assert(
-    eval_pipe_<ts_<i<1>, i<2>, i<3>>, bind_on_args_<-1, fold_left_<plus_<>>>,
+    eval_pipe_<input_<i<1>, i<2>, i<3>>, bind_on_args_<-1, fold_left_<plus_<>>>,
                same_as_<i<1>, i<2>, i<6>>>::value,
     "Replace the last with the sum of all");
 static_assert(
-    eval_pipe_<ts_<int, float, char>, bind_on_args_<-2, first, listify>,
+    eval_pipe_<input_<int, float, char>, bind_on_args_<-2, first, listify>,
                same_as_<int, ls_<int>, char>>::value,
     "");
 
