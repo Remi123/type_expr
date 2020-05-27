@@ -295,6 +295,7 @@ struct pipe_ {
   // No ::type. This is a problem since it's always instanciated even if not
   // asked. required to have an alias eval_pipe_ = typename
   // pipe_<Fs...>::template f<>::type; to instanciate to the result type;
+  using type = pipe_;
 
   template <typename... Us>
   constexpr pipe_<Es..., Us...> const operator|(const pipe_<Us...> &) {
@@ -348,18 +349,13 @@ struct each_ {
 // DRAW_EVAL : Construct a function using the inputs, then evaluate using the
 // inputs
 template <typename... PipableFct>
-struct draw_eval_ {
+struct draw_ {
   template <typename... Ts>
   struct f {
     using metafct = eval_pipe_<input_<Ts...>, PipableFct..., quote_<pipe_>>;
     using type = typename metafct::template f<Ts...>::type;
   };
 };
-
-static_assert(eval_pipe_<input_<int, float, char>,
-                         draw_eval_<transform_<ts_<identity>>, quote_<each_>>,
-                         same_as_<int, float, char>>::value,
-              "");
 
 // UNWRAP : Universal unwrapper.
 struct unwrap {
@@ -408,9 +404,6 @@ struct container {
 template <template <typename...> class F>
 struct container_is_ : pipe_<container, same_as_<quote_<F>>> {};
 
-static_assert(
-    eval_pipe_<input_<ls_<int>>, container, same_as_<quote_<ls_>>>::value, "");
-
 // LISTIFY_ : wrap ts_ into ls_
 // Could have been implemented by struct listify : quote_<ls_>{}
 struct listify {
@@ -431,8 +424,8 @@ struct reverse {
 
   template <typename... Ts>
   struct f {
-    typedef
-        typename pipe_<ts_<ts_<>, Ts...>, fold_left_<lift_<f_impl>>>::type type;
+    using type =
+        typename fold_left_<lift_<f_impl>>::template f<ts_<>,Ts...>::type ;
   };
 };
 
@@ -487,11 +480,9 @@ struct cond_ {
 };
 
 // MKSEQ_ : Continue with i<0>, i<1>, ... , i<N-1>
-// Implementation of mkseq -------------------------------------------
 template <std::size_t... i>
 struct index_sequence {
   typedef std::size_t value_type;
-
   typedef index_sequence<i...> type;
   typedef ts_<std::integral_constant<int, i>...> to_types;
 };
@@ -544,16 +535,26 @@ template <typename... T>
 struct index_sequence_for : make_index_sequence<sizeof...(T)> {};
 
 // MKSEQ actual implementation.
-struct mkseq {
+template<typename ... TypeValue> 
+struct mkseq_ {
   struct not_integral_constant_int {};
   template <typename... Ts>
   struct f {
     typedef error_<not_integral_constant_int> type;
   };
-  template <int I>
-  struct f<i<I>> {
-    typedef typename make_index_sequence<I>::to_types type;
+  template <typename T>
+  struct f<T> {
+    typedef typename make_index_sequence<T::value>::to_types type;
   };
+};
+template<typename Tval>
+struct mkseq_<Tval>
+{
+    template<typename ...>
+    struct f
+    {
+        using type =typename make_index_sequence<Tval::value>::to_types;
+    };
 };
 
 // ZIP : Join together two list of type in multiple inputs
@@ -567,11 +568,14 @@ struct zip {
   struct f<F<Ts...>, G<Us...>> {
     typedef ts_<ts_<Ts, Us>...> type;
   };
+    template <template <typename...> class F,
+             template <typename...> class G,
+             template <typename...> class H,
+            typename... fs, typename... gs,typename ... hs>
+  struct f<F<fs...>, G<gs...>,H<hs...>> {
+    typedef ts_<ts_<fs, gs,hs>...> type;
+  };
 };
-static_assert(eval_pipe_<input_<ts_<int, int>, ts_<float, char>>, zip,
-                         same_as_<ts_<int, float>, ts_<int, char>>>::value,
-              "");
-
 // ZIP_INDEX
 struct zip_index {
   template <typename... Ts>
@@ -585,7 +589,7 @@ struct zip_index {
 
   template <typename... Ts>
   struct f {
-    typedef typename f_impl<typename mkseq::template f<i<sizeof...(Ts)>>::type,
+    typedef typename f_impl<typename mkseq_<>::template f<i<sizeof...(Ts)>>::type,
                             ts_<Ts...>>::type type;
   };
 };
@@ -648,7 +652,7 @@ struct get_ {
     template <typename... Is, typename... Us>
     struct f_impl<ts_<Is...>, ts_<Us...>> : f_impl<Is, Us>... {};
 
-    typedef typename mkseq::template f<i<sizeof...(Ts)>>::type indexed_input_s;
+    typedef typename mkseq_<>::template f<i<sizeof...(Ts)>>::type indexed_input_s;
     typedef typename f_impl<indexed_input_s, ts_<Ts...>>::type type;
   };
 
@@ -851,10 +855,6 @@ template <typename... F>
 struct find_if_ : pipe_<zip_index, transform_<listify>,
                         filter_<unwrap, second, F...>, first, unwrap> {};
 
-static_assert(eval_pipe_<input_<float, int, float, int>, find_if_<same_as_<int>>,
-                         same_as_<i<1>, int>>::value,
-              "");
-
 // CARTESIAN : Given two lists, continue with every possible lists of two types.
 template <typename... BinF>  // Binary Function
 struct cartesian_ {
@@ -877,20 +877,7 @@ struct cartesian_ {
         type;
   };
 };
-static_assert(
-    eval_pipe_<input_<int, float>, cartesian_<>, same_as_<int, float>>::value, "");
-static_assert(
-    eval_pipe_<input_<int, ts_<float>>, cartesian_<>, same_as_<int, float>>::value,
-    "");
-static_assert(eval_pipe_<input_<int, ts_<float, int>>, cartesian_<listify>,
-                         same_as_<ls_<int, float>, ls_<int, int>>>::value,
-              "");
-static_assert(
-    eval_pipe_<
-        input_<ts_<int[1], int[2]>, ts_<int[3], int[4]>>, cartesian_<listify>,
-        same_as_<te::ls_<int[1], int[3]>, te::ls_<int[1], int[4]>,
-                 te::ls_<int[2], int[3]>, te::ls_<int[2], int[4]>>>::value,
-    "");
+
 // ROTATE : rotate
 // The implementation may rely on undefined behavior.
 // But so far clang and gcc are compliant
@@ -907,14 +894,6 @@ struct rotate_ {
   struct f : f_impl<I % sizeof...(Ts), Ts...> {};
 };
 
-static_assert(eval_pipe_<input_<int, float, short, int[2]>, rotate_<5>,
-                         same_as_<float, short, int[2], int>>::value,
-              "");
-
-static_assert(eval_pipe_<input_<int, float, short, int[2]>, rotate_<-1>,
-                         same_as_<int[2], int, float, short>>::value,
-              "");
-
 // IS_ZERO : return if the type is it's type_zero
 struct is_zero {
   template <typename... T>
@@ -926,9 +905,6 @@ struct is_zero {
     typedef typename std::is_same<T, typename zero<T>::type>::type type;
   };
 };
-
-static_assert(eval_pipe_<input_<b<0>>, is_zero>::value, "");
-static_assert(eval_pipe_<input_<b<true>>, not_<is_zero>>::value, "");
 
 // detail : then_context
 namespace detail {
@@ -1446,19 +1422,6 @@ struct lcm {
   };
 };
 
-static_assert(eval_pipe_<input_<std::ratio<1, 4>>, plus_<std::ratio<2, 5>>,
-                         equal_<std::ratio<26, 40>>>::value,
-              "");
-
-static_assert(
-    eval_pipe_<input_<i<3>>, plus_<i<1>>, if_then_<same_as_<i<4>>, plus_<i<2>>>,
-               same_as_<i<6>>>::value,
-    "");
-static_assert(
-    eval_pipe_<input_<i<3>>, plus_<i<1>>, if_then_<same_as_<i<3>>, plus_<i<2>>>,
-               same_as_<i<4>>>::value,
-    "");
-
 // SORT : Given a binary predicate, sort the types
 // note : it's implicit that you receive two types, so you probably need to
 // transform them. eg : sort by size : sort_<transform_<size>, greater_<> >
@@ -1569,35 +1532,14 @@ struct recursive_partition_ {
   struct f : f_impl<ts_<>, ts_<Ts...>> {};
 };
 
-static_assert(
-    eval_pipe_<input_<char, int, float, int, float, char, char>,
-               recursive_partition_<>, flatten,
-               same_as_<char, char, char, int, int, float, float>>::value,
-    "");
-static_assert(
-    eval_pipe_<input_<i<1>, i<2>, i<2>, i<4>>, recursive_partition_<modulo_<i<3>>>,
-               transform_<first>, same_as_<i<1>, i<2>>>::value,
-    "");
-
 // UNIQUE : Keep only one of each different types
 // The implementation is special but work.
 // struct unique : push_out_<lift_<std::is_same>> {};
 struct unique : pipe_<recursive_partition_<>, transform_<first>> {};
 
-static_assert(eval_pipe_<input_<void, int, void, float, float, int>, unique,
-                         same_as_<void, int, float>>::value,
-              "");
-
 // GROUP : Given a Unary Function, Gather those that give the same result
 template <typename... UnaryFunction>
 struct group_by_ : pipe_<recursive_partition_<UnaryFunction...>, flatten> {};
-
-static_assert(eval_pipe_<input_<i<1>, i<2>, i<3>, i<4>>, group_by_<modulo_<i<2>>>,
-                         same_as_<std::integral_constant<int, 1>,
-                                  std::integral_constant<int, 3>,
-                                  std::integral_constant<int, 2>,
-                                  std::integral_constant<int, 4>>>::value,
-              "");
 
 template <typename... UnaryFunction>
 using group_range_ = recursive_partition_<UnaryFunction...>;
@@ -1606,26 +1548,17 @@ using group_range_ = recursive_partition_<UnaryFunction...>;
 // Implemented as a higher meta-expression
 template <unsigned int N>
 struct copy_
-    : eval_pipe_<input_<i<N>>, mkseq, transform_<ts_<identity>>, quote_<fork_>> {};
+    : eval_pipe_<input_<i<N>>, mkseq_<>, transform_<ts_<identity>>, quote_<fork_>> {};
 
 // REPEAT_ : Repeat N times the meta-expression
 template <std::size_t N, typename... Es>
 struct repeat_ : eval_pipe_<input_<Es...>, copy_<N>, flatten, quote_<pipe_>> {};
 
-static_assert(
-    eval_pipe_<input_<int>,
-               repeat_<2, lift_<std::add_pointer>, lift_<std::add_const>>,
-               same_as_<int *const *const>>::value,
-    "");
 
 // SWIZZLE : Restructure the inputs using the index
 template <std::size_t... Is>
 struct swizzle_ : fork_<get_<Is>...> {};
 
-static_assert(
-    eval_pipe_<input_<int, int *, int **, int ***>, swizzle_<2, 1, 0, 3, 1>,
-               same_as_<int **, int *, int, int ***, int *>>::value,
-    "");
 
 // ON_ARGS_ : unwrap rewrap in the same template template.
 //
@@ -1644,10 +1577,6 @@ struct on_args_ {
         type;
   };
 };
-static_assert(eval_pipe_<input_<ls_<int, int[2], int[3]>>,
-                         on_args_<sort_<transform_<size>, greater_<>>>,
-                         same_as_<ls_<int[3], int[2], int>>>::value,
-              "");
 
 // ARRAYIFY
 // If all types receive are the same, continue with std::array with the correct
@@ -1669,11 +1598,6 @@ struct arrayify {
       : f_impl<same_as_<Head, Rest...>::template f<Rest..., Head>::type::value,
                Head, Rest...> {};
 };
-static_assert(
-    eval_pipe_<input_<int, float, int, float, float>, recursive_partition_<>,
-               transform_<arrayify>,
-               same_as_<std::array<int, 2>, std::array<float, 3>>>::value,
-    "");
 
 // BIND
 template <int I, typename... Es>
@@ -1681,7 +1605,7 @@ struct bind_ {
   template <typename... Ts>
   struct f
       : eval_pipe_<
-            input_<i<sizeof...(Ts)>>, mkseq,
+            input_<i<sizeof...(Ts)>>, mkseq_<>,
             transform_<cond_<
                 same_as_<i<I >= 0 ? I % sizeof...(Ts)
                                   : (sizeof...(Ts) - (-I % sizeof...(Ts)))>>,
@@ -1689,18 +1613,6 @@ struct bind_ {
             quote_<each_>>::template f<Ts...> {};
 };
 
-static_assert(
-    eval_pipe_<input_<int, float, char>, bind_<0, lift_<std::add_pointer>>,
-               same_as_<int *, float, char>>::value,
-    "");
-static_assert(
-    eval_pipe_<input_<int, float, char>, bind_<-1, lift_<std::add_pointer>>,
-               same_as_<int, float, char *>>::value,
-    "");
-static_assert(
-    eval_pipe_<input_<int, float, char>, bind_<-2, lift_<std::add_pointer>>,
-               same_as_<int, float *, char>>::value,
-    "");
 
 // BIND_ON_ARGS_
 template <int I, typename... Es>
@@ -1708,21 +1620,13 @@ struct bind_on_args_ {
   template <typename... Ts>
   struct f
       : eval_pipe_<
-            input_<i<sizeof...(Ts)>>, mkseq,
+            input_<i<sizeof...(Ts)>>, mkseq_<>,
             transform_<cond_<
                 same_as_<i<I >= 0 ? I % sizeof...(Ts)
                                   : (sizeof...(Ts) - (-I % sizeof...(Ts)))>>,
                 ts_<pipe_<ts_<Ts...>, Es...>>, ts_<identity>>>,
             quote_<each_>>::template f<Ts...> {};
 };
-static_assert(
-    eval_pipe_<input_<i<1>, i<2>, i<3>>, bind_on_args_<-1, fold_left_<plus_<>>>,
-               same_as_<i<1>, i<2>, i<6>>>::value,
-    "Replace the last with the sum of all");
-static_assert(
-    eval_pipe_<input_<int, float, char>, bind_on_args_<-2, first, listify>,
-               same_as_<int, ls_<int>, char>>::value,
-    "");
 
 };  // namespace te
 #endif

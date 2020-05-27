@@ -97,7 +97,7 @@ Ret tup_cat(Tups &&... tups) {
   // This do the magic of getting the cartesian cartesian of each tup's types
   // with the index inside
   using zip_indexes = te::eval_pipe_<
-      te::ts_<Tups...>, te::transform_<te::unwrap, te::length, te::mkseq>,
+      te::ts_<Tups...>, te::transform_<te::unwrap, te::length, te::mkseq_<>>,
       te::zip_index, transform_<te::cartesian_<te::listify>>,
       flatten, unzip>;
 

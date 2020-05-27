@@ -7,9 +7,12 @@
 
 #include <type_traits>
 
+#include <tuple>
+
 #include "type_expr.hpp"
 #include "type_tup.hpp"
 
+  using namespace te;
 int main() {
   using namespace te;
 
@@ -255,9 +258,9 @@ int main() {
       t_err2 = te::error_<te::get_<3>::index_out_of_range>{};
 
   static_assert(
-      te::eval_pipe_<input_<i<2>>, mkseq, same_as_<i<0>, i<1>>>::value, "");
-  static_assert(te::eval_pipe_<input_<i<1>>, mkseq, same_as_<i<0>>>::value, "");
-  static_assert(te::eval_pipe_<input_<i<0>>, mkseq, same_as_<>>::value, "");
+      te::eval_pipe_<input_<i<2>>, mkseq_<>, same_as_<i<0>, i<1>>>::value, "");
+  static_assert(te::eval_pipe_<input_<i<1>>, mkseq_<>, same_as_<i<0>>>::value, "");
+  static_assert(te::eval_pipe_<input_<i<0>>, mkseq_<>, same_as_<>>::value, "");
 
   static_assert(
       te::eval_pipe_<input_<int, i<0>>,
@@ -272,7 +275,7 @@ int main() {
       te::eval_pipe_<input_<int, float>, zip_index,
                      same_as_<ts_<i<0>, int>, ts_<i<1>, float>>>::value,
       "");
-  static_assert(te::eval_pipe_<input_<i<1>>, plus_<i<1>>, mkseq,
+  static_assert(te::eval_pipe_<input_<i<1>>, plus_<i<1>>, mkseq_<>,
                                same_as_<i<0>, i<1>>>::value,
                 "");
 
@@ -280,7 +283,7 @@ int main() {
       te::eval_pipe_<
           te::input_<te::ls_<int, float, char>, te::ls_<>,
                      te::ls_<int *, char *>, te::ls_<int>>,
-          te::transform_<te::unwrap, te::length, te::mkseq>, te::zip_index,
+          te::transform_<te::unwrap, te::length, te::mkseq_<>>, te::zip_index,
           transform_<te::cartesian_<listify>>,
           te::flatten
           //,transform_<te::unwrap>
@@ -371,3 +374,145 @@ static_assert(
         // std::true_type or std::false_type
         te::lift_<std::is_same>>::value,
     "Comment each line from bottom to top to see how it work");
+
+// Usual Test
+static_assert(te::eval_pipe_<input_<int, float, char>,
+        draw_<transform_<ts_<identity>>, quote_<each_>>,
+        same_as_<int, float, char>>::value,
+        "Very important that each_<identity...> is equivalent to the inputs");
+static_assert(
+        eval_pipe_<input_<ls_<int>>, container, same_as_<quote_<ls_>>>::value,
+        "We reuse the quote_ as both a container and a meta-expression");
+static_assert(eval_pipe_<input_<ts_<int, int>, ts_<float, char>>, zip,
+        same_as_<ts_<int, float>, ts_<int, char>>>::value,
+        "Zipping is relatively easy");
+static_assert(eval_pipe_<input_<float, int, float, int>,
+        find_if_<same_as_<int>>,
+        same_as_<i<1>, int>>::value,
+        "Find_if returns both the index and the type that answer to the pred");
+
+static_assert(
+        eval_pipe_<input_<int, float>, cartesian_<>, same_as_<int, float>>::value, "");
+static_assert(
+        eval_pipe_<input_<int, ts_<float>>, cartesian_<>, same_as_<int, float>>::value,
+        "");
+static_assert(eval_pipe_<input_<int, ts_<float, int>>, cartesian_<listify>,
+        same_as_<ls_<int, float>, ls_<int, int>>>::value,
+        "");
+static_assert(
+        eval_pipe_<
+        input_<ts_<int[1], int[2]>, ts_<int[3], int[4]>>, cartesian_<listify>,
+        same_as_<te::ls_<int[1], int[3]>, te::ls_<int[1], int[4]>,
+        te::ls_<int[2], int[3]>, te::ls_<int[2], int[4]>>>::value,
+        "Cartesian give you the option of a BinaryFct to apply on the types");
+
+static_assert(eval_pipe_<input_<int, float, short, int[2]>, rotate_<5>,
+        same_as_<float, short, int[2], int>>::value,
+        "");
+static_assert(eval_pipe_<input_<int, float, short, int[2]>, rotate_<-1>,
+        same_as_<int[2], int, float, short>>::value,
+        "Rotate is bidirectional");
+
+static_assert(eval_pipe_<input_<b<0>>, is_zero>::value, "Is zero is for arithmetic types");
+static_assert(eval_pipe_<input_<b<true>>, not_<is_zero>>::value, "");
+
+static_assert(eval_pipe_<input_<std::ratio<1, 4>>, plus_<std::ratio<2, 5>>,
+        equal_<std::ratio<26, 40>>>::value,
+        "Arithmetic operation on std::ratio");
+
+static_assert(
+        eval_pipe_<input_<i<3>>, plus_<i<1>>, if_then_<same_as_<i<4>>, plus_<i<2>>>,
+        same_as_<i<6>>>::value,
+        "Arithmetic operation on std::integral_constant<int,value>");
+static_assert(
+        eval_pipe_<input_<i<3>>, plus_<i<1>>, if_then_<same_as_<i<3>>, plus_<i<2>>>,
+        same_as_<i<4>>>::value,
+        "");
+
+static_assert(
+        eval_pipe_<input_<char, int, float, int, float, char, char>,
+        recursive_partition_<>, flatten,
+        same_as_<char, char, char, int, int, float, float>>::value,
+        "");
+static_assert(
+        eval_pipe_<input_<i<1>, i<2>, i<2>, i<4>>
+        ,recursive_partition_<modulo_<i<3>>>,
+        transform_<first>, same_as_<i<1>, i<2>>>::value,
+        "This is equivalent to a unique");
+
+static_assert(eval_pipe_<input_<void, int, void, float, float, int>
+        , unique, same_as_<void, int, float>>::value,
+        "");
+
+static_assert(eval_pipe_<input_<i<1>, i<2>, i<3>, i<4>>,
+        group_by_<modulo_<i<2>>>,
+        same_as_<std::integral_constant<int, 1>,
+        std::integral_constant<int, 3>,
+        std::integral_constant<int, 2>,
+        std::integral_constant<int, 4>>>::value,
+        "Grouped by modulo 2");
+
+static_assert(
+        eval_pipe_<input_<int>,
+        repeat_<2, lift_<std::add_pointer>, lift_<std::add_const>>,
+        same_as_<int *const *const>>::value,
+        "Repeating expressions is a strength of this library");
+
+static_assert(
+        eval_pipe_<input_<int, int *, int **, int ***>,
+        swizzle_<2, 1, 0, 3, 1>,
+        same_as_<int **, int *, int, int ***, int *>>::value,
+        "The number of pointer is the index");
+
+static_assert(eval_pipe_<
+        input_<std::tuple<int, int[2], int[3]>>,
+        on_args_<sort_<transform_<size>, greater_<>>>,
+        same_as_<std::tuple<int[3], int[2], int>>>::value,
+        "");
+
+static_assert(
+        eval_pipe_<input_<int, float, int, float, float>
+        ,recursive_partition_<>,
+        transform_<arrayify>,
+        same_as_<std::array<int, 2>, std::array<float, 3>>>::value,
+        "Array-fication");
+
+static_assert(
+        eval_pipe_<input_<int, float, char>, bind_<0, lift_<std::add_pointer>>,
+        same_as_<int *, float, char>>::value,
+        "Binding is simple");
+static_assert(
+        eval_pipe_<input_<int, float, char>, bind_<-1, lift_<std::add_pointer>>,
+        same_as_<int, float, char *>>::value,
+        "Binding on the last is simple");
+static_assert(
+        eval_pipe_<input_<int, float, char>, bind_<-2, lift_<std::add_pointer>>,
+        same_as_<int, float *, char>>::value,
+        "");
+
+static_assert(
+        eval_pipe_<input_<i<1>, i<2>, i<3>>,
+        bind_on_args_<-1, fold_left_<plus_<>>>,
+        same_as_<i<1>, i<2>, i<6>>>::value,
+        "Replace the last with the sum of all");
+static_assert(
+        eval_pipe_<input_<int, float, char>,
+        bind_on_args_<-2, first, listify>,
+        same_as_<int, ls_<int>, char>>::value,
+        "The second is replaced with the listified first");
+
+static_assert(
+        eval_pipe_<input_<i<1>, i<2>, i<3>>,
+        reverse
+        ,same_as_<i<3>, i<2>, i<1>>
+        >::value,
+        "Reversing");
+
+static_assert(
+    eval_pipe_<mkseq_<i<4>>
+    ,same_as_<i<0>,i<1>,i<2>,i<3>>
+    >::value,""
+        );
+
+
+
