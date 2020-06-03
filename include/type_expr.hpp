@@ -63,8 +63,9 @@ struct ts_<T> {
     typedef T type;
   };
 };
-template <typename... Ts>
-struct ts_<ts_<Ts...>> : ts_<Ts...> {};
+// Recursive ts_. Very powerful feature but make some algo not very intuitive.
+//template <typename... Ts>
+//struct ts_<ts_<Ts...>> : ts_<Ts...> {};
 
 // NOTHING : Universal representation of the concept of nothing
 using nothing = ts_<>;
@@ -613,6 +614,9 @@ struct unzip {
   struct f;
   template <template <typename...> class F, typename... Fs, typename... Gs>
   struct f<F<Fs, Gs>...> : ts_<ts_<Fs...>, ts_<Gs...>> {};
+  template <template <typename...> class F, 
+           typename... Fs, typename... Gs, typename ... Hs>
+  struct f<F<Fs, Gs, Hs>...> : ts_<ts_<Fs...>, ts_<Gs...>, ts_<Hs...>> {};
 };
 
 // PUSH_FRONT_ : Add anything you want to the front of the inputs.
@@ -700,18 +704,18 @@ struct third {
   };
 };
 
+// LAST : Continue with the last type
+struct last {
+    template<typename ... Ts>
+    struct f {
+        using type = eval_pipe_<input_<Ts>...>;
+    };
+};
+
 // Nth : Continue with the Nth type
 typedef first _1st;
 typedef second _2nd;
 typedef third _3rd;
-
-// LAST : Continue with the last type
-struct last {
-  template <typename... Ts>
-  struct f {
-    typedef eval_pipe_<input_<Ts...>, get_<sizeof...(Ts) - 1>> type;
-  };
-};
 
 template <typename... Ts>
 struct flat;
@@ -1060,82 +1064,52 @@ template <intmax_t nA, intmax_t dA, intmax_t nB, intmax_t dB>
 std::ratio_equal<std::ratio<nA, dA>, std::ratio<nB, dB>> operator==(
     const std::ratio<nA, dA> &, const std::ratio<nB, dB> &);
 
+//post_operator : Internal type
+template<template<typename ...> class CRTP, typename ... Ts>
+struct post_op{
+    template<typename ... Us>
+    struct f {using type = typename CRTP<Us...,Ts...>::type;};
+};
+//prefix_operator : Internal type
+template<template<typename ...> class CRTP, typename ... Ts>
+struct pre_op{
+    template<typename ... Us>
+    struct f {using type = typename CRTP<Ts...,Us...>::type;};
+};
+
 // LESS
-template <typename... Ts>
-struct less_ {
-  typedef error_<less_<Ts...>> type;
+template<typename ... Ts> struct less_ : post_op<less_,Ts...>{};
+template<typename T, typename U>
+struct less_<T,U> : post_op<less_,T,U>
+{
+   using type = decltype(std::declval<T>() < std::declval<U>());
 };
-template <typename P>
-struct less_<P> {
-  template <typename B>
-  struct f {
-    typedef decltype(std::declval<B>() < std::declval<P>()) type;
-  };
-};
-template <>
-struct less_<> {
-  template <typename P, typename B>
-  struct f {
-    typedef decltype(std::declval<P>() < std::declval<B>()) type;
-  };
-};
+static_assert(eval_pipe_<input_<i<1>>, less_<i<2>>>::value,"");
+static_assert(eval_pipe_<less_<i<1>,i<2>>>::value,"");
+static_assert(eval_pipe_<input_<i<1>,i<2>>, less_<>>::value,"");
+
 // LESS_EQ
-template <typename... Ts>
-struct less_eq_ {
-  typedef error_<less_<Ts...>> type;
-};
-template <typename P>
-struct less_eq_<P> {
-  template <typename B>
-  struct f {
-    typedef decltype(std::declval<B>() <= std::declval<P>()) type;
-  };
-};
-template <>
-struct less_eq_<> {
-  template <typename P, typename B>
-  struct f {
-    typedef decltype(std::declval<P>() <= std::declval<B>()) type;
-  };
+template<typename ... Ts> struct less_eq_ : post_op<less_eq_,Ts...>{};
+template<typename T, typename U>
+struct less_eq_<T,U> : post_op<less_eq_,T,U>
+{
+   using type = decltype(std::declval<T>() <= std::declval<U>());
 };
 
 // GREATER
-template <typename... Ts>
-struct greater_ {
-  typedef error_<greater_<Ts...>> type;
+template<typename ... Ts> struct greater_ : post_op<greater_,Ts...>{};
+template<typename T, typename U>
+struct greater_<T,U> : post_op<greater_,T,U>
+{
+   using type = decltype(std::declval<T>() > std::declval<U>());
 };
-template <typename P>
-struct greater_<P> {
-  template <typename B>
-  struct f {
-    typedef decltype(std::declval<B>() > std::declval<P>()) type;
-  };
-};
-template <>
-struct greater_<> {
-  template <typename P, typename B>
-  struct f {
-    typedef decltype(std::declval<P>() > std::declval<B>()) type;
-  };
-};
+
 // GREATER_EQ
-template <typename... Ts>
-struct greater_eq_ {
-  typedef error_<greater_eq_<Ts...>> type;
-};
-template <typename P>
-struct greater_eq_<P> {
-  template <typename B>
-  struct f {
-    typedef decltype(std::declval<B>() >= std::declval<P>()) type;
-  };
-};
-template <>
-struct greater_eq_<> {
-  template <typename P, typename B>
-  struct f {
-    typedef decltype(std::declval<P>() >= std::declval<B>()) type;
-  };
+template<typename ... Ts> struct greater_eq_ : post_op<greater_eq_,Ts...>{};
+template<typename T, typename U>
+struct greater_eq_<T,U> : post_op<greater_eq_,T,U>
+{
+   using type = decltype(std::declval<T>() >= std::declval<U>());
 };
 
 // PLUS
