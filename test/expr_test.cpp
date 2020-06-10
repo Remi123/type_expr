@@ -431,12 +431,12 @@ static_assert(
 
 static_assert(
         eval_pipe_<input_<char, int, float, int, float, char, char>,
-        recursive_partition_<>, flatten,
+        group_range_<>, flatten,
         same_as_<char, char, char, int, int, float, float>>::value,
         "");
 static_assert(
         eval_pipe_<input_<i<1>, i<2>, i<2>, i<4>>
-        ,recursive_partition_<modulo_<i<3>>>,
+        ,group_range_<modulo_<i<3>>>,
         transform_<first>, same_as_<i<1>, i<2>>>::value,
         "This is equivalent to a unique");
 
@@ -472,7 +472,7 @@ static_assert(eval_pipe_<
 
 static_assert(
         eval_pipe_<input_<int, float, int, float, float>
-        ,recursive_partition_<>,
+        ,group_range_<>,
         transform_<arrayify>,
         same_as_<std::array<int, 2>, std::array<float, 3>>>::value,
         "Array-fication");

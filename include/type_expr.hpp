@@ -20,11 +20,12 @@ class integer_sequence;
 template <typename T, std::size_t N>
 class array;
 };  // namespace std
-
-namespace kvasir::mpl {
+namespace kvasir {
+namespace mpl {
 template <typename... Ts>
 struct list;
 };
+};  // namespace kvasir
 namespace metal {
 template <typename... Ts>
 struct list;
@@ -64,8 +65,8 @@ struct ts_<T> {
   };
 };
 // Recursive ts_. Very powerful feature but make some algo not very intuitive.
-//template <typename... Ts>
-//struct ts_<ts_<Ts...>> : ts_<Ts...> {};
+// template <typename... Ts>
+// struct ts_<ts_<Ts...>> : ts_<Ts...> {};
 
 // NOTHING : Universal representation of the concept of nothing
 using nothing = ts_<>;
@@ -139,6 +140,12 @@ template <typename... Ts>
 struct input_ : ts_<Ts...> {};
 
 template <typename... Ts>
+struct input_<ts_<Ts...>> : ts_<Ts...> {
+  // Specialization that allow one recursion.
+  // We can now use input as a replacement for ts
+};
+
+template <typename... Ts>
 struct input_<kvasir::mpl::list<Ts...>> : ts_<Ts...> {};
 
 template <typename... Ts>
@@ -176,7 +183,7 @@ template <typename T>
 struct quote_std_integer_sequence_ {
   template <typename... Is>
   struct f {
-    typedef std::integer_sequence<T, Is::value...> type;
+    typedef std::integer_sequence<T, (T)Is::value...> type;
   };
 };
 
@@ -185,7 +192,7 @@ struct quote_std_integer_sequence_ {
 struct quote_std_array {
   template <typename T, typename N>
   struct f {
-    typedef std::array<int, N::value> type;
+    typedef std::array<T, N::value> type;
   };
 };
 
@@ -277,7 +284,7 @@ struct pipe_context<error_<ErrorT>, G> {
 template <typename... Cs>
 struct pipe_;
 
-// PIPE_ : Helper alias
+// EVAL_PIPE_ : Helper alias
 template <typename... Fs>
 using eval_pipe_ = typename pipe_<Fs...>::template f<>::type;
 #if __cplusplus > 201403L
@@ -426,14 +433,14 @@ struct reverse {
   template <typename... Ts>
   struct f {
     using type =
-        typename fold_left_<lift_<f_impl>>::template f<ts_<>,Ts...>::type ;
+        typename fold_left_<lift_<f_impl>>::template f<ts_<>, Ts...>::type;
   };
 };
 
 // CALL_F : The input is a metafunction. Call it.
 struct call_f {
-  template <typename... T>
-  struct f : pipe_<T...> {};
+  template <typename... Expr>
+  struct f : pipe_<Expr...> {};
 };
 
 // CONSTRUCT_FS : Construct a metafunction from the types. and call it.
@@ -536,7 +543,7 @@ template <typename... T>
 struct index_sequence_for : make_index_sequence<sizeof...(T)> {};
 
 // MKSEQ actual implementation.
-template<typename ... TypeValue> 
+template <typename... TypeValue>
 struct mkseq_ {
   struct not_integral_constant_int {};
   template <typename... Ts>
@@ -548,14 +555,12 @@ struct mkseq_ {
     typedef typename make_index_sequence<T::value>::to_types type;
   };
 };
-template<typename Tval>
-struct mkseq_<Tval>
-{
-    template<typename ...>
-    struct f
-    {
-        using type =typename make_index_sequence<Tval::value>::to_types;
-    };
+template <typename Tval>
+struct mkseq_<Tval> {
+  template <typename...>
+  struct f {
+    using type = typename make_index_sequence<Tval::value>::to_types;
+  };
 };
 
 // ZIP : Join together two list of type in multiple inputs
@@ -569,12 +574,11 @@ struct zip {
   struct f<F<Ts...>, G<Us...>> {
     typedef ts_<ts_<Ts, Us>...> type;
   };
-    template <template <typename...> class F,
-             template <typename...> class G,
-             template <typename...> class H,
-            typename... fs, typename... gs,typename ... hs>
-  struct f<F<fs...>, G<gs...>,H<hs...>> {
-    typedef ts_<ts_<fs, gs,hs>...> type;
+  template <template <typename...> class F, template <typename...> class G,
+            template <typename...> class H, typename... fs, typename... gs,
+            typename... hs>
+  struct f<F<fs...>, G<gs...>, H<hs...>> {
+    typedef ts_<ts_<fs, gs, hs>...> type;
   };
 };
 // ZIP_INDEX
@@ -590,8 +594,9 @@ struct zip_index {
 
   template <typename... Ts>
   struct f {
-    typedef typename f_impl<typename mkseq_<>::template f<i<sizeof...(Ts)>>::type,
-                            ts_<Ts...>>::type type;
+    typedef
+        typename f_impl<typename mkseq_<>::template f<i<sizeof...(Ts)>>::type,
+                        ts_<Ts...>>::type type;
   };
 };
 
@@ -614,8 +619,8 @@ struct unzip {
   struct f;
   template <template <typename...> class F, typename... Fs, typename... Gs>
   struct f<F<Fs, Gs>...> : ts_<ts_<Fs...>, ts_<Gs...>> {};
-  template <template <typename...> class F, 
-           typename... Fs, typename... Gs, typename ... Hs>
+  template <template <typename...> class F, typename... Fs, typename... Gs,
+            typename... Hs>
   struct f<F<Fs, Gs, Hs>...> : ts_<ts_<Fs...>, ts_<Gs...>, ts_<Hs...>> {};
 };
 
@@ -656,7 +661,8 @@ struct get_ {
     template <typename... Is, typename... Us>
     struct f_impl<ts_<Is...>, ts_<Us...>> : f_impl<Is, Us>... {};
 
-    typedef typename mkseq_<>::template f<i<sizeof...(Ts)>>::type indexed_input_s;
+    typedef
+        typename mkseq_<>::template f<i<sizeof...(Ts)>>::type indexed_input_s;
     typedef typename f_impl<indexed_input_s, ts_<Ts...>>::type type;
   };
 
@@ -706,10 +712,10 @@ struct third {
 
 // LAST : Continue with the last type
 struct last {
-    template<typename ... Ts>
-    struct f {
-        using type = eval_pipe_<input_<Ts>...>;
-    };
+  template <typename... Ts>
+  struct f {
+    using type = eval_pipe_<input_<Ts>...>;
+  };
 };
 
 // Nth : Continue with the Nth type
@@ -743,22 +749,38 @@ template <typename... Fs, typename... Gs, typename... Hs, typename... Is,
 struct flat<ts_<Ls...>, ts_<Fs...>, ts_<Gs...>, ts_<Hs...>, ts_<Is...>, Ts...>
     : flat<ts_<Ls..., Fs..., Gs..., Hs..., Is...>, Ts...> {};
 
-template <typename T>
-struct flat_impl {
-  typedef ts_<T> type;
-};
-template <typename... Ts>
-struct flat_impl<ts_<Ts...>> {
-  typedef ts_<Ts...> type;
-};
-
 // FLATTEN : Continue with only one ts_. Sub-ts_ are removed.
 // The dirty but necessary tool of our library
 struct flatten {
   template <typename... Ts>
-  struct f {
-    typedef typename flat<ts_<>, Ts...>::type type;
+  struct flat;
+  template <typename... Ls>
+  struct flat<ts_<Ls...>> {
+    typedef ts_<Ls...> type;
   };
+  template <typename... Ls, typename T, typename... Ts>
+  struct flat<ts_<Ls...>, T, Ts...> : flat<ts_<Ls..., T>, Ts...> {};
+  template <typename... Ls, typename T, typename... Is, typename... Ts>
+  struct flat<ts_<Ls...>, T, ts_<Is...>, Ts...>
+      : flat<ts_<Ls..., T, Is...>, Ts...> {};
+
+  template <typename... Ls, typename... Fs, typename... Ts>
+  struct flat<ts_<Ls...>, ts_<Fs...>, Ts...> : flat<ts_<Ls..., Fs...>, Ts...> {
+  };
+  template <typename... Fs, typename... Gs, typename... Ls, typename... Ts>
+  struct flat<ts_<Ls...>, ts_<Fs...>, ts_<Gs...>, Ts...>
+      : flat<ts_<Ls..., Fs..., Gs...>, Ts...> {};
+  template <typename... Fs, typename... Gs, typename... Hs, typename... Ls,
+            typename... Ts>
+  struct flat<ts_<Ls...>, ts_<Fs...>, ts_<Gs...>, ts_<Hs...>, Ts...>
+      : flat<ts_<Ls..., Fs..., Gs..., Hs...>, Ts...> {};
+  template <typename... Fs, typename... Gs, typename... Hs, typename... Is,
+            typename... Ls, typename... Ts>
+  struct flat<ts_<Ls...>, ts_<Fs...>, ts_<Gs...>, ts_<Hs...>, ts_<Is...>, Ts...>
+      : flat<ts_<Ls..., Fs..., Gs..., Hs..., Is...>, Ts...> {};
+
+  template <typename... Ts>
+  struct f : fold_left_<lift_<flat>>::template f<ts_<>, Ts...> {};
 };
 
 // LENGTH : Continue with the number of types in the ts_.
@@ -1064,52 +1086,56 @@ template <intmax_t nA, intmax_t dA, intmax_t nB, intmax_t dB>
 std::ratio_equal<std::ratio<nA, dA>, std::ratio<nB, dB>> operator==(
     const std::ratio<nA, dA> &, const std::ratio<nB, dB> &);
 
-//post_operator : Internal type
-template<template<typename ...> class CRTP, typename ... Ts>
-struct post_op{
-    template<typename ... Us>
-    struct f {using type = typename CRTP<Us...,Ts...>::type;};
+// post_operator : Internal type
+template <template <typename...> class CRTP, typename... Ts>
+struct post_op {
+  template <typename... Us>
+  struct f {
+    using type = typename CRTP<Us..., Ts...>::type;
+  };
 };
-//prefix_operator : Internal type
-template<template<typename ...> class CRTP, typename ... Ts>
-struct pre_op{
-    template<typename ... Us>
-    struct f {using type = typename CRTP<Ts...,Us...>::type;};
+// prefix_operator : Internal type
+template <template <typename...> class CRTP, typename... Ts>
+struct pre_op {
+  template <typename... Us>
+  struct f {
+    using type = typename CRTP<Ts..., Us...>::type;
+  };
 };
 
 // LESS
-template<typename ... Ts> struct less_ : post_op<less_,Ts...>{};
-template<typename T, typename U>
-struct less_<T,U> : post_op<less_,T,U>
-{
-   using type = decltype(std::declval<T>() < std::declval<U>());
+template <typename... Ts>
+struct less_ : post_op<less_, Ts...> {};
+template <typename T, typename U>
+struct less_<T, U> : post_op<less_, T, U> {
+  using type = decltype(std::declval<T>() < std::declval<U>());
 };
-static_assert(eval_pipe_<input_<i<1>>, less_<i<2>>>::value,"");
-static_assert(eval_pipe_<less_<i<1>,i<2>>>::value,"");
-static_assert(eval_pipe_<input_<i<1>,i<2>>, less_<>>::value,"");
+static_assert(eval_pipe_<input_<i<1>>, less_<i<2>>>::value, "");
+static_assert(eval_pipe_<less_<i<1>, i<2>>>::value, "");
+static_assert(eval_pipe_<input_<i<1>, i<2>>, less_<>>::value, "");
 
 // LESS_EQ
-template<typename ... Ts> struct less_eq_ : post_op<less_eq_,Ts...>{};
-template<typename T, typename U>
-struct less_eq_<T,U> : post_op<less_eq_,T,U>
-{
-   using type = decltype(std::declval<T>() <= std::declval<U>());
+template <typename... Ts>
+struct less_eq_ : post_op<less_eq_, Ts...> {};
+template <typename T, typename U>
+struct less_eq_<T, U> : post_op<less_eq_, T, U> {
+  using type = decltype(std::declval<T>() <= std::declval<U>());
 };
 
 // GREATER
-template<typename ... Ts> struct greater_ : post_op<greater_,Ts...>{};
-template<typename T, typename U>
-struct greater_<T,U> : post_op<greater_,T,U>
-{
-   using type = decltype(std::declval<T>() > std::declval<U>());
+template <typename... Ts>
+struct greater_ : post_op<greater_, Ts...> {};
+template <typename T, typename U>
+struct greater_<T, U> : post_op<greater_, T, U> {
+  using type = decltype(std::declval<T>() > std::declval<U>());
 };
 
 // GREATER_EQ
-template<typename ... Ts> struct greater_eq_ : post_op<greater_eq_,Ts...>{};
-template<typename T, typename U>
-struct greater_eq_<T,U> : post_op<greater_eq_,T,U>
-{
-   using type = decltype(std::declval<T>() >= std::declval<U>());
+template <typename... Ts>
+struct greater_eq_ : post_op<greater_eq_, Ts...> {};
+template <typename T, typename U>
+struct greater_eq_<T, U> : post_op<greater_eq_, T, U> {
+  using type = decltype(std::declval<T>() >= std::declval<U>());
 };
 
 // PLUS
@@ -1438,38 +1464,13 @@ struct sort_ {
   };
 };
 
-// PUSH_OUT
-// A very strange algorithm that is technically half a quicksort.
-template <typename... BinaryPredicate>
-struct push_out_ {
-  template <typename... L>
-  struct sort_impl;
-  template <typename T>
-  struct sort_impl<T> {
-    typedef T type;
-  };
-
-  template <typename... Ts, typename F>
-  struct sort_impl<ts_<F, Ts...>> {
-    typedef typename sort_impl<typename flat<
-        ts_<>,
-        typename eager<Ts, typename not_<pipe_<BinaryPredicate...>>::template f<
-                               Ts, F>::type>::type...>::type>::type No_types;
-
-    typedef typename flat<ts_<>, F, No_types>::type type;
-  };
-  template <typename... Ts>
-  struct f {
-    typedef typename sort_impl<ts_<Ts...>>::type type;
-  };
-};
 
 // RECURSIVE_PARTITION
 // Recursively partition into two groups which result of those UnaryFunction is
 // the same as the first. Basically it group all the types that have the same
 // result into subrange.
 template <typename... UnaryFunction>
-struct recursive_partition_ {
+struct group_range_ {
   template <typename... Ts>
   struct f_impl;
   template <typename... Results>
@@ -1509,33 +1510,28 @@ struct recursive_partition_ {
 // UNIQUE : Keep only one of each different types
 // The implementation is special but work.
 // struct unique : push_out_<lift_<std::is_same>> {};
-struct unique : pipe_<recursive_partition_<>, transform_<first>> {};
+struct unique : pipe_<group_range_<>, transform_<first>> {};
 
 // GROUP : Given a Unary Function, Gather those that give the same result
 template <typename... UnaryFunction>
-struct group_by_ : pipe_<recursive_partition_<UnaryFunction...>, flatten> {};
+struct group_by_ : pipe_<group_range_<UnaryFunction...>, flatten> {};
 
-template <typename... UnaryFunction>
-using group_range_ = recursive_partition_<UnaryFunction...>;
 
 // COPY_ : Copy N times the inputs.
 // Implemented as a higher meta-expression
 template <unsigned int N>
-struct copy_
-    : eval_pipe_<input_<i<N>>, mkseq_<>, transform_<ts_<identity>>, quote_<fork_>> {};
+struct copy_ : eval_pipe_<input_<i<N>>, mkseq_<>, transform_<ts_<identity>>,
+                          quote_<fork_>> {};
 
 // REPEAT_ : Repeat N times the meta-expression
 template <std::size_t N, typename... Es>
 struct repeat_ : eval_pipe_<input_<Es...>, copy_<N>, flatten, quote_<pipe_>> {};
 
-
 // SWIZZLE : Restructure the inputs using the index
 template <std::size_t... Is>
 struct swizzle_ : fork_<get_<Is>...> {};
 
-
 // ON_ARGS_ : unwrap rewrap in the same template template.
-//
 template <typename... Es>
 struct on_args_ {
   template <typename... Ts>
@@ -1586,7 +1582,6 @@ struct bind_ {
                 ts_<pipe_<Es...>>, ts_<identity>>>,
             quote_<each_>>::template f<Ts...> {};
 };
-
 
 // BIND_ON_ARGS_
 template <int I, typename... Es>
