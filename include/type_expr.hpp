@@ -1339,7 +1339,7 @@ template <std::size_t N, typename... Es>
 struct repeat_ : eval_pipe_<input_<Es...>, copy_<N>, flatten, quote_<pipe_>> {};
 
 // SWIZZLE : Restructure the inputs using the index
-template <std::size_t... Is>
+template <int ... Is>
 struct swizzle_ : fork_<get_<Is>...> {};
 
 // ON_ARGS_ : unwrap rewrap in the same template template.
