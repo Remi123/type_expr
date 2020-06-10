@@ -252,10 +252,15 @@ int main() {
   static_assert(te::eval_pipe_<input_<int, int, int>, pipe_<get_<0>>,
                                same_as_<int>>::value,
                 "");
-  constexpr te::eval_pipe_<input_<i<1>, i<2>, i<3>>, get_<-1>, same_as_<>>
-      t_err = te::error_<te::get_<-1>::index_out_of_range>{};
-  constexpr te::eval_pipe_<input_<int, int, int>, pipe_<get_<3>>, same_as_<>>
-      t_err2 = te::error_<te::get_<3>::index_out_of_range>{};
+  static_assert(te::eval_pipe_<mkseq_<i<5>>, pipe_<get_<10>>,
+                               same_as_<i<0>>>::value,
+                "10 modulo 5 is 0");
+  static_assert(te::eval_pipe_<mkseq_<i<5>>, pipe_<get_<-1>>
+                               ,same_as_<i<4>>
+                               >::value,
+                "the last of {0,1,2,3,4} is 4");
+
+
 
   static_assert(
       te::eval_pipe_<input_<i<2>>, mkseq_<>, same_as_<i<0>, i<1>>>::value, "");
