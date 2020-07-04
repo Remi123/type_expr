@@ -642,16 +642,18 @@ struct push_back_ {
   };
 };
 
-constexpr int circular_modulo(int i, int size) {
-  return ((i % size) + size) % size;
+constexpr int circular_modulo(int i, int N) {
+  return     (i>= 0 ) ? i % N
+            : (i+(-i*N ))%N;
 }
 
 template <int I, int N>
-using circular_modulo_t = std::integral_constant<int, ((I % N) + N) % N>;
+using circular_modulo_t = std::integral_constant<int, circular_modulo(I,N)>;
 
 // GET : Continue with the type a index N
 template <int I>
 struct get_ {
+private:
   template <int Index, typename T>
   struct h {};
   template <typename T>
@@ -663,9 +665,9 @@ struct get_ {
   struct f_impl;
   template <typename... J, typename... U>
   struct f_impl<ts_<J, U>...>
-      : h<J::value == circular_modulo_t<I, sizeof...(J)>::value ? I : J::value,
+      : h<J::value == circular_modulo(I, sizeof...(J)) ? I : J::value,
           U>... {};
-
+public:
   template <typename...>
   struct f : ts_<nothing> {};
 
