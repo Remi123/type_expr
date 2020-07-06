@@ -167,15 +167,18 @@ struct lift_ {
   };
 };
 
-// QUOTE_ : Universal wrapper. Doesn't get the ::type. Use with template alias
+// WRAP && QUOTE_: Universal wrapper. Doesn't get the ::type. Use with template alias
 // The Other Farming field of our library
 template <template <typename...> class F>
-struct quote_ {
+struct wrap_ {
   template <typename... Ts>
   struct f {
     typedef F<Ts...> type;
   };
 };
+
+template<template <typename ... > class F>
+using quote_ = wrap_<F>;
 
 // QUOTE_STD_INTEGER_SEQUENCE
 // Specialization for std::integer_sequence
@@ -624,6 +627,10 @@ struct unzip {
   struct f<F<Fs, Gs, Hs>...> : ts_<ts_<Fs...>, ts_<Gs...>, ts_<Hs...>> {};
 };
 
+// ZIP_INPUT : Inputs are indexed
+template<typename ... Ts>
+struct zip_input_ : pipe_<input_<Ts...>,zip_index>{};
+
 // PUSH_FRONT_ : Add anything you want to the front of the inputs.
 template <typename... Ts>
 struct push_front_ {
@@ -725,31 +732,6 @@ typedef first _1st;
 typedef second _2nd;
 typedef third _3rd;
 
-template <typename... Ts>
-struct flat;
-template <typename... Ls>
-struct flat<ts_<Ls...>> {
-  typedef ts_<Ls...> type;
-};
-template <typename... Ls, typename T, typename... Ts>
-struct flat<ts_<Ls...>, T, Ts...> : flat<ts_<Ls..., T>, Ts...> {};
-template <typename... Ls, typename T, typename... Is, typename... Ts>
-struct flat<ts_<Ls...>, T, ts_<Is...>, Ts...>
-    : flat<ts_<Ls..., T, Is...>, Ts...> {};
-
-template <typename... Ls, typename... Fs, typename... Ts>
-struct flat<ts_<Ls...>, ts_<Fs...>, Ts...> : flat<ts_<Ls..., Fs...>, Ts...> {};
-template <typename... Fs, typename... Gs, typename... Ls, typename... Ts>
-struct flat<ts_<Ls...>, ts_<Fs...>, ts_<Gs...>, Ts...>
-    : flat<ts_<Ls..., Fs..., Gs...>, Ts...> {};
-template <typename... Fs, typename... Gs, typename... Hs, typename... Ls,
-          typename... Ts>
-struct flat<ts_<Ls...>, ts_<Fs...>, ts_<Gs...>, ts_<Hs...>, Ts...>
-    : flat<ts_<Ls..., Fs..., Gs..., Hs...>, Ts...> {};
-template <typename... Fs, typename... Gs, typename... Hs, typename... Is,
-          typename... Ls, typename... Ts>
-struct flat<ts_<Ls...>, ts_<Fs...>, ts_<Gs...>, ts_<Hs...>, ts_<Is...>, Ts...>
-    : flat<ts_<Ls..., Fs..., Gs..., Hs..., Is...>, Ts...> {};
 
 // FLATTEN : Continue with only one ts_. Sub-ts_ are removed.
 // The dirty but necessary tool of our library
@@ -782,7 +764,7 @@ struct flatten {
       : flat<ts_<Ls..., Fs..., Gs..., Hs..., Is...>, Ts...> {};
 
   template <typename... Ts>
-  struct f : fold_left_<lift_<flat>>::template f<ts_<>, Ts...> {};
+  struct f : fold_left_<lift_<flatten::flat>>::template f<ts_<>, Ts...> {};
 };
 
 // LENGTH : Continue with the number of types in the ts_.
@@ -819,6 +801,7 @@ struct not_<> {
   template <typename T>
   struct f : ts_<std::integral_constant<decltype(!T::value), !T::value>> {};
 };
+
 // REMOVE_IF_ : Remove every type where the metafunction "returns"
 // std::true_type
 template <typename... UnaryPredicate>
@@ -1241,42 +1224,43 @@ struct lcm {
 // note : it's implicit that you receive two types, so you probably need to
 // transform them. eg : sort by size : sort_<transform_<size>, greater_<> >
 
-template <typename A, typename B>
-struct eager {
-  typedef ts_<> type;
-};
-
-template <typename A>
-struct eager<A, std::true_type> {
-  typedef ts_<A> type;
-};
 
 template <typename... BinaryPredicate>
 struct sort_ {
-  template <typename... L>
-  struct sort_impl;
-  template <typename T>
-  struct sort_impl<T> {
-    typedef T type;
-  };
+	template <typename A, typename B>
+	struct eager {
+  		typedef ts_<> type;
+	};
 
-  template <typename... Ts, typename F>
-  struct sort_impl<ts_<F, Ts...>> {
-    typedef typename sort_impl<typename flat<
-        ts_<>,
-        typename eager<Ts, typename pipe_<BinaryPredicate...>::template f<
-                               Ts, F>::type>::type...>::type>::type Yes_types;
-    typedef typename sort_impl<typename flat<
-        ts_<>,
-        typename eager<Ts, typename not_<pipe_<BinaryPredicate...>>::template f<
-                               Ts, F>::type>::type...>::type>::type No_types;
+	template <typename A>
+	struct eager<A, std::true_type> {
+  		typedef ts_<A> type;
+	};
 
-    typedef typename flat<ts_<>, Yes_types, F, No_types>::type type;
-  };
-  template <typename... Ts>
-  struct f {
-    typedef typename sort_impl<ts_<Ts...>>::type type;
-  };
+	template <typename... L>
+	struct sort_impl;
+	template <typename T>
+	struct sort_impl<T> {
+    	typedef T type;
+	};
+
+	template <typename... Ts, typename F>
+	struct sort_impl<ts_<F, Ts...>> {
+    	typedef typename sort_impl<typename flatten::template f<
+        	ts_<>,
+        	typename eager<Ts, typename pipe_<BinaryPredicate...>::template f<
+            	Ts, F>::type>::type...>::type>::type Yes_types;
+    	typedef typename sort_impl<typename flatten::template f<
+        	ts_<>,
+        	typename eager<Ts, typename not_<pipe_<BinaryPredicate...>>::template f<
+            	Ts, F>::type>::type...>::type>::type No_types;
+
+    	typedef typename flatten::template f<ts_<>, Yes_types, F, No_types>::type type;
+	};
+	template <typename... Ts>
+	struct f {
+    	typedef typename sort_impl<ts_<Ts...>>::type type;
+	};
 };
 
 // GROUP_RANGE
