@@ -3,6 +3,8 @@
 
 ![C/C++ CI](https://github.com/Remi123/type_expr/workflows/C/C++%20CI/badge.svg?branch=master)
 
+To test this library, you can simply write in Compiler Explorer `#include <https://raw.githubusercontent.com/Remi123/type_expr/master/include/type_expr.hpp>` and it should be fine under a C++11 compiler
+
 This library can be considered a fork of kvasir::mpl, but the core of the parsing is completly different.
 >The major difference is "range-like" meta-expression requiring much fewer nesting than most other libraries.
 
@@ -13,12 +15,12 @@ namespace te = type_expr;
 template<int N> // alias because std::integral_constant<int,N> is long to write
 using int_c = std::integral_constant<int,N>;
 
-te::eval_pipe_< te::input<int_c<1>>
-                ,te::plus_<int_c<1>> 
-                ,te::plus_<int_c<2>> // You can continue adding meta-expression
-                > std_int_c_4; 
-                // std_int_c_4 is an std::integral_constant<int,4>
-static_assert(std_int_c_4.value == 4,"");
+using result = 	te::eval_pipe_<          // Evaluate the following expression
+					te::input_<int_c<1>> // Start with integral_constant<int,1> as input
+                	,te::plus_<int_c<1>> // Add integral_constant<int,1> which result in integral_constant<int,2>
+                	,te::plus_<int_c<2>> // You can continue adding meta-expression
+				>;                       // result is type std::integral_constant<int,4>
+static_assert(result::value == 4,"");
 
 // ------------------------------------------------------------------------------------
 // But compile time arithmetic was solved with constexpr, let's do something more fancy.
@@ -35,30 +37,31 @@ using Metafunction_example = te::pipe_<       // pipe_ doesn't evaluate yet
       te::transform_<te::size>,               // transform both types in an integral_constant of their sizeof(T)
       te::greater_<>                          // "return" an integral_constant<bool,(first > second)>
       >,                                      // End of sort_<...BinaryPredicate>, all types are now sorted
-    te::quote_<Typelist>                    // Wrap the results in the Typelist class
-    >; // End of the meta-function
+    te::quote_<Typelist>                      // Wrap the results in the Typelist class
+    >;                                        // End of the meta-function
 
-using starting_input =  te::input_<Z,int[3],Z, int[1],Z,int[2], int[4]>;
-using expected_resulting_type =        Typelist<int[4],int[3],int[2],int[1]>;
+using starting_input          = te::input_<Z,int[3],Z, int[1],Z,int[2], int[4]>;
+using expected_resulting_type = Typelist<int[4],int[3],int[2],int[1]>;
 
 static_assert(std::is_same<
-    te::eval_pipe_<starting_input, Metafunction_example>
-    ,expected_resulting_type
+    te::eval_pipe_<starting_input, Metafunction_example> // Now evaluate the function with the starting inputs
+    ,expected_resulting_type                             // Should give the expected result
     >::value, "Proof");
     
 // This is cool but other meta-programming libraries can do similar things,
 // let's do something simple that they can't without some chores.
 
 template<int ... Ints>
-using summationX2_constant = te::eval_pipe_<te::input_<int_c<0>>      // Start at int_c<0>
-                                          , plus_<int_c<Ints>>...   // Expend the meta-fcts
-                                          , te::multiply_<int_c<2>> // Multiply by two
-                                          >;
-static_assert(summationX2_constant<3,2,20,-10>::value == 30,"Proof of work");
+using summationX2_constant =			  // We want to add all ints and multiply the result by two
+te::eval_pipe_<	te::input_<int_c<0>>      // Start at int_c<0>
+				, plus_<int_c<Ints>>...   // Expend the meta-fcts plus_ with ...
+				, te::multiply_<int_c<2>> // Multiply by two
+              >;
+static_assert(summationX2_constant<1,2,3>::value == 12,"Proof of work");
 // We are allowed to use fold-meta-expression at compile time in a C++11 compiler.
 // 6 years before C++17 in run-time function.
 // The subtile difference is that we are expanding the meta-expression 
-// te::plus_<int_c<3>>, te::plus_<int_c<2>>, ...
+// te::plus_<int_c<1>>, te::plus_<int_c<2>>, ...
 // The low level of nesting required in the type_expr library allow us to do new things
 ```
 **_And if you think that the syntax is similar to the range algorithm but with commas instead of `|`, it's by design_**
@@ -67,7 +70,6 @@ ___
 If you want to ... | Then ... 
 --- | ---
 See the code in action |  The test/ folder is where to go
-Easily playtest this library on Compiler Explorer | You can just write `#include <https://raw.githubusercontent.com/Remi123/type_expr/master/include/type_expr.hpp>` which is the raw text of my file and it should be fine under a C++11 compiler
 Look at the doc | Unfortunately the doc is not complete since I think of adding some more breaking changes in the near future. You can check the wiki. My meta-expression names are trying to be very similar to kvasir::mpl's ones.
 
 ___
