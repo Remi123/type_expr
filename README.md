@@ -15,10 +15,10 @@ namespace te = type_expr;
 template<int N> // alias because std::integral_constant<int,N> is long to write
 using int_c = std::integral_constant<int,N>;
 
-using result = 	te::eval_pipe_<          // Evaluate the following expression
+using result = te::eval_pipe_<           // Evaluate the following expression
 					te::input_<int_c<1>> // Start with integral_constant<int,1> as input
-                	,te::plus_<int_c<1>> // Add integral_constant<int,1> which result in integral_constant<int,2>
-                	,te::plus_<int_c<2>> // You can continue adding meta-expression
+					,te::plus_<int_c<1>> // Add integral_constant<int,1> which result in integral_constant<int,2>
+					,te::plus_<int_c<2>> // You can continue adding meta-expression
 				>;                       // result is type std::integral_constant<int,4>
 static_assert(result::value == 4,"");
 
@@ -52,7 +52,7 @@ static_assert(std::is_same<
 // let's do something simple that they can't without some chores.
 
 template<int ... Ints>
-using summationX2_constant =			  // We want to add all ints and multiply the result by two
+using summationX2_constant =              // We want to add all ints and multiply the result by two
 te::eval_pipe_<	te::input_<int_c<0>>      // Start at int_c<0>
 				, plus_<int_c<Ints>>...   // Expend the meta-fcts plus_ with ...
 				, te::multiply_<int_c<2>> // Multiply by two
