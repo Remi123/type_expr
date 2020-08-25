@@ -286,7 +286,7 @@ int main() {
           te::flatten
           //,transform_<te::unwrap>
           ,
-          te::unzip, transform_<quote_std_integer_sequence_<int>>,
+          te::unzip, transform_<wrap_std_integer_sequence_<int>>,
           same_as_<std::integer_sequence<int, 0, 0, 0, 2, 2, 3>,
                    std::integer_sequence<int, 0, 1, 2, 0, 1, 0>>>::value,
       "Eric Niebler Challenge");
@@ -296,7 +296,7 @@ int main() {
   struct Z {};  // EMPTY
 
   using ArthurODwyer_metafunction =
-      te::on_args_<te::remove_if_<te::lift_<std::is_empty>>,
+      te::on_args_<te::remove_if_<te::wraptype_<std::is_empty>>,
                    te::sort_<te::transform_<te::size>, te::greater_<>>>;
 
   static_assert(
@@ -319,7 +319,7 @@ int main() {
           te::input_<te::i<5>, te::i<3>, te::i<2>, te::i<1>, te::i<4>>,
           te::fork_<te::sort_<te::less_<>>,
                     te::sort_<te::greater_<>, te::not_<>>>,
-          te::lift_<std::is_same>>::value,
+          te::wraptype_<std::is_same>>::value,
       "");
 
   static_assert(eval_pipe_<input_<int>, if_<same_as_<int>>,
@@ -327,8 +327,8 @@ int main() {
                 "");
   static_assert(
       eval_pipe_<input_<float>, if_<same_as_<int>>,
-                 then_<lift_<std::add_pointer>>, else_if_<same_as_<float>>,
-                 then_<lift_<std::add_const>>, endif,
+                 then_<wraptype_<std::add_pointer>>, else_if_<same_as_<float>>,
+                 then_<wraptype_<std::add_const>>, endif,
                  same_as_<const float>>::value,
       "");
   static_assert(
@@ -367,10 +367,10 @@ static_assert(
         te::unzip,
         // Each of the two ts_<...> // concatenate their char_type
         // Then quote it to a integer_sequence_<char,...>
-        te::transform_<te::flatten, te::quote_std_integer_sequence_<char>>,
+        te::transform_<te::flatten, te::wrap_std_integer_sequence_<char>>,
         // Compare if they are the same to
         // std::true_type or std::false_type
-        te::lift_<std::is_same>>::value,
+        te::wraptype_<std::is_same>>::value,
     "Comment each line from bottom to top to see how it work");
 
 // Usual Test
@@ -436,8 +436,9 @@ static_assert(
                same_as_<char, char, char, int, int, float, float>>::value,
     "");
 static_assert(
-    eval_pipe_<input_<i<1>, i<2>, i<2>, i<4>>, group_range_<modulo_<i<3>>>,
-               transform_<first>, same_as_<i<1>, i<2>>>::value,
+    eval_pipe_<input_<i<1>, i<2>, i<2>, i<4>>, group_range_<modulo_<i<3>>>
+               ,transform_<first>, same_as_<i<1>, i<2>>
+			   >::value,
     "This is equivalent to a unique");
 
 static_assert(eval_pipe_<input_<void, int, void, float, float, int>, unique,
@@ -454,7 +455,7 @@ static_assert(
 
 static_assert(
     eval_pipe_<input_<int>,
-               repeat_<2, lift_<std::add_pointer>, lift_<std::add_const>>,
+               repeat_<2, wraptype_<std::add_pointer>, wraptype_<std::add_const>>,
                same_as_<int *const *const>>::value,
     "Repeating expressions is a strength of this library");
 
@@ -475,15 +476,15 @@ static_assert(
     "Array-fication");
 
 static_assert(
-    eval_pipe_<input_<int, float, char>, bind_<0, lift_<std::add_pointer>>,
+    eval_pipe_<input_<int, float, char>, bind_<0, wraptype_<std::add_pointer>>,
                same_as_<int *, float, char>>::value,
     "Binding is simple");
 static_assert(
-    eval_pipe_<input_<int, float, char>, bind_<-1, lift_<std::add_pointer>>,
+    eval_pipe_<input_<int, float, char>, bind_<-1, wraptype_<std::add_pointer>>,
                same_as_<int, float, char *>>::value,
     "Binding on the last is simple");
 static_assert(
-    eval_pipe_<input_<int, float, char>, bind_<-2, lift_<std::add_pointer>>,
+    eval_pipe_<input_<int, float, char>, bind_<-2, wraptype_<std::add_pointer>>,
                same_as_<int, float *, char>>::value,
     "");
 

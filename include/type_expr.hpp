@@ -65,8 +65,8 @@ struct ts_<T> {
   };
 };
 // Recursive ts_. Very powerful feature but make some algo not very intuitive.
-// template <typename... Ts>
-// struct ts_<ts_<Ts...>> : ts_<Ts...> {};
+//template <typename... Ts>
+//struct ts_<ts_<Ts...>> : ts_<Ts...> {};
 
 // NOTHING : Universal representation of the concept of nothing
 using nothing = ts_<>;
@@ -160,7 +160,7 @@ struct input_<boost::fusion::list<Ts...>> : ts_<Ts...> {};
 // LIFT_ : Universal customization point using template template. Get the ::type
 // The Farming field of our library
 template <template <typename...> class F>
-struct lift_ {
+struct wraptype_ {
   template <typename... Ts>
   struct f {
     typedef typename F<Ts...>::type type;
@@ -183,7 +183,7 @@ using quote_ = wrap_<F>;
 // QUOTE_STD_INTEGER_SEQUENCE
 // Specialization for std::integer_sequence
 template <typename T>
-struct quote_std_integer_sequence_ {
+struct wrap_std_integer_sequence_ {
   template <typename... Is>
   struct f {
     typedef std::integer_sequence<T, (T)Is::value...> type;
@@ -192,7 +192,7 @@ struct quote_std_integer_sequence_ {
 
 // QUOTE_STD_ARRAY
 // Specialization for std::array
-struct quote_std_array {
+struct wrap_std_array {
   template <typename T, typename N>
   struct f {
     typedef std::array<T, N::value> type;
@@ -300,7 +300,7 @@ struct pipe_ {
   template <typename... Ts>
   struct f {
     typedef
-        typename fold_left_<lift_<pipe_context>>::template f<ts_<Ts...>,
+        typename fold_left_<wraptype_<pipe_context>>::template f<ts_<Ts...>,
                                                              Es...>::type type;
   };
   // No ::type. This is a problem since it's always instanciated even if not
@@ -436,7 +436,7 @@ struct reverse {
   template <typename... Ts>
   struct f {
     using type =
-        typename fold_left_<lift_<f_impl>>::template f<ts_<>, Ts...>::type;
+        typename fold_left_<wraptype_<f_impl>>::template f<ts_<>, Ts...>::type;
   };
 };
 
@@ -720,12 +720,7 @@ struct third {
 };
 
 // LAST : Continue with the last type
-struct last {
-  template <typename... Ts>
-  struct f {
-    using type = eval_pipe_<input_<Ts>...>;
-  };
-};
+struct last : get_<-1> {};
 
 // Nth : Continue with the Nth type
 typedef first _1st;
@@ -764,7 +759,7 @@ struct flatten {
       : flat<ts_<Ls..., Fs..., Gs..., Hs..., Is...>, Ts...> {};
 
   template <typename... Ts>
-  struct f : fold_left_<lift_<flatten::flat>>::template f<ts_<>, Ts...> {};
+  struct f : fold_left_<wraptype_<flatten::flat>>::template f<ts_<>, Ts...> {};
 };
 
 // LENGTH : Continue with the number of types in the ts_.
@@ -1033,8 +1028,8 @@ struct endif {
   };
 };
 
-template <typename UnaryPredicate, typename F>
-struct if_then_ : cond_<UnaryPredicate, F, identity> {};
+template <typename UnaryPredicate, typename ... F>
+struct if_then_ : cond_<UnaryPredicate, pipe_<F...>, identity> {};
 
 // ARITHMETIC METAFUNCTIONS
 //
@@ -1275,10 +1270,10 @@ struct group_range_ {
   struct f_impl<ts_<Results...>, ts_<>> {
     typedef ts_<Results...> type;
   };
-  template <typename... Results, typename Head>
-  struct f_impl<ts_<Results...>, ts_<Head>> {
-    typedef ts_<Results..., Head> type;
-  };
+  //template <typename... Results, typename ...Head>
+  //struct f_impl<ts_<Results...>, ts_<Head...>> {
+  //  typedef ts_<Results..., ts_<Head...>> type;
+  //};
 
   template <typename... Results, typename Head>
   struct f_impl<ts_<Results...>, Head> {
@@ -1291,15 +1286,17 @@ struct group_range_ {
             ts_<Results...,
                 eval_pipe_<
                     input_<Head, Tails...>,
-                    remove_if_<UnaryFunction...,
+                    remove_if_<pipe_<UnaryFunction...>,
                                not_same_as_<typename pipe_<
-                                   UnaryFunction...>::template f<Head>::type>>,
-                    flatten>>,
+                                   UnaryFunction...>::template f<Head>::type>>
+								   ,flatten
+                    >>,
             eval_pipe_<input_<Tails...>,
-                       remove_if_<UnaryFunction...,
+                       remove_if_<pipe_<UnaryFunction...>,
                                   same_as_<typename pipe_<UnaryFunction...>::
-                                               template f<Head>::type>>,
-                       flatten>> {};
+                                               template f<Head>::type>>
+                       //,flatten
+					   >> {};
 
   template <typename... Ts>
   struct f : f_impl<ts_<>, ts_<Ts...>> {};
@@ -1307,7 +1304,6 @@ struct group_range_ {
 
 // UNIQUE : Keep only one of each different types
 // The implementation is special but work.
-// struct unique : push_out_<lift_<std::is_same>> {};
 struct unique : pipe_<group_range_<>, transform_<first>> {};
 
 // GROUP : Given a Unary Function, Gather those that give the same result
@@ -1317,7 +1313,7 @@ struct group_by_ : pipe_<group_range_<UnaryFunction...>, flatten> {};
 // COPY_ : Copy N times the inputs.
 // Implemented as a higher meta-expression
 template <unsigned int N>
-struct copy_ : eval_pipe_<input_<i<N>>, mkseq_<>, transform_<ts_<identity>>,
+struct copy_ : eval_pipe_< mkseq_<i<N>>, transform_<ts_<identity>>,
                           quote_<fork_>> {};
 
 // REPEAT_ : Repeat N times the meta-expression
@@ -1340,7 +1336,7 @@ struct on_args_ {
   template <template <typename... Ts> class F, typename... Ts>
   struct f<F<Ts...> &> {
     typedef eval_pipe_<input_<Ts...>, Es..., quote_<F>,
-                       lift_<std::add_lvalue_reference>>
+                       wraptype_<std::add_lvalue_reference>>
         type;
   };
 };

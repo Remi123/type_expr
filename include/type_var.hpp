@@ -122,11 +122,11 @@ class var_impl {
   // STATIC ASSERTION
   // Mandatory but doesn't contribute to readability
   static_assert(te::eval_pipe_<te::ts_<Ts...>,
-                               te::none_of_<te::lift_<std::is_array>>>::value,
+                               te::none_of_<te::wraptype_<std::is_array>>>::value,
                 "No arrays accepted");
   static_assert(
       te::eval_pipe_<te::ts_<Ts...>,
-                     te::none_of_<te::lift_<std::is_reference>>>::value,
+                     te::none_of_<te::wraptype_<std::is_reference>>>::value,
       "No reference accepted");
   static_assert(te::eval_pipe_<te::ts_<Ts...>,
                                te::none_of_<te::same_as_<void>>>::value,
