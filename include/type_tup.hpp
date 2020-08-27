@@ -42,8 +42,8 @@ template <typename... Is, typename... Ts, template <typename...> class TypeList>
 struct tup_impl<TypeList<Is, Ts>...> : tup_inst<Is, Ts>... {
   tup_impl(Ts &&... ts) : tup_inst<Is, Ts>(std::forward<Ts>(ts))... {}
   template <unsigned int I>
-  auto get() -> te::eval_pipe_<ts_<Ts...>, get_<I>> & {
-    return te::eval_pipe_<ts_<tup_inst<Is, Ts>...>, te::get_<I>>::data;
+  auto get() -> te::eval_pipe_<ts_<Ts...>, te::at_<I>> & {
+    return te::eval_pipe_<ts_<tup_inst<Is, Ts>...>, te::at_<I>>::data;
   }
   };
 
@@ -72,15 +72,8 @@ tup<Types &&...> forward_as_tup(Types &&... args) noexcept {
   return te::tup<Types &&...>(std::forward<Types>(args)...);
 }
 
-template<typename ... Ts> 
-using sorted_tup = 	te::eval_pipe_<
-					te::input_<Ts...>
-					,te::group_range_<te::size>
-					,te::sort_<te::transform_<te::first,te::size>,te::greater_<>>
-					,te::wrap_<tup>>;
-
 template<typename ... Ts, std::size_t ... Is>
-te::eval_pipe_<te::input_<Ts...>,te::fork_<te::get_<Is>...>,te::wrap_<tup>> tup_get(std::integer_sequence<std::size_t,Is...>,te::tup<Ts...>& tup)  
+te::eval_pipe_<te::input_<Ts...>,te::fork_<te::at_<Is>...>,te::wrap_<tup>> tup_get(std::integer_sequence<std::size_t,Is...>,te::tup<Ts...>& tup)  
 {
 	return te::make_tup(std::move(te::get<Is>(tup))...);
 }
@@ -88,11 +81,11 @@ te::eval_pipe_<te::input_<Ts...>,te::fork_<te::get_<Is>...>,te::wrap_<tup>> tup_
 template<typename ... Ts>
 using indexes = 
 te::eval_pipe_<te::input_<Ts...>, te::zip_index,te::transform_<te::listify>
-		, te::group_range_<te::unwrap,te::second,te::size>,te::flatten 
-		  ,te::sort_<transform_<te::unwrap,te::second,te::size>,te::greater_<>>
-			,te::transform_<te::unwrap,te::first>
-		  ,te::wrap_std_integer_sequence_<std::size_t>
-		  >;
+		,te::group_range_<te::unwrap,te::second,te::size> 
+		,te::sort_<transform_<te::unwrap,te::second,te::size>,te::greater_<>>
+		,te::transform_<te::unwrap,te::first>
+		,te::wrap_std_integer_sequence_<std::size_t>
+		>;
 
 //TUP_SORT
 // Given a tuple, sort it by it's size, bigger first.

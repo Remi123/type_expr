@@ -284,7 +284,7 @@ struct pipe_context<error_<ErrorT>, G> {
 
 // PIPE_ : Universal container of metafunction.
 // The Bread and Butter of the library
-template <typename... Cs>
+template <typename... Es>
 struct pipe_;
 
 // EVAL_PIPE_ : Helper alias
@@ -303,9 +303,10 @@ struct pipe_ {
         typename fold_left_<wraptype_<pipe_context>>::template f<ts_<Ts...>,
                                                              Es...>::type type;
   };
-  // No ::type. This is a problem since it's always instanciated even if not
+  // No ::type a la type_traits. The problem since it's always instanciated even if not
   // asked. required to have an alias eval_pipe_ = typename
   // pipe_<Fs...>::template f<>::type; to instanciate to the result type;
+  // As a result, pipe_::type is itself
   using type = pipe_;
 
   template <typename... Us>
@@ -329,21 +330,21 @@ struct same_as_ {
 };
 // TRANSFORM_ :
 // Similar to haskell's map. Also similar to std::transform
-template <typename... Fs>
+template <typename... Es>
 struct transform_ {
   template <typename... Ts>
   struct f {
-    typedef ts_<eval_pipe_<input_<Ts>, pipe_<Fs...>>...> type;
+    typedef ts_<eval_pipe_<input_<Ts>, pipe_<Es...>>...> type;
   };
 };
 
 // FORK_ : Inputs are copied to each metafunctions
 // The Peanut Butter of the library
-template <typename... Cs>
+template <typename... Es>
 struct fork_ {
   template <typename... Ts>
   struct f {
-    typedef ts_<eval_pipe_<input_<Ts...>, Cs>...> type;
+    typedef ts_<eval_pipe_<input_<Ts...>, Es>...> type;
   };
 };
 
@@ -360,7 +361,7 @@ struct each_ {
 // DRAW_EVAL : Construct a function using the inputs, then evaluate using the
 // inputs
 template <typename... PipableFct>
-struct draw_ {
+struct compose_ {
   template <typename... Ts>
   struct f {
     using metafct = eval_pipe_<input_<Ts...>, PipableFct..., quote_<pipe_>>;
@@ -565,6 +566,8 @@ struct mkseq_<Tval> {
     using type = typename make_index_sequence<Tval::value>::to_types;
   };
 };
+template<std::size_t N> using mkseq_c = mkseq_<i<N>>;
+
 
 // ZIP : Join together two list of type in multiple inputs
 struct zip {
@@ -659,7 +662,7 @@ using circular_modulo_t = std::integral_constant<int, circular_modulo(I,N)>;
 
 // GET : Continue with the type a index N
 template <int I>
-struct get_ {
+struct at_ {
 private:
   template <int Index, typename T>
   struct h {};
@@ -680,7 +683,7 @@ public:
 
   template <typename T, typename... Ts>
   struct f<T, Ts...>
-      : pipe_<zip_index, quote_<f_impl>, get_type>::template f<T, Ts...> {};
+      : pipe_<zip_index,wraptype_<f_impl>>::template f<T, Ts...> {};
 };
 
 // FIRST : Continue with the first type
@@ -720,7 +723,7 @@ struct third {
 };
 
 // LAST : Continue with the last type
-struct last : get_<-1> {};
+struct last : at_<-1> {};
 
 // Nth : Continue with the Nth type
 typedef first _1st;
@@ -1322,7 +1325,7 @@ struct repeat_ : eval_pipe_<input_<Es...>, copy_<N>, flatten, quote_<pipe_>> {};
 
 // SWIZZLE : Restructure the inputs using the index
 template <int ... Is>
-struct swizzle_ : fork_<get_<Is>...> {};
+struct swizzle_ : fork_<at_<Is>...> {};
 
 // ON_ARGS_ : unwrap rewrap in the same template template.
 template <typename... Es>
