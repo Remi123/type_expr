@@ -80,10 +80,10 @@ te::eval_pipe_<te::input_<Ts...>,te::fork_<te::at_<Is>...>,te::wrap_<tup>> tup_g
 
 template<typename ... Ts>
 using indexes = 
-te::eval_pipe_<te::input_<Ts...>, te::zip_index,te::transform_<te::listify>
-		,te::group_range_<te::unwrap,te::second,te::size> 
-		,te::sort_<transform_<te::unwrap,te::second,te::size>,te::greater_<>>
-		,te::transform_<te::unwrap,te::first>
+te::eval_pipe_<te::input_<Ts...>, te::zip_index
+		,te::group_range_<te::second,te::size> 
+		,te::sort_<transform_<te::second,te::size>,te::greater_<>>
+		,te::transform_<te::first>
 		,te::wrap_std_integer_sequence_<std::size_t>
 		>;
 

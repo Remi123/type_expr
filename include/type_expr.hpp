@@ -157,7 +157,7 @@ struct input_<boost::mp11::mp_list<Ts...>> : ts_<Ts...> {};
 template <typename... Ts>
 struct input_<boost::fusion::list<Ts...>> : ts_<Ts...> {};
 
-// LIFT_ : Universal customization point using template template. Get the ::type
+// WRAPTYPE_ : Universal customization point using template template. Get the ::type
 // The Farming field of our library
 template <template <typename...> class F>
 struct wraptype_ {
@@ -358,8 +358,8 @@ struct each_ {
   };
 };
 
-// DRAW_EVAL : Construct a function using the inputs, then evaluate using the
-// inputs
+// COMPOSE : Construct a function using the inputs, then evaluate using the
+// inputs. Without a doubt the most powerful function of my library
 template <typename... PipableFct>
 struct compose_ {
   template <typename... Ts>
@@ -802,10 +802,12 @@ struct not_<> {
 
 // REMOVE_IF_ : Remove every type where the metafunction "returns"
 // std::true_type
-template <typename... UnaryPredicate>
-struct remove_if_
-    : pipe_<transform_<cond_<pipe_<UnaryPredicate...>, ts_<>, identity>>,
-            flatten> {};
+template<typename ...Up>
+struct remove_if_ : compose_<transform_<
+					 cond_<pipe_<Up...>,input_<identity>,wrap_<push_back_>>>
+					,push_front_<input_<>
+					 >>{};
+
 
 // PARTITION_ : Continue with two list. First predicate is true, Second
 // predicate is false
@@ -1265,44 +1267,24 @@ struct sort_ {
 // Recursively partition into two groups which result of those UnaryFunction is
 // the same as the first. Basically it group all the types that have the same
 // result into subrange.
-template <typename... UnaryFunction>
-struct group_range_ {
-  template <typename... Ts>
-  struct f_impl;
-  template <typename... Results>
-  struct f_impl<ts_<Results...>, ts_<>> {
-    typedef ts_<Results...> type;
-  };
-  //template <typename... Results, typename ...Head>
-  //struct f_impl<ts_<Results...>, ts_<Head...>> {
-  //  typedef ts_<Results..., ts_<Head...>> type;
-  //};
+template<typename ... Uf>
+struct group_range_
+{
+    template<typename ... Ts> struct ff;
+    template<typename ... Ts>  struct gs_;
 
-  template <typename... Results, typename Head>
-  struct f_impl<ts_<Results...>, Head> {
-    typedef ts_<Results..., Head> type;
-  };
-
-  template <typename... Results, typename Head, typename... Tails>
-  struct f_impl<ts_<Results...>, ts_<Head, Tails...>>
-      : f_impl<
-            ts_<Results...,
-                eval_pipe_<
-                    input_<Head, Tails...>,
-                    remove_if_<pipe_<UnaryFunction...>,
-                               not_same_as_<typename pipe_<
-                                   UnaryFunction...>::template f<Head>::type>>
-								   ,flatten
-                    >>,
-            eval_pipe_<input_<Tails...>,
-                       remove_if_<pipe_<UnaryFunction...>,
-                                  same_as_<typename pipe_<UnaryFunction...>::
-                                               template f<Head>::type>>
-                       //,flatten
-					   >> {};
-
-  template <typename... Ts>
-  struct f : f_impl<ts_<>, ts_<Ts...>> {};
+    template<typename T>
+    using SameAsExpr = te::eval_pipe_<te::ts_<T>,Uf...,te::wrap_<te::same_as_>>;
+    template<typename T0,typename ... Ts>
+    struct f : ff<gs_<T0,Ts...>>{};
+    template<typename T0,typename ... Ts,typename ... Rs>
+    struct ff<gs_<T0,Ts...>,Rs...>:
+        ff< te::eval_pipe_<te::input_<te::ls_<Ts>...>,te::remove_if_<te::unwrap,Uf...,SameAsExpr<T0>>,te::transform_<te::unwrap>,te::wrap_<gs_>>
+        ,   Rs...
+        ,   te::eval_pipe_<te::input_<te::ls_<T0>,te::ls_<Ts>...>,te::filter_<te::unwrap,Uf...,SameAsExpr<T0>>,te::transform_<te::unwrap>>
+        >{};
+    template<typename ... RL>
+    struct ff<gs_<>, RL...> {using type = te::ts_<RL...>;};
 };
 
 // UNIQUE : Keep only one of each different types
