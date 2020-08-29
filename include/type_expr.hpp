@@ -208,6 +208,11 @@ struct get_type {
   };
 };
 
+// Type_traits 
+// some type_traits
+using add_pointer = wraptype_<std::add_pointer>;
+using add_const = wraptype_<std::add_const>;
+
 // FOLD_LEFT_ : Fold expression
 // The Farmer of the library
 template <typename F>
