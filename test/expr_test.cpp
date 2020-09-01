@@ -503,3 +503,11 @@ static_assert(eval_pipe_<input_<i<1>, i<2>, i<3>>, reverse,
 
 static_assert(eval_pipe_<mkseq_<i<4>>, same_as_<i<0>, i<1>, i<2>, i<3>>>::value,
               "");
+
+
+static_assert(eval_pipe_<input_<int>,append_result_<te::add_pointer>,same_as_<int,int*>>::value,"");
+static_assert(eval_pipe_<input_<int>,prepend_result_<te::add_pointer>,same_as_<int*,int>>::value,"");
+
+static_assert(eval_pipe_<mkseq_<i<4>>,append_result_<fold_left_<plus_<>>>,same_as_<i<0>,i<1>,i<2>,i<3>,i<6>>>::value,"");
+
+

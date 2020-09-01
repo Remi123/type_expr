@@ -1375,5 +1375,16 @@ struct bind_on_args_ {
             quote_<each_>>::template f<Ts...> {};
 };
 
+// APPEND_RESULT
+template<typename ...Es>
+struct append_result_ : compose_<Es...,wrap_<push_back_>>{};
+
+// PREPEND_RESULT
+template<typename ...Es>
+struct prepend_result_ : compose_<Es...,wrap_<push_front_>>{};
+
+static_assert(eval_pipe_<input_<int>,append_result_<te::add_pointer>,same_as_<int,int*>>::value,"");
+static_assert(eval_pipe_<input_<int>,prepend_result_<te::add_pointer>,same_as_<int*,int>>::value,"");
+
 };  // namespace te
 #endif
