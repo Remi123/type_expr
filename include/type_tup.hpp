@@ -127,8 +127,10 @@ Ret tup_cat(Tups &&... tups) {
   // with the index inside
   using zip_indexes = te::eval_pipe_<
       te::ts_<Tups...>, te::transform_<te::unwrap, te::length, te::mkseq_<>>,
-      te::zip_index, transform_<te::cartesian_<te::listify>>,
-      flatten, unzip>;
+      te::zip_index, transform_<te::cartesian_<te::listify>>
+      , te::flatten
+		  ,transform_<te::unwrap>
+		  , te::unzip>;
 
   using tup_index =
       te::eval_pipe_<zip_indexes, te::first, te::wrap_std_integer_sequence_<int>>;

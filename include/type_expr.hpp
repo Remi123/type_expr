@@ -145,17 +145,34 @@ struct input_<ts_<Ts...>> : ts_<Ts...> {
   // We can now use input as a replacement for ts
 };
 
-template <typename... Ts>
-struct input_<kvasir::mpl::list<Ts...>> : ts_<Ts...> {};
+template<typename ... aTs>
+struct input_append_
+{
+	template<typename ... Ts>
+	struct f
+	{using type = ts_<Ts...,aTs...>;};
+};
 
-template <typename... Ts>
-struct input_<metal::list<Ts...>> : ts_<Ts...> {};
+template<typename ... pTs>
+struct input_prepend_
+{
+	template<typename ... Ts>
+	struct f
+	{using type = ts_<pTs...,Ts...>;};
+};
 
-template <typename... Ts>
-struct input_<boost::mp11::mp_list<Ts...>> : ts_<Ts...> {};
 
-template <typename... Ts>
-struct input_<boost::fusion::list<Ts...>> : ts_<Ts...> {};
+/*template <typename... Ts>*/
+//struct input_<kvasir::mpl::list<Ts...>> : ts_<Ts...> {};
+
+//template <typename... Ts>
+//struct input_<metal::list<Ts...>> : ts_<Ts...> {};
+
+//template <typename... Ts>
+//struct input_<boost::mp11::mp_list<Ts...>> : ts_<Ts...> {};
+
+//template <typename... Ts>
+/*struct input_<boost::fusion::list<Ts...>> : ts_<Ts...> {};*/
 
 // WRAPTYPE_ : Universal customization point using template template. Get the ::type
 // The Farming field of our library
@@ -215,11 +232,11 @@ using add_const = wraptype_<std::add_const>;
 
 // FOLD_LEFT_ : Fold expression
 // The Farmer of the library
-template <typename F>
+template <typename binaryF>
 struct fold_left_ {
   template <typename... Ts>
   struct f {
-    typedef error_<fold_left_<F>, Ts...> type;
+    typedef error_<fold_left_<binaryF>, Ts...> type;
   };
   template <typename A>
   struct f<A> {
@@ -232,39 +249,20 @@ struct fold_left_ {
   };
   // helper alias to use with the monster below
   template <typename A, typename B>
-  using f_impl = typename F::template f<A, B>::type;
+  using f_impl = typename binaryF::template f<A, B>::type;
 
-  template <typename T0, typename T1, typename... Ts>
-  struct f<T0, T1, Ts...> : f<f_impl<T0, T1>, Ts...> {};
-  template <typename T0, typename T1, typename T2, typename... Ts>
-  struct f<T0, T1, T2, Ts...> : f<f_impl<f_impl<T0, T1>, T2>, Ts...> {};
-  template <typename T0, typename T1, typename T2, typename T3, typename... Ts>
-  struct f<T0, T1, T2, T3, Ts...>
-      : f<f_impl<f_impl<f_impl<T0, T1>, T2>, T3>, Ts...> {};
-  template <typename T0, typename T1, typename T2, typename T3, typename T4,
-            typename... Ts>
-  struct f<T0, T1, T2, T3, T4, Ts...>
-      : f<f_impl<f_impl<f_impl<f_impl<T0, T1>, T2>, T3>, T4>, Ts...> {};
-  template <typename T0, typename T1, typename T2, typename T3, typename T4,
-            typename T5, typename... Ts>
-  struct f<T0, T1, T2, T3, T4, T5, Ts...>
-      : f<f_impl<f_impl<f_impl<f_impl<f_impl<T0, T1>, T2>, T3>, T4>, T5>,
-          Ts...> {};
-  template <typename T0, typename T1, typename T2, typename T3, typename T4,
-            typename T5, typename T6, typename... Ts>
-  struct f<T0, T1, T2, T3, T4, T5, T6, Ts...>
-      : f<f_impl<f_impl<f_impl<f_impl<f_impl<f_impl<T0, T1>, T2>, T3>, T4>, T5>,
-                 T6>,
-          Ts...> {};
-  template <typename T0, typename T1, typename T2, typename T3, typename T4,
-            typename T5, typename T6, typename T7, typename... Ts>
-  struct f<T0, T1, T2, T3, T4, T5, T6, T7, Ts...>
-      : f<f_impl<
-              f_impl<f_impl<f_impl<f_impl<f_impl<f_impl<T0, T1>, T2>, T3>, T4>,
-                            T5>,
-                     T6>,
-              T7>,
-          Ts...> {};
+  template <typename T0, typename T1,typename ... Ts>
+  struct f<T0, T1,Ts...> : f<f_impl<T0, T1>,Ts...> {};
+  	template <typename T0, typename T1, typename T2, typename T3, typename T4,
+			typename T5, typename T6, typename T7, typename T8, typename... Ts>
+		struct f<T0, T1, T2, T3, T4, T5, T6, T7,T8, Ts...>
+	  : f<f_impl<f_impl<
+			  f_impl<f_impl<f_impl<f_impl<f_impl<f_impl<T0, T1>, T2>, T3>, T4>,
+							T5>,
+					 T6>,
+			  T7>,T8>,
+		  Ts...> {
+		  };
 };
 
 // PIPE_EXPR : Internal-only. Take a type and send it as input to the next
@@ -365,12 +363,12 @@ struct each_ {
 
 // COMPOSE : Construct a function using the inputs, then evaluate using the
 // inputs. Without a doubt the most powerful function of my library
-template <typename... PipableFct>
+template <typename... PipableExpr>
 struct compose_ {
   template <typename... Ts>
   struct f {
-    using metafct = eval_pipe_<input_<Ts...>, PipableFct..., quote_<pipe_>>;
-    using type = typename metafct::template f<Ts...>::type;
+    using metaexpr = eval_pipe_<input_<Ts...>, PipableExpr..., quote_<pipe_>>;
+    using type = typename metaexpr::template f<Ts...>::type;
   };
 };
 
@@ -432,31 +430,8 @@ struct listify {
 
 // REVERSE : Reverse the order of the types
 struct reverse {
-  template <typename...>
-  struct f_impl;
-  template <template <typename...> class F, typename... Ts, typename T>
-  struct f_impl<F<Ts...>, T> {
-    typedef F<T, Ts...> type;
-  };
-
-  template <typename... Ts>
-  struct f {
-    using type =
-        typename fold_left_<wraptype_<f_impl>>::template f<ts_<>, Ts...>::type;
-  };
-};
-
-// CALL_F : The input is a metafunction. Call it.
-struct call_f {
-  template <typename... Expr>
-  struct f : pipe_<Expr...> {};
-};
-
-// CONSTRUCT_FS : Construct a metafunction from the types. and call it.
-template <typename... Fs>
-struct construct_fs_ : pipe_<Fs..., call_f> {
-  template <typename... Ts>
-  struct f : pipe_<ts_<Ts...>, Fs..., call_f> {};
+	template<typename ... Ts>
+	struct f {using type = eval_pipe_<input_prepend_<Ts>...>; };
 };
 
 template <typename... Predicate>
@@ -580,15 +555,16 @@ struct zip {
   struct f {
     typedef error_<zip> type;
   };
-  template <template <typename...> class F, template <typename...> class G,
+  template <//template <typename...> class F, template <typename...> class G,
             typename... Ts, typename... Us>
-  struct f<F<Ts...>, G<Us...>> {
+  struct f<ts_<Ts...>, ts_<Us...>> {
     typedef ts_<ts_<Ts, Us>...> type;
   };
-  template <template <typename...> class F, template <typename...> class G,
-            template <typename...> class H, typename... fs, typename... gs,
+  template <//template <typename...> class F, template <typename...> class G,
+            //template <typename...> class H,
+            typename... fs, typename... gs,
             typename... hs>
-  struct f<F<fs...>, G<gs...>, H<hs...>> {
+  struct f<ts_<fs...>, ts_<gs...>, ts_<hs...>> {
     typedef ts_<ts_<fs, gs, hs>...> type;
   };
 };
@@ -628,11 +604,13 @@ struct unzip_index {
 struct unzip {
   template <typename...>
   struct f;
-  template <template <typename...> class F, typename... Fs, typename... Gs>
-  struct f<F<Fs, Gs>...> : ts_<ts_<Fs...>, ts_<Gs...>> {};
-  template <template <typename...> class F, typename... Fs, typename... Gs,
+  template <//template <typename...> class F,
+  		   typename... Fs, typename... Gs>
+  struct f<ts_<Fs, Gs>...> : ts_<ts_<Fs...>, ts_<Gs...>> {};
+  template <//template <typename...> class F,
+  		   typename... Fs, typename... Gs,
             typename... Hs>
-  struct f<F<Fs, Gs, Hs>...> : ts_<ts_<Fs...>, ts_<Gs...>, ts_<Hs...>> {};
+  struct f<ts_<Fs, Gs, Hs>...> : ts_<ts_<Fs...>, ts_<Gs...>, ts_<Hs...>> {};
 };
 
 // ZIP_INPUT : Inputs are indexed
@@ -809,7 +787,8 @@ struct not_<> {
 // std::true_type
 template<typename ...Up>
 struct remove_if_ : compose_<transform_<
-					 cond_<pipe_<Up...>,input_<identity>,wrap_<push_back_>>>
+					 cond_<pipe_<Up...>,input_<identity>
+					,wrap_<push_back_>>>
 					,push_front_<input_<>
 					 >>{};
 
@@ -875,22 +854,22 @@ struct find_if_ : pipe_<zip_index, transform_<listify>,
 template <typename... BinF>  // Binary Function
 struct cartesian_ {
   template <typename... Ts>
-  struct f {
-    typedef ts_<Ts...> type;
-  };
+  struct f /*{*/
+    //typedef ts_<Ts...> type;}
+  ;
   template <typename A, typename B>
-  struct f<A, B> {
-    typedef typename pipe_<BinF...>::template f<A, B>::type type;
-  };
+  struct f<A, B> : pipe_<BinF...>::template f<ts_<A, B>> {  };
   template <typename A, typename... B>
-  struct f<A, ts_<B...>> : ts_<eval_pipe_<input_<A, B>, BinF...>...> {};
+  struct f<A, ts_<B...>> : pipe_<transform_<BinF...>>::template f<ts_<A,B>...> {};
   template <typename... A, typename B>
-  struct f<ts_<A...>, B> : ts_<eval_pipe_<input_<A, B>, BinF...>...> {};
+  struct f<ts_<A...>, B> : pipe_<transform_<BinF...>>::template f<ts_<A,B>...> {};
   template <typename... A, typename... B>
-  struct f<ts_<A...>, ts_<B...>> {
-    typedef eval_pipe_<fork_<pipe_<ts_<A, ts_<B...>>, cartesian_<BinF...>>...>,
-                       flatten>
-        type;
+  struct f<ts_<A...>, ts_<B...>>
+  {
+	typedef eval_pipe_<fork_<pipe_<ts_<A, ts_<B...>>, cartesian_<BinF...>>...>
+		,flatten
+		>
+		type;
   };
 };
 
@@ -1382,9 +1361,6 @@ struct append_result_ : compose_<Es...,wrap_<push_back_>>{};
 // PREPEND_RESULT
 template<typename ...Es>
 struct prepend_result_ : compose_<Es...,wrap_<push_front_>>{};
-
-static_assert(eval_pipe_<input_<int>,append_result_<te::add_pointer>,same_as_<int,int*>>::value,"");
-static_assert(eval_pipe_<input_<int>,prepend_result_<te::add_pointer>,same_as_<int*,int>>::value,"");
 
 };  // namespace te
 #endif
