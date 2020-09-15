@@ -181,8 +181,9 @@ int main() {
   // pipes and forks in a single expression ? Cool Stuff
 
   static_assert(
-      te::eval_pipe_<input_<int, float, short>, partition_<same_as_<int>>,
-                     same_as_<int, ts_<float, short>>>::value,
+      te::eval_pipe_<input_<int, float, short>, partition_<same_as_<int>>
+					 ,same_as_<int, ts_<float, short>>
+                     >::value,
       "");
   // Partition , like the std counterpart, result in two
   // containers : first one with predicate == true,

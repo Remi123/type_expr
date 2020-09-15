@@ -836,7 +836,7 @@ struct not_<> {
 template<typename ...Up>
 struct remove_if_ : compose_null_<transform_<
 					 cond_<pipe_<Up...>,input_<identity>
-					,wrap_<ts_append_>>>
+					,wrap_<input_append_>>>
 					>{};
 
 // FILTER_ : Remove every type where the metafunction is false.
