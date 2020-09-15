@@ -161,6 +161,18 @@ struct input_prepend_
 	{using type = ts_<pTs...,Ts...>;};
 };
 
+template<typename ... A>
+struct ts_append_
+{
+	template<typename ... Ts>
+	struct f : ts_<Ts...,ts_<A...>>{};
+};
+template<typename ... P>
+struct ts_prepend_
+{
+	template<typename ... Ts>
+	struct f : ts_<ts_<P...>,Ts...>{};
+};
 
 /*template <typename... Ts>*/
 //struct input_<kvasir::mpl::list<Ts...>> : ts_<Ts...> {};
@@ -372,6 +384,15 @@ struct compose_ {
   struct f {
     using metaexpr = eval_pipe_<input_<Ts...>, PipableExpr..., quote_<pipe_>>;
     using type = typename metaexpr::template f<Ts...>::type;
+  };
+};
+
+template<typename ... PipableExpr>
+struct compose_debug_
+{
+	template <typename... Ts>
+  struct f {
+    using type = eval_pipe_<input_<Ts...>, PipableExpr..., quote_<pipe_>>;
   };
 };
 
@@ -815,19 +836,20 @@ struct not_<> {
 template<typename ...Up>
 struct remove_if_ : compose_null_<transform_<
 					 cond_<pipe_<Up...>,input_<identity>
-					,wrap_<push_back_>>>
+					,wrap_<ts_append_>>>
 					>{};
+
+// FILTER_ : Remove every type where the metafunction is false.
+template <typename... UnaryPredicate>
+struct filter_ : remove_if_<not_<UnaryPredicate...>> {};
 
 
 // PARTITION_ : Continue with two list. First predicate is true, Second
 // predicate is false
 template <typename... UnaryPredicate>
-struct partition_ : fork_<pipe_<remove_if_<not_<UnaryPredicate...>>, listify>,
-                          pipe_<remove_if_<UnaryPredicate...>, listify>> {};
+struct partition_ : fork_<pipe_<filter_<UnaryPredicate...>>,
+                          pipe_<remove_if_<UnaryPredicate...>>> {};
 
-// FILTER_ : Remove every type where the metafunction is false.
-template <typename... UnaryPredicate>
-struct filter_ : remove_if_<not_<UnaryPredicate...>> {};
 
 // REPLACE_IF_ : Replace the type by another if the predicate is true
 template <typename UnaryPredicate, typename F>
@@ -1391,7 +1413,28 @@ struct bind_on_args_ {
             quote_<each_>>::template f<Ts...> {};
 };
 
+template<int I, typename T>
+struct insert_c : compose_null_<zip_index, transform_<listify>
+				  , partition_<unwrap,first,less_<i<I>>>
+				,fork_<pipe_<_1st,transform_<unwrap,_2nd>>
+					  ,input_<T>
+					  , pipe_<_2nd,transform_<unwrap,_2nd>>>
+				,each_<
+					wrap_<input_>
+					, wrap_<push_back_>
+					, wrap_<push_back_>>
+					>
+{};
+template<typename V, typename T> using insert_ = insert_c<V::value,T>;
 
+template<int I>
+struct erase_c : compose_null_<
+			   zip_index,transform_<listify>,remove_if_<unwrap,first,equal_<i<I>>>
+				, transform_<unwrap,_2nd>,wrap_<input_>
+			   >
+			{};
+
+template<typename V> using erase_ = erase_c<V::value>;
 
 };  // namespace te
 #endif
