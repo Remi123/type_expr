@@ -660,7 +660,7 @@ using circular_modulo_t = std::integral_constant<int, circular_modulo(I,N)>;
 
 // GET : Continue with the type a index N
 template <int I>
-struct at_ {
+struct at_c {
 private:
   template <int Index, typename T>
   struct h {};
@@ -684,8 +684,12 @@ public:
       : pipe_<zip_index,wraptype_<f_impl>>::template f<T, Ts...> {};
 };
 
+template<typename N>
+using at_ = at_c<N::value>;
+
 // FIRST : Continue with the first type
-struct first {
+template<>
+struct at_c<0> {
   template <typename... Ts>
   struct f {
     typedef nothing type;
@@ -697,7 +701,8 @@ struct first {
 };
 
 // SECOND : Continue with the first type
-struct second {
+template<>
+struct at_c<1> {
   template <typename... Ts>
   struct f {
     typedef nothing type;
@@ -709,7 +714,8 @@ struct second {
 };
 
 // THIRD : Continue with the third type
-struct third {
+template<>
+struct at_c<2> {
   template <typename... Ts>
   struct f {
     typedef nothing type;
@@ -721,12 +727,18 @@ struct third {
 };
 
 // LAST : Continue with the last type
-struct last : at_<-1> {};
+struct last : at_c<-1> {};
 
 // Nth : Continue with the Nth type
-typedef first _1st;
-typedef second _2nd;
-typedef third _3rd;
+typedef at_c<0> _1st; using first = at_c<0>;
+typedef at_c<1> _2nd; using second = at_c<1>;
+typedef at_c<2> _3rd; using third = at_c<2>;
+typedef at_c<3> _4th; using fourth = at_c<3>;
+typedef at_c<4> _5th; using fifth = at_c<4>;
+typedef at_c<5> _6th; using sixth = at_c<5>;
+typedef at_c<6> _7th; using seventh = at_c<6>;
+typedef at_c<7> _8th; using eighth = at_c<7>;
+typedef at_c<8> _9th; using ninth = at_c<8>;
 
 
 // FLATTEN : Continue with only one ts_. Sub-ts_ are removed.
@@ -891,7 +903,7 @@ struct cartesian_ {
 // The implementation may rely on undefined behavior.
 // But so far clang and gcc are compliant
 template <int I>
-struct rotate_ {
+struct rotate_c {
   template <int N, typename T, typename... Ts>
   struct f_impl : f_impl<N - 1, Ts..., T> {};
   template <typename T, typename... Ts>
@@ -902,6 +914,9 @@ struct rotate_ {
   template <typename... Ts>
   struct f : f_impl<I % sizeof...(Ts), Ts...> {};
 };
+
+template<typename V>
+using rotate = rotate_c<V::value>;
 
 // IS_ZERO : return if the type is it's type_zero
 struct is_zero {
@@ -1313,7 +1328,7 @@ struct repeat_ : eval_pipe_<input_<Es...>, copy_<N>, flatten, quote_<pipe_>> {};
 
 // SWIZZLE : Restructure the inputs using the index
 template <int ... Is>
-struct swizzle_ : fork_<at_<Is>...> {};
+struct swizzle_ : fork_<at_c<Is>...> {};
 
 // ON_ARGS_ : unwrap rewrap in the same template template.
 template <typename... Es>

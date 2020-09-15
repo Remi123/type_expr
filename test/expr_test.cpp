@@ -79,7 +79,7 @@ int main() {
   constexpr te::eval_pipe_<input_<ls_<int, float>>, pipe_<unwrap>,
                            same_as_<int, float>>
       pipe_unwrap4 = b<true>{};
-  constexpr te::eval_pipe_<input_<ls_<int, float>>, pipe_<unwrap>, at_<0>>
+  constexpr te::eval_pipe_<input_<ls_<int, float>>, pipe_<unwrap>, at_c<0>>
       pipe_unwrap5 = 0;
   //
   // -------------------------------------------------------------------
@@ -166,7 +166,7 @@ int main() {
   // Conditional have a predicate and continue with the second or the third
   // function
 
-  static_assert(te::eval_pipe_<input_<int, float, short>, at_<1>,
+  static_assert(te::eval_pipe_<input_<int, float, short>, at_c<1>,
                                same_as_<float>>::value,
                 "");
   static_assert(te::eval_pipe_<input_<i<1>, i<2>>, transform_<plus_<i<3>>>,
@@ -254,14 +254,14 @@ int main() {
       "");
   // Does exactly the same as their std:: counterpart
 
-  static_assert(te::eval_pipe_<input_<int, int, int>, pipe_<at_<0>>,
+  static_assert(te::eval_pipe_<input_<int, int, int>, pipe_<at_c<0>>,
                                same_as_<int>>::value,
                 "");
   static_assert(
-      te::eval_pipe_<mkseq_<i<5>>, pipe_<at_<10>>, same_as_<i<0>>>::value,
+      te::eval_pipe_<mkseq_<i<5>>, pipe_<at_c<10>>, same_as_<i<0>>>::value,
       "10 modulo 5 is 0");
   static_assert(
-      te::eval_pipe_<mkseq_<i<5>>, pipe_<at_<-1>>, same_as_<i<4>>>::value,
+      te::eval_pipe_<mkseq_<i<5>>, pipe_<at_c<-1>>, same_as_<i<4>>>::value,
       "the last of {0,1,2,3,4} is 4");
 
   static_assert(
@@ -308,7 +308,7 @@ int main() {
   struct Z {};  // EMPTY
 
   using ArthurODwyer_metafunction =
-      te::on_args_<te::remove_if_<te::wraptype_<std::is_empty>>,
+      te::on_args_<te::remove_if_<te::trait_<std::is_empty>>,
                    te::sort_<te::transform_<te::size>, te::greater_<>>>;
 
   static_assert(
@@ -418,10 +418,10 @@ static_assert(
 				 te::ls_<int[2], int[3]>, te::ls_<int[2], int[4]>>>::value,
 	"Cartesian give you the option of a BinaryFct to apply on the types");
 
-static_assert(eval_pipe_<input_<int, float, short, int[2]>, rotate_<5>,
+static_assert(eval_pipe_<input_<int, float, short, int[2]>, rotate_c<5>,
                          same_as_<float, short, int[2], int>>::value,
               "");
-static_assert(eval_pipe_<input_<int, float, short, int[2]>, rotate_<-1>,
+static_assert(eval_pipe_<input_<int, float, short, int[2]>, rotate_c<-1>,
                          same_as_<int[2], int, float, short>>::value,
               "Rotate is bidirectional");
 
