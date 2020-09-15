@@ -50,7 +50,7 @@ struct tup_impl<TypeList<Is, Ts>...> : tup_inst<Is, Ts>... {
 // TUP
 template <typename... Ts>
 using te_tup_metafunction =
-    te::eval_pipe_<te::ts_<Ts...>, te::zip_index, te::quote_<tup_impl>>;
+    te::eval_pipe_<te::ts_<Ts...>, te::zip_index, te::wrap_<tup_impl>>;
 
 template <typename... Ts>
 struct tup : te_tup_metafunction<Ts...> {
@@ -121,7 +121,7 @@ te::tup<Ts...> tup_cat_impl(std::integer_sequence<int, Is...>,
 };  // namespace detail
 template <typename... Tups, typename Ret = te::eval_pipe_<
                                 ts_<Tups...>, te::transform_<te::unwrap>,
-                                te::flatten, quote_<te::tup>>>
+                                te::flatten, wrap_<te::tup>>>
 Ret tup_cat(Tups &&... tups) {
   // This do the magic of getting the cartesian cartesian of each tup's types
   // with the index inside

@@ -136,7 +136,7 @@ class var_impl {
 // VAR
 template <typename... Ts>
 using var =
-    te::eval_pipe_<te::ts_<Ts...>, te::unique, te::quote_<te::var_impl>>;
+    te::eval_pipe_<te::ts_<Ts...>, te::unique, te::wrap_<te::var_impl>>;
 template <typename T>
 using opt = te::var<T>;
 

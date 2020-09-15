@@ -12,6 +12,16 @@
 #include "type_tup.hpp"
 
 using namespace te;
+
+template<typename Tl,typename Ul> 
+struct cartesian_accumulate;
+template<typename ... Ts, typename ... Us>
+struct cartesian_accumulate<ts_<Ts...>,ts_<Us...>> :ts_<ts_<Ts...,Us...>>{};
+template<typename T, typename ... Us>
+struct cartesian_accumulate<T,ts_<Us...>> : ts_<ts_<T,Us...>>{};
+template<typename ... Ts,typename U>
+struct cartesian_accumulate<ts_<Ts...>,U> :ts_<ts_<Ts...,U>>{};
+
 int main() {
   using namespace te;
 
@@ -277,14 +287,15 @@ int main() {
                                same_as_<i<0>, i<1>>>::value,
                 "");
 
+
   static_assert(
       te::eval_pipe_<
-          te::input_<te::ls_<int, float, char>, te::ls_<>,
-                     te::ls_<int *, char *>, te::ls_<int>>,
+          te::input_<
+		  te::ls_<int, float, char>,
+          te::ls_<>, te::ls_<int *, char *>, te::ls_<int>>,
           te::transform_<te::unwrap, te::length, te::mkseq_<>>, te::zip_index
 		  ,transform_<te::cartesian_<listify>>
-		  , te::flatten
-		  ,transform_<te::unwrap>
+		  , te::flatten,transform_<te::unwrap>
 		  , te::unzip
 		  , transform_<wrap_std_integer_sequence_<int>>
 		  ,same_as_<std::integer_sequence<int, 0, 0, 0, 2, 2, 3>,
@@ -377,12 +388,12 @@ static_assert(
 // Usual Test
 static_assert(
     te::eval_pipe_<input_<int, float, char>,
-                   compose_<transform_<ts_<identity>>, quote_<each_>>,
+                   compose_<transform_<ts_<identity>>, wrap_<each_>>,
                    same_as_<int, float, char>>::value,
     "Very important that each_<identity...> is equivalent to the inputs");
 static_assert(
-    eval_pipe_<input_<ls_<int>>, container, same_as_<quote_<ls_>>>::value,
-    "We reuse the quote_ as both a container and a meta-expression");
+    eval_pipe_<input_<ls_<int>>, container, same_as_<wrap_<ls_>>>::value,
+    "We reuse the wrap_ as both a container and a meta-expression");
 static_assert(eval_pipe_<input_<ts_<int, int>, ts_<float, char>>, zip,
                          same_as_<ts_<int, float>, ts_<int, char>>>::value,
               "Zipping is relatively easy");
@@ -392,7 +403,7 @@ static_assert(
     "Find_if returns both the index and the type that answer to the pred");
 
 static_assert(
-	eval_pipe_<input_<int, float>, cartesian_<>, same_as_<int, float>>::value,
+	eval_pipe_<input_<int, float>, cartesian_<>, same_as_<ts_<int, float>>>::value,
 	"");
 static_assert(eval_pipe_<input_<int, ts_<float>>, cartesian_<>,
 						 same_as_<int, float>>::value,

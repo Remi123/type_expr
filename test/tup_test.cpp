@@ -21,7 +21,7 @@ int main() {
   auto tt6 = tup_cat(tt1, tt2, tt3);
   assert(tt6.get<4>() == 5);
 
-  //auto ttsorted = tup_sort(tt6);
+  auto ttsorted = tup_sort(tt6);
   // TYPE_TUP
   return 0;
 }

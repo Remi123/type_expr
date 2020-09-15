@@ -174,15 +174,18 @@ struct input_prepend_
 //template <typename... Ts>
 /*struct input_<boost::fusion::list<Ts...>> : ts_<Ts...> {};*/
 
-// WRAPTYPE_ : Universal customization point using template template. Get the ::type
+// TRAIT_ : Universal customization point using template template. Get the ::type
 // The Farming field of our library
 template <template <typename...> class F>
-struct wraptype_ {
+struct trait_ {
   template <typename... Ts>
-  struct f {
-    typedef typename F<Ts...>::type type;
+  struct f : F<Ts...>{
+    //typedef typename F<Ts...>::type type;
   };
 };
+
+template<template<typename...> class F>
+using wraptype_ = trait_<F>;
 
 // WRAP && QUOTE_: Universal wrapper. Doesn't get the ::type. Use with template alias
 // The Other Farming field of our library
@@ -197,7 +200,7 @@ struct wrap_ {
 template<template <typename ... > class F>
 using quote_ = wrap_<F>;
 
-// QUOTE_STD_INTEGER_SEQUENCE
+// WRAP_STD_INTEGER_SEQUENCE
 // Specialization for std::integer_sequence
 template <typename T>
 struct wrap_std_integer_sequence_ {
@@ -371,6 +374,18 @@ struct compose_ {
     using type = typename metaexpr::template f<Ts...>::type;
   };
 };
+
+// COMPOSE_NULL : Construct a function using the inputs, then evaluate from nothing
+// A variation where we don't use the inputs
+template <typename... PipableExpr>
+struct compose_null_ {
+  template <typename... Ts>
+  struct f {
+    using metaexpr = eval_pipe_<input_<Ts...>, PipableExpr..., quote_<pipe_>>;
+    using type = typename metaexpr::template f<>::type;
+  };
+};
+
 
 // UNWRAP : Universal unwrapper.
 struct unwrap {
@@ -786,11 +801,10 @@ struct not_<> {
 // REMOVE_IF_ : Remove every type where the metafunction "returns"
 // std::true_type
 template<typename ...Up>
-struct remove_if_ : compose_<transform_<
+struct remove_if_ : compose_null_<transform_<
 					 cond_<pipe_<Up...>,input_<identity>
 					,wrap_<push_back_>>>
-					,push_front_<input_<>
-					 >>{};
+					>{};
 
 
 // PARTITION_ : Continue with two list. First predicate is true, Second
@@ -858,7 +872,7 @@ struct cartesian_ {
     //typedef ts_<Ts...> type;}
   ;
   template <typename A, typename B>
-  struct f<A, B> : pipe_<BinF...>::template f<ts_<A, B>> {  };
+  struct f<A, B> : pipe_<BinF...>::template f<ts_<ts_<A, B>>> {  };
   template <typename A, typename... B>
   struct f<A, ts_<B...>> : pipe_<transform_<BinF...>>::template f<ts_<A,B>...> {};
   template <typename... A, typename B>
@@ -1247,6 +1261,14 @@ struct sort_ {
 	};
 };
 
+// APPEND_RESULT
+template<typename ...Es>
+struct append_result_ : compose_<Es...,wrap_<push_back_>>{};
+
+// PREPEND_RESULT
+template<typename ...Es>
+struct prepend_result_ : compose_<Es...,wrap_<push_front_>>{};
+
 // GROUP_RANGE
 // Recursively partition into two groups which result of those UnaryFunction is
 // the same as the first. Basically it group all the types that have the same
@@ -1263,7 +1285,7 @@ struct group_range_
     struct f : ff<gs_<T0,Ts...>>{};
     template<typename T0,typename ... Ts,typename ... Rs>
     struct ff<gs_<T0,Ts...>,Rs...>:
-        ff< te::eval_pipe_<te::input_<te::ls_<Ts>...>,te::remove_if_<te::unwrap,Uf...,SameAsExpr<T0>>,te::transform_<te::unwrap>,te::wrap_<gs_>>
+        ff< te::eval_pipe_<te::input_<Ts...>,te::remove_if_<Uf...,SameAsExpr<T0>>,te::wrap_<gs_>>
         ,   Rs...
         ,   te::eval_pipe_<te::input_<te::ls_<T0>,te::ls_<Ts>...>,te::filter_<te::unwrap,Uf...,SameAsExpr<T0>>,te::transform_<te::unwrap>>
         >{};
@@ -1282,7 +1304,7 @@ struct group_by_ : pipe_<group_range_<UnaryFunction...>, flatten> {};
 // COPY_ : Copy N times the inputs.
 // Implemented as a higher meta-expression
 template <unsigned int N>
-struct copy_ : eval_pipe_< mkseq_<i<N>>, transform_<ts_<identity>>,
+struct copy_ : compose_< mkseq_<i<N>>, transform_<ts_<identity>>,
                           quote_<fork_>> {};
 
 // REPEAT_ : Repeat N times the meta-expression
@@ -1354,13 +1376,7 @@ struct bind_on_args_ {
             quote_<each_>>::template f<Ts...> {};
 };
 
-// APPEND_RESULT
-template<typename ...Es>
-struct append_result_ : compose_<Es...,wrap_<push_back_>>{};
 
-// PREPEND_RESULT
-template<typename ...Es>
-struct prepend_result_ : compose_<Es...,wrap_<push_front_>>{};
 
 };  // namespace te
 #endif
