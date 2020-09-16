@@ -165,7 +165,9 @@ template<typename ... A>
 struct ts_append_
 {
 	template<typename ... Ts>
-	struct f : ts_<Ts...,ts_<A...>>{};
+	struct f /*: ts_<Ts...,ts_<A...>>*/{
+		using type = ts_<Ts...,ts_<A...>>;
+	};
 };
 template<typename ... P>
 struct ts_prepend_
@@ -258,10 +260,10 @@ struct fold_left_ {
     typedef A type;
   };
 
-  template <typename... A>
-  struct f<ts_<A...>> {
-    typedef typename ts_<A...>::type type;
-  };
+  /*template <typename... A>*/
+  //struct f<ts_<A...>> {
+    //typedef typename ts_<A...>::type type;
+  /*};*/
   // helper alias to use with the monster below
   template <typename A, typename B>
   using f_impl = typename binaryF::template f<A, B>::type;
@@ -834,10 +836,19 @@ struct not_<> {
 // REMOVE_IF_ : Remove every type where the metafunction "returns"
 // std::true_type
 template<typename ...Up>
-struct remove_if_ : compose_null_<transform_<
+struct removeif_ : compose_null_<transform_<
 					 cond_<pipe_<Up...>,input_<identity>
 					,wrap_<input_append_>>>
 					>{};
+template<typename ... Up>
+struct remove_if_
+{
+	template<typename ... Ts>
+	struct f {
+		template<typename T> using Expr = typename std::conditional<eval_pipe_<input_<T>,Up...>::value,identity,input_append_<T>>::type;
+		using type = eval_pipe_<Expr<Ts>...> ;//pipe_<cond_<pipe_<Up...>,input_<identity>,wrap_<input_append_>>::template f<Ts>::type...>;
+	};
+};
 
 // FILTER_ : Remove every type where the metafunction is false.
 template <typename... UnaryPredicate>
@@ -847,8 +858,8 @@ struct filter_ : remove_if_<not_<UnaryPredicate...>> {};
 // PARTITION_ : Continue with two list. First predicate is true, Second
 // predicate is false
 template <typename... UnaryPredicate>
-struct partition_ : fork_<pipe_<filter_<UnaryPredicate...>>,
-                          pipe_<remove_if_<UnaryPredicate...>>> {};
+struct partition_ : pipe_<fork_<pipe_<filter_<UnaryPredicate...>>,
+                          pipe_<remove_if_<UnaryPredicate...>>>> {};
 
 
 // REPLACE_IF_ : Replace the type by another if the predicate is true
@@ -906,7 +917,7 @@ struct cartesian_ {
     //typedef ts_<Ts...> type;}
   ;
   template <typename A, typename B>
-  struct f<A, B> : pipe_<BinF...>::template f<ts_<ts_<A, B>>> {  };
+  struct f<A, B> : pipe_<BinF...>::template f<ts_<A, B>> {  };
   template <typename A, typename... B>
   struct f<A, ts_<B...>> : pipe_<transform_<BinF...>>::template f<ts_<A,B>...> {};
   template <typename... A, typename B>
@@ -1430,11 +1441,11 @@ template<typename V, typename T> using insert_ = insert_c<V::value,T>;
 template<int I>
 struct erase_c : compose_null_<
 			   zip_index,transform_<listify>,remove_if_<unwrap,first,equal_<i<I>>>
-				, transform_<unwrap,_2nd>,wrap_<input_>
-			   >
+				, transform_<unwrap,_2nd>,wrap_<input_>>
 			{};
 
 template<typename V> using erase_ = erase_c<V::value>;
+
 
 };  // namespace te
 #endif

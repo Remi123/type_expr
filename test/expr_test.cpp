@@ -213,8 +213,9 @@ int main() {
 						   cartesian_<multiply_<>>,
 						   same_as_<i<3>, i<4>, i<6>, i<8>>>::value,
 				"");
-  static_assert(eval_pipe_<input_<ts_<int[1]>, ts_<float[1]>>, cartesian_<>,
-						   same_as_<int[1], float[1]>>::value,
+  static_assert(eval_pipe_<input_<ts_<int[1]>, ts_<float[1]>>, cartesian_<>
+						   ,same_as_<ts_<int[1], float[1]>>
+						   >::value,
 				"");
   static_assert(
 	  eval_pipe_<input_<ts_<int[1], int[2]>, float[1]>, cartesian_<>,
@@ -404,10 +405,12 @@ static_assert(
     "Find_if returns both the index and the type that answer to the pred");
 
 static_assert(
-	eval_pipe_<input_<int, float>, cartesian_<>, same_as_<ts_<int, float>>>::value,
+	eval_pipe_<input_<int, float>, cartesian_<>
+	, same_as_<ts_<int, float>>
+	>::value,
 	"");
 static_assert(eval_pipe_<input_<int, ts_<float>>, cartesian_<>,
-						 same_as_<int, float>>::value,
+						 same_as_<ts_<int, float>>>::value,
 			  "");
 static_assert(eval_pipe_<input_<int, ts_<float, int>>, cartesian_<>,
 						 same_as_<ts_<int, float>, ts_<int, int>>>::value,
@@ -523,4 +526,11 @@ static_assert(eval_pipe_<input_<int>,prepend_result_<te::add_pointer>,same_as_<i
 
 static_assert(eval_pipe_<mkseq_<i<4>>,append_result_<fold_left_<plus_<>>>,same_as_<i<0>,i<1>,i<2>,i<3>,i<6>>>::value,"");
 
+static_assert( eval_pipe_<input_<int,float,char>,erase_c<1>,same_as_<int,char>>::value,"");
+
+
+static_assert(eval_pipe_<input_<int,float,char>,zip_index, remove_if_<first,less_<i<1>>>
+		,transform_<second>
+		,same_as_<float,char>
+		>::value,"");
 

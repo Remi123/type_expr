@@ -62,9 +62,8 @@ class var_impl {
   // simple helper to retrive the index from the type list
   template <typename T>
   using index_helper = te::eval_pipe_<
-      te::ts_<Ts...>, te::zip_index,
-      te::filter_<te::second, te::same_as_<T>>,
-      te::cond_<not_<te::same_as_<>>, te::first, te::ts_<te::i<-1>>>>;
+      te::ts_<Ts...>, find_if_<same_as_<T>>, first>
+      ;
   //
   template <typename T>
   var_impl(T&& value) : m_index(index_helper<T>::value), m_storage{} {
