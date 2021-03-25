@@ -390,7 +390,7 @@ static_assert(
 // Usual Test
 static_assert(
     te::eval_pipe_<input_<int, float, char>,
-                   compose_<transform_<ts_<identity>>, wrap_<each_>>,
+                   write_<transform_<ts_<identity>>, wrap_<each_>>,
                    same_as_<int, float, char>>::value,
     "Very important that each_<identity...> is equivalent to the inputs");
 static_assert(

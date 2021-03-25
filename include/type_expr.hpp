@@ -378,10 +378,10 @@ struct each_ {
   };
 };
 
-// COMPOSE : Construct a function using the inputs, then evaluate using the
+// WRITE_ : Construct a function using the inputs, then evaluate using the
 // inputs. Without a doubt the most powerful function of my library
 template <typename... PipableExpr>
-struct compose_ {
+struct write_ {
   template <typename... Ts>
   struct f {
     using metaexpr = eval_pipe_<input_<Ts...>, PipableExpr..., quote_<pipe_>>;
@@ -390,7 +390,7 @@ struct compose_ {
 };
 
 template<typename ... PipableExpr>
-struct compose_debug_
+struct write_debug_
 {
 	template <typename... Ts>
   struct f {
@@ -398,10 +398,10 @@ struct compose_debug_
   };
 };
 
-// COMPOSE_NULL : Construct a function using the inputs, then evaluate from nothing
+// WRITE_NULL_ : Construct a function using the inputs, then evaluate from nothing
 // A variation where we don't use the inputs
 template <typename... PipableExpr>
-struct compose_null_ {
+struct write_null_ {
   template <typename... Ts>
   struct f {
     using metaexpr = eval_pipe_<input_<Ts...>, PipableExpr..., quote_<pipe_>>;
@@ -836,7 +836,7 @@ struct not_<> {
 // REMOVE_IF_ : Remove every type where the metafunction "returns"
 // std::true_type
 template<typename ...Up>
-struct removeif_ : compose_null_<transform_<
+struct removeif_ : write_null_<transform_<
 					 cond_<pipe_<Up...>,input_<identity>
 					,wrap_<input_append_>>>
 					>{};
@@ -1311,11 +1311,11 @@ struct sort_ {
 
 // APPEND_RESULT
 template<typename ...Es>
-struct append_result_ : compose_<Es...,wrap_<push_back_>>{};
+struct append_result_ : write_<Es...,wrap_<push_back_>>{};
 
 // PREPEND_RESULT
 template<typename ...Es>
-struct prepend_result_ : compose_<Es...,wrap_<push_front_>>{};
+struct prepend_result_ : write_<Es...,wrap_<push_front_>>{};
 
 // GROUP_RANGE
 // Recursively partition into two groups which result of those UnaryFunction is
@@ -1352,7 +1352,7 @@ struct group_by_ : pipe_<group_range_<UnaryFunction...>, flatten> {};
 // COPY_ : Copy N times the inputs.
 // Implemented as a higher meta-expression
 template <unsigned int N>
-struct copy_ : compose_< mkseq_<i<N>>, transform_<ts_<identity>>,
+struct copy_ : write_< mkseq_<i<N>>, transform_<ts_<identity>>,
                           quote_<fork_>> {};
 
 // REPEAT_ : Repeat N times the meta-expression
@@ -1425,7 +1425,7 @@ struct bind_on_args_ {
 };
 
 template<int I, typename T>
-struct insert_c : compose_null_<zip_index, transform_<listify>
+struct insert_c : write_null_<zip_index, transform_<listify>
 				  , partition_<unwrap,first,less_<i<I>>>
 				,fork_<pipe_<_1st,transform_<unwrap,_2nd>>
 					  ,input_<T>
@@ -1439,7 +1439,7 @@ struct insert_c : compose_null_<zip_index, transform_<listify>
 template<typename V, typename T> using insert_ = insert_c<V::value,T>;
 
 template<int I>
-struct erase_c : compose_null_<
+struct erase_c : write_null_<
 			   zip_index,transform_<listify>,remove_if_<unwrap,first,equal_<i<I>>>
 				, transform_<unwrap,_2nd>,wrap_<input_>>
 			{};
