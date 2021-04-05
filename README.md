@@ -3,10 +3,66 @@
 
 ![C/C++ CI](https://github.com/Remi123/type_expr/workflows/C/C++%20CI/badge.svg?branch=master)
 
-To test this library, you can simply write in Compiler Explorer `#include <https://raw.githubusercontent.com/Remi123/type_expr/master/include/type_expr.hpp>` and it should be fine under a C++11 compiler
+To test this library, you can simply write in Compiler Explorer 
+```
+#include <https://raw.githubusercontent.com/Remi123/type_expr/master/include/type_expr.hpp>
+```
+and it should be fine under a C++11 compiler
 
 This library can be considered a fork of kvasir::mpl, but the core of the parsing is completly different.
 >The major difference is "range-like" meta-expression requiring much fewer nesting than most other libraries.
+
+## BEFORE YOU DOWNLOAD THIS LIBRARY !!
+kvasir.mpl is faster, no question. The only advantage my library have is an nicer syntax, an easier continuation implementation of meta-function, automatic unpacking of the type te::ts_<Ts...> and the wild-card meta-expression write_<Es...>.
+
+If you want a taste of my features in terms of kvasir.mpl, you can write this in compiler explorer after importing kvasir.mpl:
+```
+namespace kv = kvasir::mpl;
+
+template<typename T,typename C>
+struct closure_monad { using type = typename C::template f<T>;};
+
+ template<typename ... Cs> // All meta-closure
+using callpipe = kv::call<kv::fold_left<kv::cfl<closure_monad>>
+                                ,kv::nothing,Cs...>; // Start with kv::nothing as the first input, then do all the closure
+                                
+static_assert(
+    std::is_same<
+        callpipe<kv::always<int>,kv::add_pointer<>, kv::add_const<>, kv::add_pointer<kv::add_pointer<>> , kv::add_const<>>
+        , int*const**const
+    >::value,"");
+//        One of the meta-closure is nested which meant that all previous axioms of kvasir::mpl are respected, 
+//        but nested meta-closure will remains slightly faster ( C1<C2<>> is faster than C1<>,C2<>)
+    
+// The problem is when you want to play with list, I hope that you like writing kv::unpack
+static_assert(
+      std::is_same<
+          callpipe<   kv::always<kv::list<int,float>>                
+                    , kv::unpack<kv::transform<kv::add_pointer<>>>
+                    , kv::unpack<kv::transform<kv::add_const<>>>>
+          ,kvasir::mpl::list<int*const, float*const>
+      >::value,"");
+//        unpacking everytime is tedious, and none of the meta-closure of kvasir is made to support this interface
+//        To solve this issue, you can append this specialization to the closure_monad structure reviously defined
+
+template<typename T,typename C>
+struct closure_monad { using type = typename C::template f<T>;};
+template<typename ... Ts,typename C>
+struct closure_monad<kv::list<Ts...>,C> { using type = typename C::template f<Ts...>;}; // basically an unbind
+/* ... callpipe definition ... */
+static_assert(
+     std::is_same<
+          callpipe<   kv::always<kv::list<int,float>>
+                    , kv::transform<kv::add_pointer<>>      // No unpacking
+                    , kv::transform<kv::add_const<>>>       // No unpacking
+          ,kvasir::mpl::list<int*const, float*const>
+      >::value,"");
+     
+// This convenience has unfortunately the property of completely changing the axioms of kvasir, which is why I decided
+// to create this library, so that I can write code that support this kind of interface without worrying about 
+// kvasir::mpl interface and implementation. 
+```
+
 
 ## Code in Actions :
 ```C++
@@ -52,12 +108,12 @@ static_assert(std::is_same<
 // let's do something simple that they can't without some chores.
 
 template<int ... Ints>
-using summationX2_constant =              // We want to add all ints and multiply the result by two
+using summationThenX2_constant =              // We want to add all ints and multiply the result by two
 te::eval_pipe_< te::input_<int_c<0>>      // Start at int_c<0>
                 , plus_<int_c<Ints>>...   // Expend the meta-fcts plus_ with ...
                 , te::multiply_<int_c<2>> // Multiply by two
               >;
-static_assert(summationX2_constant<1,2,3>::value == 12,"Proof of work");
+static_assert(summationThenX2_constant<1,2,3>::value == 12,"Proof of work");
 // We are allowed to use fold-meta-expression at compile time in a C++11 compiler.
 // 6 years before C++17 in run-time function.
 // The subtile difference is that we are expanding the meta-expression 
@@ -100,7 +156,7 @@ Obviously, since this is template meta-programming the real form is `eval_pipe_<
 
 This nicer syntax allows for easier concatenation of meta-expressions to be more readable. You can also alias another meta-expression under te::pipe_<Fs...> to use it later.
 
-Or even crazier, you can use meta-expression to create another meta-expression
+Or even crazier, you can use meta-expression to create another meta-expression! Look at the function write_<Es...> for more info. 
 
 ___
 
