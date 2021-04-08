@@ -6,6 +6,7 @@
 #ifndef TYPE_EXPR_TUP_HPP
 #define TYPE_EXPR_TUP_HPP
 
+#include <type_traits>
 #include <utility>
 
 #include "type_expr.hpp"
@@ -31,21 +32,29 @@ struct tup;
 // TUP_INST
 template <int I, typename T>
 struct tup_inst<te::i<I>, T> {
-  tup_inst(T &&t) : data{std::forward<T>(t)} {}
+	  tup_inst() : data{}{} 
+	  tup_inst(const T& t) : data{t} {} // Ref
+	  template<typename U>
+	  tup_inst(U &&t) : data(std::forward<U>(t)) {} // Move or copy
+  	~tup_inst() = default;
 
- protected:
+ //protected:
   T data;
 };
 
 // TUP_IMPL
 template <typename... Is, typename... Ts, template <typename...> class TypeList>
 struct tup_impl<TypeList<Is, Ts>...> : tup_inst<Is, Ts>... {
-  tup_impl(Ts &&... ts) : tup_inst<Is, Ts>(std::forward<Ts>(ts))... {}
+	tup_impl() : tup_inst<Is,Ts>{}...{}
+  tup_impl(const Ts& ... ts) : tup_inst<Is, Ts>(ts)... {}
+  template<typename ... Us>
+  tup_impl(Us &&... ts) : tup_inst<Is, Ts>(std::forward<Us>(ts))... {}
+  ~tup_impl() = default;
   template <unsigned int I>
   auto get() -> te::eval_pipe_<ts_<Ts...>, te::at_c<I>> & {
     return te::eval_pipe_<ts_<tup_inst<Is, Ts>...>, te::at_c<I>>::data;
   }
-  };
+};
 
 // TUP
 template <typename... Ts>
@@ -54,11 +63,18 @@ using te_tup_metafunction =
 
 template <typename... Ts>
 struct tup : te_tup_metafunction<Ts...> {
-  tup(Ts &&... ts) : te_tup_metafunction<Ts...>(std::forward<Ts>(ts)...) {}
+  //tup(): te_tup_metafunction<Ts...>{}{}
+	tup() : te::te_tup_metafunction<Ts...>{}{
+		static_assert(te::eval_pipe_<te::ts_<Ts...>,te::all_of_<te::trait_<std::is_default_constructible>>>::value,"Type is not default constructible");
+	}
+  tup(const Ts& ... ts) : te_tup_metafunction<Ts...>(ts...) {}
+  template<typename ... Us>
+  tup(Us &&... ts) : te_tup_metafunction<Ts...>(std::forward<Us>(ts)...) {}
+  ~tup() = default;
 };
 
 template <typename... Ts>
-te::tup<Ts...> make_tup(Ts &&... ts) {
+static inline te::tup<Ts...> make_tup(Ts &&... ts) {
   return te::tup<Ts...>{std::forward<Ts>(ts)...};
 };
 
@@ -110,18 +126,18 @@ auto tup_sort(te::tup<Ts...>& tu) -> decltype(tup_get(indexes<Ts...>{},tu))
 // index inside each tup  = std::integer_sequence<int,0,1,2,0,0,1>
 //
 namespace detail {
-template <int... Is, int... Ks, typename... Ts, typename Tup_of_Tups>
-te::tup<Ts...> tup_cat_impl(std::integer_sequence<int, Is...>,
-                            std::integer_sequence<int, Ks...>, te::ls_<Ts...>,
+template <typename Ret,int... Is, int... Ks, typename... Ts, typename Tup_of_Tups>
+Ret tup_cat_impl(std::integer_sequence<int, Is...>,
+                            std::integer_sequence<int, Ks...>,
                             Tup_of_Tups &&tpls) {
-  return te::tup<Ts...>{
+  return te::make_tup(
       // get<0>().get<0>(), get<0>().get<1>(), ...
-      std::forward<Ts>(tpls.template get<Is>().template get<Ks>())...};
+      tpls.template get<Is>().template get<Ks>()...);
 }
 };  // namespace detail
 template <typename... Tups, typename Ret = te::eval_pipe_<
                                 ts_<Tups...>, te::transform_<te::unwrap>,
-                                te::flatten, wrap_<te::tup>>>
+                                te::transform_<te::trait_<std::remove_reference>>, wrap_<te::tup>>>
 Ret tup_cat(Tups &&... tups) {
   // This do the magic of getting the cartesian cartesian of each tup's types
   // with the index inside
@@ -136,11 +152,9 @@ Ret tup_cat(Tups &&... tups) {
       te::eval_pipe_<zip_indexes, te::first, te::wrap_std_integer_sequence_<int>>;
   using types_index =
       te::eval_pipe_<zip_indexes, te::second, te::wrap_std_integer_sequence_<int>>;
-  return detail::tup_cat_impl(
+  return detail::tup_cat_impl<Ret>(
       tup_index{},    // int_seq
       types_index{},  // int_seq
-      eval_pipe_<te::ts_<Ret>, te::unwrap,
-                 te::listify>{},  // typelist of all the types
       te::forward_as_tup(std::forward<Tups>(tups)...));
 };
 

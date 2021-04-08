@@ -846,7 +846,7 @@ struct remove_if_
 	template<typename ... Ts>
 	struct f {
 		template<typename T> using Expr = typename std::conditional<eval_pipe_<input_<T>,Up...>::value,identity,input_append_<T>>::type;
-		using type = eval_pipe_<Expr<Ts>...> ;//pipe_<cond_<pipe_<Up...>,input_<identity>,wrap_<input_append_>>::template f<Ts>::type...>;
+		using type = eval_pipe_<Expr<Ts>...> ;
 	};
 };
 
