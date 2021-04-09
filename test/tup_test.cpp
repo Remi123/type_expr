@@ -18,7 +18,8 @@
 // TYPE_TUP Test
 int main() {
 	int i = 42;
-	//te::tup<int> t0{};
+	te::tup<int> t0{}; // Default Ctor
+
 	te::tup<int> t1{42};
 	te::tup<int> t2{i};
 	te::tup<int> t3{std::move(i)};
@@ -38,13 +39,15 @@ int main() {
 
 	te::tup<te::tup<int>&, te::tup<int>> titi{t1, {9}};
 	assert(titi.get<0>().get<0>() == 42 && titi.get<1>().get<0>() == 9);
-  	//tt2.get<0>() = 2;
-  	//assert(tt2.get<0>() == 2);
 
+	auto tup_assignment = te::tup<int>{1}; 
+	assert(tup_assignment.get<0>() == 1);
 
+	te::tup<std::string>{"Hello"};
+	te::tup<std::string,int>("Hello",8);
 
-  	//auto tt3 = te::make_tup(4, 5, 6);
-  	//assert(tt3.get<2>() == 6);
+	auto tt3 = te::make_tup(4, 5, 6);
+	assert(tt3.get<2>() == 6);
   	////auto tt6 = tup_cat(tt1, tt2, tt3);
   	////assert(tt6.get<4>() == 5);
 

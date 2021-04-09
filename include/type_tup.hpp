@@ -13,6 +13,9 @@
 
 namespace te {
 
+	template<typename T, typename ... Es>
+		using sfinae_t =  std::enable_if<eval_pipe_<Es...>::value,T>;
+
 	// FORWARD DECLARATION
 
 	// TUP_INST
@@ -34,49 +37,76 @@ namespace te {
 		struct tup_inst<te::i<I>, T> {
 	  		tup_inst() : data{}{} 
 	  		tup_inst(const T& t) : data{t} {} // Ref
-	  		template<typename U>
-	  			tup_inst(U &&t) : data(std::forward<U>(t)) {} // Move or copy
+			template<typename U>
+	  			tup_inst(T &&t) : data{std::forward<T>(t)} {} // Move or copy
   			~tup_inst() = default;
+
+			//tup_inst(const tup_inst<te::i<I>,T>& other) : data{other.data} {}
+			//tup_inst(te::tup_inst<te::i<I>,T>&& o) : data{std::forward<T>(o.data)}{}
+			T& get()
+			{
+				return data;
+			}
 
  			//protected:
   			T data;
 		};
 
 	// TUP_IMPL
-	template <typename... Is, typename... Ts, template <typename...> class TypeList>
-		struct tup_impl<TypeList<Is, Ts>...> : tup_inst<Is, Ts>... {
-			tup_impl() : tup_inst<Is,Ts>{}...{}
+	template <typename... Is, typename... Ts>
+		struct tup_impl<tup_inst<Is, Ts>...> : tup_inst<Is, Ts>... {
+			tup_impl()  : tup_inst<Is,Ts>{}... {} 
   			tup_impl(const Ts& ... ts) : tup_inst<Is, Ts>(ts)... {}
   			template<typename ... Us>
-  				tup_impl(Us &&... ts) : tup_inst<Is, Ts>(std::forward<Us>(ts))... {}
+  				tup_impl(Us&&... ts) : tup_inst<Is, Ts>(std::forward<Us>(ts))... {}
   			~tup_impl() = default;
+
+			tup_impl(const tup_impl<tup_inst<Is,Ts>...>& o) : tup_inst<Is, Ts>{tup_inst<Is,Ts>(o).get()}... {}
+			tup_impl(tup_impl<tup_inst<Is,Ts>...>&& o) : tup_inst<Is,Ts>{std::forward<Ts>(tup_inst<Is,Ts>(o).get())}...{}
+
   			template <unsigned int I>
-  				auto get() -> te::eval_pipe_<ts_<Ts...>, te::at_c<I>> & {
-    				return te::eval_pipe_<ts_<tup_inst<Is, Ts>...>, te::at_c<I>>::data;
+  				auto get() -> te::eval_pipe_<te::ts_<te::ls_<Is,Ts>...>,te::filter_<te::unwrap,te::first,te::same_as_<te::i<I>>>,te::unwrap,te::second> & {
+					return te::eval_pipe_<te::ts_<te::ls_<Is,Ts>...>,te::filter_<te::unwrap,te::first,te::same_as_<i<I>>>,te::unwrap,te::wrap_<tup_inst>>::data;
   				}
 		};
 
 	// TUP
+	using sort_pred = te::pipe_<te::transform_<te::unwrap,te::second,te::size>,te::greater_<>>;
 	template <typename... Ts>
 		using te_tup_metafunction =
-    	te::eval_pipe_<te::ts_<Ts...>, te::zip_index, te::wrap_<tup_impl>>;
+    	te::eval_pipe_<te::ts_<Ts...>, te::zip_index,te::transform_<wrap_<tup_inst>>,/*te::sort_<sort_pred>,*/  te::wrap_<tup_impl>>;
+    template<typename ... Ts>
+    	using tup_sequence = 
+    	te::eval_pipe_<te::mkseq_c<sizeof...(Ts)>>;
+    using dft_ctor = te::trait_<std::is_nothrow_default_constructible>;
 
 	template <typename... Ts>
 		struct tup : te_tup_metafunction<Ts...> {
-  			//tup(): te_tup_metafunction<Ts...>{}{}
-			tup() : te::te_tup_metafunction<Ts...>{}{
-				static_assert(te::eval_pipe_<te::ts_<Ts...>,te::all_of_<te::trait_<std::is_default_constructible>>>::value,"Type is not default constructible");
+			tup() : te_tup_metafunction<Ts...>{}{ 
+				static_assert(te::eval_pipe_<te::ts_<Ts...>,te::all_of_<dft_ctor>>::value,"Type is not default constructible");
 			}
   			tup(const Ts& ... ts) : te_tup_metafunction<Ts...>(ts...) {}
   			template<typename ... Us>
-  				tup(Us &&... ts) : te_tup_metafunction<Ts...>(std::forward<Us>(ts)...) {}
+  				tup(Us&&... us) : te_tup_metafunction<Ts...>(std::forward<Ts>(us)...) {}
   			~tup() = default;
+			tup(const te::tup<Ts...>& o) : te_tup_metafunction<Ts...>{(te_tup_metafunction<Ts...>)o} {}
+			tup(te::tup<Ts...>&& o) : te_tup_metafunction<Ts...>{std::forward<te_tup_metafunction<Ts...>>(o)} {}
+
 		};
 
-	template <typename... Ts>
-		static inline te::tup<Ts...> make_tup(Ts &&... ts) {
-  			return te::tup<Ts...>{std::forward<Ts>(ts)...};
-		};
+	template <class T>
+		struct unwrap_refwrapper{using type = T;};
+	template <class T>
+		struct unwrap_refwrapper<std::reference_wrapper<T>> {using type = T&;};
+	template <class T>
+		using unwrap_decay_t = typename unwrap_refwrapper<typename std::decay<T>::type>::type;
+
+	template <class... Types>
+		static inline constexpr // since C++14
+		te::tup<unwrap_decay_t<Types>...> make_tup(Types&&... args)
+		{
+    		return te::tup<unwrap_decay_t<Types>...>{std::forward<Types>(args)...};
+		}
 
 	template <unsigned int I, typename... Ts>
 		auto get(te::tup<Ts...> &t) -> decltype(t.template get<I>()) {
