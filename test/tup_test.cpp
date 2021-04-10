@@ -5,55 +5,75 @@
 
 #include <assert.h>
 
+#include <tuple>
 #include <string>
 #include <memory>
 
-#include <type_traits>
 
-#include "type_expr.hpp"
-#include "type_tup.hpp"
+#include <type_expr.hpp>
+#include <type_tup.hpp>
 
-using nocopy = std::unique_ptr<int>;
+	static_assert(
+			sizeof(te::tup<short,int,char>) < sizeof(std::tuple<short,int,char>)
+			,"");
+	//tup's types are internally sorted from biggest to smallest size to avoid
+	// padding issues while still allowing typical get<int N>() access 
 
 
-// TYPE_TUP Test
-int main() {
-	int i = 42;
-	te::tup<int> t0{}; // Default Ctor
+	// TYPE_TUP Test
+int main() 
+{
+	using nocopy = std::unique_ptr<int>;
 
-	te::tup<int> t1{42};
-	te::tup<int> t2{i};
-	te::tup<int> t3{std::move(i)};
-	assert(t1.get<0>() == 42 && t2.get<0>() == 42 && t3.get<0>() == 42);
-
-	int j = 42, k = 43;
-	te::tup<int&> tr1{j};
-
-	te::tup<int,int> tii {1,2};
-	assert(tii.get<0>() == 1 && tii.get<1>() == 2);
-
-	int l = 22,  m = 23;
-	te::tup<int&,int> trii{l,9};
-	te::tup<int,int> tii2{std::move(m),9};
-	assert(trii.get<0>() == 22 && trii.get<1>() == 9);
-	assert(tii2.get<0>() == 23 && tii2.get<1>() == 9);
-
-	te::tup<te::tup<int>&, te::tup<int>> titi{t1, {9}};
-	assert(titi.get<0>().get<0>() == 42 && titi.get<1>().get<0>() == 9);
-
-	auto tup_assignment = te::tup<int>{1}; 
-	assert(tup_assignment.get<0>() == 1);
-
-	te::tup<std::string>{"Hello"};
-	te::tup<std::string,int> str_name("Hello",42);
-	assert(str_name.get<1>() == 42 && str_name.get<0>() == "Hello");
-
-	auto tt3 = te::make_tup(4, 5, 6);
-	assert(tt3.get<2>() == 6);
-
-	nocopy nc = std::make_unique<int>(42);
-	//te::tup<nocopy> tnc (std::move(nc));
-
+	{
+		te::tup<int> t0{}; // Default Ctor
+	}
+	{
+		int i = 42;
+		te::tup<int> t1{42};
+		te::tup<int> t2{i};
+		te::tup<int> t3{std::move(i)};
+		assert(t1.get<0>() == 42 && t2.get<0>() == 42 && t3.get<0>() == 42);
+	}
+	{
+		int j = 42, k = 43;
+		te::tup<int&> tr1{j};
+		te::tup<int,int> tii {1,2};
+		assert(tii.get<0>() == 1 && tii.get<1>() == 2);
+	}
+	{
+		int l = 22,  m = 23;
+		te::tup<int&,int> trii{l,9};
+		te::tup<int,int> tii2{std::move(m),9};
+		assert(trii.get<0>() == 22 && trii.get<1>() == 9);
+		assert(tii2.get<0>() == 23 && tii2.get<1>() == 9);
+	}
+	{
+		te::tup<int> t1{42};
+		te::tup<te::tup<int>&, te::tup<int>> titi{t1, {9}};
+		assert(titi.get<0>().get<0>() == 42 && titi.get<1>().get<0>() == 9);
+	}
+	{
+		auto tup_assignment = te::tup<int>{1}, tup_to_move = te::tup<int>{42}; 
+		auto tup_moved = std::move(tup_to_move);
+		assert(tup_assignment.get<0>() == 1 && tup_moved.get<0>() == 42);
+	}
+	{
+		te::tup<std::string>{"Hello"};
+		te::tup<std::string,int> str_int("Hello",42);
+		assert(str_int.get<1>() == 42 && str_int.get<0>() == "Hello");
+		te::tup<int,std::string> int_str{42,"Hello"};
+		assert(int_str.get<0>() == 42 && int_str.get<1>() == "Hello");
+	}
+	{
+		auto tt3 = te::make_tup(4, 5, 6);
+		assert(tt3.get<2>() == 6);
+	}
+	{
+		nocopy nc {};
+		te::tup<nocopy> tnc (std::move(nc));
+		te::tup<nocopy> tup_nocopy{ std::move(tnc)};
+	}
   	////auto tt6 = tup_cat(tt1, tt2, tt3);
   	////assert(tt6.get<4>() == 5);
 
