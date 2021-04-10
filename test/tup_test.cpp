@@ -6,13 +6,14 @@
 #include <assert.h>
 
 #include <string>
+#include <memory>
 
 #include <type_traits>
 
 #include "type_expr.hpp"
 #include "type_tup.hpp"
 
-
+using nocopy = std::unique_ptr<int>;
 
 
 // TYPE_TUP Test
@@ -44,10 +45,15 @@ int main() {
 	assert(tup_assignment.get<0>() == 1);
 
 	te::tup<std::string>{"Hello"};
-	te::tup<std::string,int>("Hello",8);
+	te::tup<std::string,int> str_name("Hello",42);
+	assert(str_name.get<1>() == 42 && str_name.get<0>() == "Hello");
 
 	auto tt3 = te::make_tup(4, 5, 6);
 	assert(tt3.get<2>() == 6);
+
+	nocopy nc = std::make_unique<int>(42);
+	//te::tup<nocopy> tnc (std::move(nc));
+
   	////auto tt6 = tup_cat(tt1, tt2, tt3);
   	////assert(tt6.get<4>() == 5);
 
