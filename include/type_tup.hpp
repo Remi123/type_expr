@@ -11,12 +11,9 @@
 
 #include "type_expr.hpp"
 
+// FORWARD DECLARATION
 namespace te {
 
-	template<typename T, typename ... Es>
-		using sfinae_t =  std::enable_if<eval_pipe_<Es...>::value,T>;
-
-	// FORWARD DECLARATION
 
 	// TUP_INST
 	template <typename Index, typename Type>
@@ -39,7 +36,7 @@ namespace te {
 namespace std{
 	template<typename > struct tuple_size;
 	template<typename ... Ts>
-	struct tuple_size<te::tup_impl<Ts...>> : public std::integral_constant<std::size_t,te::tup_impl<Ts...>::size>{};
+		struct tuple_size<te::tup_impl<Ts...>> : public std::integral_constant<std::size_t,te::tup_impl<Ts...>::size>{};
 }
 
 namespace te {
@@ -97,12 +94,12 @@ namespace te {
 
 	// TUP
 	using sort_pred = te::pipe_<te::transform_<te::unwrap,te::second,te::size>,te::greater_<>>;
-	
+
     template<typename ... Ts>
     	using tup_sequence = 
     	te::eval_pipe_<te::mkseq_c<sizeof...(Ts)>>;
     using dft_ctor = te::trait_<std::is_nothrow_default_constructible>;
-		//template <typename... Ts>
+	//template <typename... Ts>
 	//struct tup : te_tup_metafunction<Ts...> {
 	//tup() : te_tup_metafunction<Ts...>{}{ 
 	//static_assert(te::eval_pipe_<te::ts_<Ts...>,te::all_of_<dft_ctor>>::value,"Type is not default constructible");
@@ -181,25 +178,25 @@ namespace te {
 		using tup_cat_return = te::eval_pipe_<te::ts_<Ts...>,te::transform_<te::unwrap,te::transform_<te::unwrap,te::second>>,te::flatten,te::wrap_<te::tup>>;
 
 	template <typename... Tups>
-			tup_cat_return<Tups...> tup_cat(Tups &&... tups) {
-  				// This do the magic of getting the cartesian cartesian of each tup's types
-  				// with the index inside
-  				using zip_indexes = te::eval_pipe_<
-      				te::ts_<Tups...>, te::transform_<te::trait_<std::remove_reference>,te::trait_<std::tuple_size>, te::mkseq_<>>,
+		tup_cat_return<Tups...> tup_cat(Tups &&... tups) {
+  			// This do the magic of getting the cartesian cartesian of each tup's types
+  			// with the index inside
+  			using zip_indexes = te::eval_pipe_<
+      			te::ts_<Tups...>, te::transform_<te::trait_<std::remove_reference>,te::trait_<std::tuple_size>, te::mkseq_<>>,
       			te::zip_index, transform_<te::cartesian_<te::listify>>
       				, te::flatten
 		  			,transform_<te::unwrap>
 		  			, te::unzip>;
 
-  				using tup_index =
-      				te::eval_pipe_<zip_indexes, te::first, te::wrap_std_integer_sequence_<int>>;
-  				using types_index =
-      				te::eval_pipe_<zip_indexes, te::second, te::wrap_std_integer_sequence_<int>>;
-  				return detail::tup_cat_impl(
-      					tup_index{},    // int_seq
-      					types_index{},  // int_seq
-      					te::forward_as_tup(std::forward<Tups>(tups)...));
-			};
+  			using tup_index =
+      			te::eval_pipe_<zip_indexes, te::first, te::wrap_std_integer_sequence_<int>>;
+  			using types_index =
+      			te::eval_pipe_<zip_indexes, te::second, te::wrap_std_integer_sequence_<int>>;
+  			return detail::tup_cat_impl(
+      				tup_index{},    // int_seq
+      				types_index{},  // int_seq
+      				te::forward_as_tup(std::forward<Tups>(tups)...));
+		};
 
 };  // namespace te
 

@@ -18,23 +18,23 @@
 			,"");
 	//tup's types are internally sorted from biggest to smallest size to avoid
 	// padding issues while still allowing typical get<int N>() access 
-	
+
 	struct bad_padding {
 		short s;
 		int i;
 		char c;
 	};
-	struct good_padding{
-		int i;
-		short s;
-		char c;
-	};
-	static_assert(sizeof(good_padding) < sizeof(bad_padding),"");
-	static_assert(sizeof(good_padding) == sizeof(te::tup<short,int,char>),"");
-	
+struct good_padding{
+	int i;
+	short s;
+	char c;
+};
+static_assert(sizeof(good_padding) < sizeof(bad_padding),"");
+static_assert(sizeof(good_padding) == sizeof(te::tup<short,int,char>),"");
 
 
-	// TYPE_TUP Test
+
+// TYPE_TUP Test
 int main() 
 {
 	using nocopy = std::unique_ptr<int>;
@@ -102,7 +102,7 @@ int main()
 				tt5.get<2>() == 100.0f &&
 				tt5.get<3>() == "Hello" &&
 				tt5.get<4>() == 100
-				);
+			  );
 	}
   	//auto ttt = te::make_tup(tt1,tt2);
 
