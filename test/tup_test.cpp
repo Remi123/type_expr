@@ -88,9 +88,22 @@ int main()
 		te::tup<nocopy> tnc (std::move(nc));
 		te::tup<nocopy> tup_nocopy{ std::move(tnc)};
 	}
-  	////auto tt6 = tup_cat(tt1, tt2, tt3);
-  	////assert(tt6.get<4>() == 5);
-
+	{
+		int i = 42;
+		auto tfwd = te::forward_as_tup(i,54);
+	}
+	{
+		te::tup<int> t1{42};
+		te::tup<int,float> t2{23,100.0f};
+		te::tup<std::string,int > t3{"Hello",100};
+		auto tt5 = te::tup_cat(t1, t2, t3);
+		assert(	tt5.get<0>() == 42 &&
+				tt5.get<1>() == 23 &&
+				tt5.get<2>() == 100.0f &&
+				tt5.get<3>() == "Hello" &&
+				tt5.get<4>() == 100
+				);
+	}
   	//auto ttt = te::make_tup(tt1,tt2);
 
   	//auto ttsorted = tup_sort(tt6);
