@@ -82,7 +82,7 @@ namespace te {
   				auto get() -> te::eval_pipe_<te::ts_<te::ls_<Is,Ts>...>,te::filter_<te::unwrap,te::first,te::same_as_<te::i<I>>>,te::unwrap,te::second> & {
 					return te::eval_pipe_<te::ts_<te::ls_<Is,Ts>...>,te::filter_<te::unwrap,te::first,te::same_as_<i<I>>>,te::unwrap,te::wrap_<tup_element>>::data;
   				}
-	template<typename T, std::size_t I = 0>
+			template<typename T, int I = 0>
   				auto get() -> T&
   				{
   					return 
@@ -91,9 +91,7 @@ namespace te {
 						, te::at_c<I>
 					    >::data;
   				}
-	
-
-	};
+		};
 
 	// TUP
 
@@ -105,7 +103,6 @@ namespace te {
 
 	template <typename... Ts>
 		struct tup : te_tup_metafunction<Ts...> {
-			//using te_tup_metafunction<Ts...>::tup_impl;
 			static constexpr std::size_t size = sizeof...(Ts);
 
 			~tup() = default;
@@ -119,7 +116,7 @@ namespace te {
 			tup(const te::tup<Ts...>& o) : te_tup_metafunction<Ts...>{(te_tup_metafunction<Ts...>)o} {}
 			tup(te::tup<Ts...>&& o) : te_tup_metafunction<Ts...>{std::forward<te_tup_metafunction<Ts...>>(o)} {}
 
-  				};
+  		};
 
 	template <class T>
 		struct unwrap_refwrapper{using type = T;};
