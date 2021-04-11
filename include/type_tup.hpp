@@ -14,7 +14,6 @@
 // FORWARD DECLARATION
 namespace te {
 
-
 	// TUP_INST
 	template <typename Index, typename Type>
 		struct tup_element;
@@ -23,20 +22,14 @@ namespace te {
 	template <typename... Zip_Indexes_Types>
 		struct tup_impl;
 
-	template <typename... Ts>
-		using te_tup_metafunction =
-		te::eval_pipe_<te::ts_<Ts...>, te::zip_index,te::transform_<wrap_<tup_element>>,/*te::sort_<sort_pred>,*/  te::wrap_<tup_impl>>;
-
 	template<typename ... Ts>
-		using tup = te_tup_metafunction<Ts...>;
-
-
+		struct tup ;
 }
 
 namespace std{
 	template<typename > struct tuple_size;
 	template<typename ... Ts>
-		struct tuple_size<te::tup_impl<Ts...>> : public std::integral_constant<std::size_t,te::tup_impl<Ts...>::size>{};
+		struct tuple_size<te::tup<Ts...>> : public std::integral_constant<std::size_t,te::tup<Ts...>::size>{};
 }
 
 namespace te {
@@ -74,7 +67,6 @@ namespace te {
 	// TUP_IMPL
 	template <typename... Is, typename... Ts>
 		struct tup_impl<tup_element<Is, Ts>...> : nth_tup_element_<Is::value,Ts...>... {
-			static constexpr std::size_t size = sizeof...(Ts);
 
 
 			tup_impl()  : tup_element<Is,Ts>{}... {} 
@@ -86,32 +78,48 @@ namespace te {
 			tup_impl(const tup_impl<tup_element<Is,Ts>...>& o) : tup_element<Is, Ts>{o}... {}
 			tup_impl(tup_impl<tup_element<Is,Ts>...>&& o) : tup_element<Is,Ts>{std::forward<tup_element<Is,Ts>>(o)}...{}
 
-  			template <unsigned int I>
+  			template <std::size_t I>
   				auto get() -> te::eval_pipe_<te::ts_<te::ls_<Is,Ts>...>,te::filter_<te::unwrap,te::first,te::same_as_<te::i<I>>>,te::unwrap,te::second> & {
 					return te::eval_pipe_<te::ts_<te::ls_<Is,Ts>...>,te::filter_<te::unwrap,te::first,te::same_as_<i<I>>>,te::unwrap,te::wrap_<tup_element>>::data;
   				}
-		};
+	template<typename T, std::size_t I = 0>
+  				auto get() -> T&
+  				{
+  					return 
+						te::eval_pipe_<te::ts_<te::tup_element<Is,Ts>...>
+						, te::filter_<te::unwrap,te::second,te::same_as_<T>>
+						, te::at_c<I>
+					    >::data;
+  				}
+	
+
+	};
 
 	// TUP
+
 	using sort_pred = te::pipe_<te::transform_<te::unwrap,te::second,te::size>,te::greater_<>>;
+	template <typename... Ts>
+		using te_tup_metafunction =
+		te::eval_pipe_<te::ts_<Ts...>, te::zip_index,te::transform_<wrap_<tup_element>>,/*te::sort_<sort_pred>,*/  te::wrap_<tup_impl>>;
 
-    template<typename ... Ts>
-    	using tup_sequence = 
-    	te::eval_pipe_<te::mkseq_c<sizeof...(Ts)>>;
-    using dft_ctor = te::trait_<std::is_nothrow_default_constructible>;
-	//template <typename... Ts>
-	//struct tup : te_tup_metafunction<Ts...> {
-	//tup() : te_tup_metafunction<Ts...>{}{ 
-	//static_assert(te::eval_pipe_<te::ts_<Ts...>,te::all_of_<dft_ctor>>::value,"Type is not default constructible");
-	//}
-    //tup(const Ts& ... ts) : te_tup_metafunction<Ts...>(ts...) {}
-    //template<typename ... Us>
-    //tup(Us&&... us) : te_tup_metafunction<Ts...>(std::forward<Ts>(us)...) {}
-    //~tup() = default;
-	//tup(const te::tup<Ts...>& o) : te_tup_metafunction<Ts...>{(te_tup_metafunction<Ts...>)o} {}
-	//tup(te::tup<Ts...>&& o) : te_tup_metafunction<Ts...>{std::forward<te_tup_metafunction<Ts...>>(o)} {}
 
-	/*};*/
+	template <typename... Ts>
+		struct tup : te_tup_metafunction<Ts...> {
+			//using te_tup_metafunction<Ts...>::tup_impl;
+			static constexpr std::size_t size = sizeof...(Ts);
+
+			~tup() = default;
+			tup(){
+    			using dft_ctor = te::trait_<std::is_nothrow_default_constructible>;
+				static_assert(te::eval_pipe_<te::ts_<Ts...>,te::all_of_<dft_ctor>>::value,"Type is not default constructible");
+			}
+			tup(const Ts& ... ts) : te_tup_metafunction<Ts...>(ts...) {}
+			template<typename ... Us>
+				tup(Ts&&... us) : te_tup_metafunction<Ts...>(std::forward<Ts>(us)...) {}
+			tup(const te::tup<Ts...>& o) : te_tup_metafunction<Ts...>{(te_tup_metafunction<Ts...>)o} {}
+			tup(te::tup<Ts...>&& o) : te_tup_metafunction<Ts...>{std::forward<te_tup_metafunction<Ts...>>(o)} {}
+
+  				};
 
 	template <class T>
 		struct unwrap_refwrapper{using type = T;};
@@ -175,7 +183,7 @@ namespace te {
 	};  // namespace detail
 
 	template<typename ... Ts>
-		using tup_cat_return = te::eval_pipe_<te::ts_<Ts...>,te::transform_<te::unwrap,te::transform_<te::unwrap,te::second>>,te::flatten,te::wrap_<te::tup>>;
+		using tup_cat_return = te::eval_pipe_<te::ts_<Ts...>,te::transform_<te::unwrap>,te::flatten,te::wrap_<te::tup>>;
 
 	template <typename... Tups>
 		tup_cat_return<Tups...> tup_cat(Tups &&... tups) {

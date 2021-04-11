@@ -104,9 +104,16 @@ int main()
 				tt5.get<4>() == 100
 			  );
 	}
-  	//auto ttt = te::make_tup(tt1,tt2);
-
-  	//auto ttsorted = tup_sort(tt6);
-  	// TYPE_TUP
+	{
+		te::tup<int,std::string,int,std::string> isis{1,"Hello",3,"World"};
+		bool test = 
+			isis.get<int>() == 1 &&
+			isis.get<int,1>() == 3 &&
+			isis.get<std::string>() == "Hello" &&
+			isis.get<std::string,1>() == "World"; 
+		assert(test == true);
+		isis.get<int>() = 0;
+		assert(isis.get<int>() == 0);
+	}
   	return 0;
 }
