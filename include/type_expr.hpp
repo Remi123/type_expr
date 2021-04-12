@@ -335,6 +335,7 @@ struct pipe_ {
   };
 };
 
+
 template <typename... Fs, typename... Args>
 constexpr eval_pipe_<Fs...> eval(const pipe_<Fs...> &, Args &&... args) {
   return eval_pipe_<Fs...>{std::forward<Args>(args)...};
@@ -846,7 +847,7 @@ struct remove_if_
 	template<typename ... Ts>
 	struct f {
 		template<typename T> using Expr = typename std::conditional<eval_pipe_<input_<T>,Up...>::value,identity,input_append_<T>>::type;
-		using type = eval_pipe_<Expr<Ts>...> ;//pipe_<cond_<pipe_<Up...>,input_<identity>,wrap_<input_append_>>::template f<Ts>::type...>;
+		using type = eval_pipe_<Expr<Ts>...> ;
 	};
 };
 
@@ -854,6 +855,9 @@ struct remove_if_
 template <typename... UnaryPredicate>
 struct filter_ : remove_if_<not_<UnaryPredicate...>> {};
 
+//KEEP_IF_ : Same as filter_ but with better name
+template<typename ... UnaryPredicate>
+struct keep_if_ : remove_if_<UnaryPredicate..., not_<>>{};
 
 // PARTITION_ : Continue with two list. First predicate is true, Second
 // predicate is false
@@ -1270,44 +1274,36 @@ struct lcm {
 // note : it's implicit that you receive two types, so you probably need to
 // transform them. eg : sort by size : sort_<transform_<size>, greater_<> >
 
+template<typename ... BP>
+struct sort_
+{
+	template<typename ...> struct f: ts_<> {};
 
-template <typename... BinaryPredicate>
-struct sort_ {
-	template <typename A, typename B>
-	struct eager {
-  		typedef ts_<> type;
-	};
+	template<typename T>
+		struct f<T>
+		{
+			using type = T;
+		};
 
-	template <typename A>
-	struct eager<A, std::true_type> {
-  		typedef ts_<A> type;
-	};
+	template<typename T, typename U>
+		struct f<T,U> : cond_<pipe_<BP...>,ts_<T,U>, ts_<U,T>>::template f<T,U> {};
 
-	template <typename... L>
-	struct sort_impl;
-	template <typename T>
-	struct sort_impl<T> {
-    	typedef T type;
-	};
-
-	template <typename... Ts, typename F>
-	struct sort_impl<ts_<F, Ts...>> {
-    	typedef typename sort_impl<typename flatten::template f<
-        	ts_<>,
-        	typename eager<Ts, typename pipe_<BinaryPredicate...>::template f<
-            	Ts, F>::type>::type...>::type>::type Yes_types;
-    	typedef typename sort_impl<typename flatten::template f<
-        	ts_<>,
-        	typename eager<Ts, typename not_<pipe_<BinaryPredicate...>>::template f<
-            	Ts, F>::type>::type...>::type>::type No_types;
-
-    	typedef typename flatten::template f<ts_<>, Yes_types, F, No_types>::type type;
-	};
-	template <typename... Ts>
-	struct f {
-    	typedef typename sort_impl<ts_<Ts...>>::type type;
-	};
+	template<typename T, typename ... Ts>
+		struct f<T,Ts...>
+		{
+			using left = eval_pipe_<ts_<Ts...>,
+		  		  keep_if_<pipe_<fork_<identity,ts_<T>>,BP...>>,
+		  		  sort_<BP...>,
+		  		  wrap_<input_append_>>;
+			using right = eval_pipe_<ts_<Ts...>,
+		  		  remove_if_<pipe_<fork_<identity,ts_<T>>,BP...>>,
+		  		  sort_<BP...>,
+		  		  wrap_<input_append_>>;
+			using type = eval_pipe_<left,input_append_<T>,right>;
+		};
 };
+template<>
+struct sort_<> : sort_<less_<>>{};
 
 // APPEND_RESULT
 template<typename ...Es>
