@@ -1274,45 +1274,6 @@ struct lcm {
 // note : it's implicit that you receive two types, so you probably need to
 // transform them. eg : sort by size : sort_<transform_<size>, greater_<> >
 
-
-template <typename... BinaryPredicate>
-struct sort2_ {
-	template <typename A, typename B>
-	struct eager {
-  		typedef ts_<> type;
-	};
-
-	template <typename A>
-	struct eager<A, std::true_type> {
-  		typedef ts_<A> type;
-	};
-
-	template <typename... L>
-	struct sort_impl;
-	template <typename T>
-	struct sort_impl<T> {
-    	typedef T type;
-	};
-
-	template <typename... Ts, typename F>
-	struct sort_impl<ts_<F, Ts...>> {
-    	typedef typename sort_impl<typename flatten::template f<
-        	ts_<>,
-        	typename eager<Ts, typename pipe_<BinaryPredicate...>::template f<
-            	Ts, F>::type>::type...>::type>::type Yes_types;
-    	typedef typename sort_impl<typename flatten::template f<
-        	ts_<>,
-        	typename eager<Ts, typename not_<pipe_<BinaryPredicate...>>::template f<
-            	Ts, F>::type>::type...>::type>::type No_types;
-
-    	typedef typename flatten::template f<ts_<>, Yes_types, F, No_types>::type type;
-	};
-	template <typename... Ts>
-	struct f {
-    	typedef typename sort_impl<ts_<Ts...>>::type type;
-	};
-};
-
 template<typename ... BP>
 struct sort_
 {
