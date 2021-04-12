@@ -7,10 +7,10 @@ option(TYPE_EXPR_TEST_MPL
 	ON)
 option(TYPE_EXPR_TEST_TUP
 	"Generate 'te::tup' tests` "
-	OFF)
+	ON)
 option(TYPE_EXPR_TEST_VAR
 	"Generate 'te::var' tests` "
-	OFF)
+	ON)
 
 if (BUILD_TESTING AND TYPE_EXPR_TEST  )
 

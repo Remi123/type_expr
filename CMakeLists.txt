@@ -14,7 +14,7 @@ target_include_directories(type_expr INTERFACE
 # Testing type_expr
 option( TYPE_EXPR_TEST 
         "Type_expr testing with CTest" 
-        OFF)
+        ON)
 include(CTest)
 add_subdirectory(test)
 
