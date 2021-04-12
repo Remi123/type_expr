@@ -854,6 +854,9 @@ struct remove_if_
 template <typename... UnaryPredicate>
 struct filter_ : remove_if_<not_<UnaryPredicate...>> {};
 
+//KEEP_IF_ : Same as filter_ but with better name
+template<typename ... UnaryPredicate>
+struct keep_if_ : remove_if_<UnaryPredicate..., not_<>>{};
 
 // PARTITION_ : Continue with two list. First predicate is true, Second
 // predicate is false

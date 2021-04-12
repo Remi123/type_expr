@@ -22,6 +22,7 @@ namespace te {
 	template <typename... Zip_Indexes_Types>
 		struct tup_impl;
 
+	// TUP
 	template<typename ... Ts>
 		struct tup ;
 }
@@ -33,13 +34,8 @@ namespace std{
 }
 
 namespace te {
-	// TUP
-	/*template <typename... Ts>*/
-	//struct tup;
 
-	// IMPLEMENTATION
-
-	// TUP_INST
+	// TUP_ELEMENT
 	template <int I, typename T>
 		struct tup_element<te::i<I>, T> {
 	  		tup_element() : data{}{} 
@@ -93,14 +89,13 @@ namespace te {
   				}
 		};
 
-	// TUP
 
 	using sort_pred = te::pipe_<te::transform_<te::unwrap,te::second,te::size>,te::greater_<>>;
 	template <typename... Ts>
 		using te_tup_metafunction =
 		te::eval_pipe_<te::ts_<Ts...>, te::zip_index,te::transform_<wrap_<tup_element>>,/*te::sort_<sort_pred>,*/  te::wrap_<tup_impl>>;
 
-
+	// TUP
 	template <typename... Ts>
 		struct tup : te_tup_metafunction<Ts...> {
 			static constexpr std::size_t size = sizeof...(Ts);
@@ -108,7 +103,7 @@ namespace te {
 			~tup() = default;
 			tup(){
     			using dft_ctor = te::trait_<std::is_nothrow_default_constructible>;
-				static_assert(te::eval_pipe_<te::ts_<Ts...>,te::all_of_<dft_ctor>>::value,"Type is not default constructible");
+				static_assert(te::eval_pipe_<te::ts_<Ts...>,te::all_of_<dft_ctor>>::value,"All Types are not default constructible");
 			}
 			tup(const Ts& ... ts) : te_tup_metafunction<Ts...>(ts...) {}
 			template<typename ... Us>
