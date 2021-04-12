@@ -24,6 +24,7 @@
 		int i;
 		char c;
 	};
+
 struct good_padding{
 	int i;
 	short s;

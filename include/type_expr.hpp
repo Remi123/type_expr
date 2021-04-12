@@ -335,6 +335,7 @@ struct pipe_ {
   };
 };
 
+
 template <typename... Fs, typename... Args>
 constexpr eval_pipe_<Fs...> eval(const pipe_<Fs...> &, Args &&... args) {
   return eval_pipe_<Fs...>{std::forward<Args>(args)...};
@@ -1275,7 +1276,7 @@ struct lcm {
 
 
 template <typename... BinaryPredicate>
-struct sort_ {
+struct sort2_ {
 	template <typename A, typename B>
 	struct eager {
   		typedef ts_<> type;
@@ -1311,6 +1312,37 @@ struct sort_ {
     	typedef typename sort_impl<ts_<Ts...>>::type type;
 	};
 };
+
+template<typename ... BP>
+struct sort_
+{
+	template<typename ...> struct f: ts_<> {};
+
+	template<typename T>
+		struct f<T>
+		{
+			using type = T;
+		};
+
+	template<typename T, typename U>
+		struct f<T,U> : cond_<pipe_<BP...>,ts_<T,U>, ts_<U,T>>::template f<T,U> {};
+
+	template<typename T, typename ... Ts>
+		struct f<T,Ts...>
+		{
+			using left = eval_pipe_<ts_<Ts...>,
+		  		  keep_if_<pipe_<fork_<identity,ts_<T>>,BP...>>,
+		  		  sort_<BP...>,
+		  		  wrap_<input_append_>>;
+			using right = eval_pipe_<ts_<Ts...>,
+		  		  remove_if_<pipe_<fork_<identity,ts_<T>>,BP...>>,
+		  		  sort_<BP...>,
+		  		  wrap_<input_append_>>;
+			using type = eval_pipe_<left,input_append_<T>,right>;
+		};
+};
+template<>
+struct sort_<> : sort_<less_<>>{};
 
 // APPEND_RESULT
 template<typename ...Es>
