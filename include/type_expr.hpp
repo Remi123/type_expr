@@ -1292,18 +1292,31 @@ struct sort_
 		struct f<T,Ts...>
 		{
 			using left = eval_pipe_<ts_<Ts...>,
-		  		  keep_if_<pipe_<fork_<identity,ts_<T>>,BP...>>,
-		  		  sort_<BP...>,
-		  		  wrap_<input_append_>>;
+		  		  keep_if_<fork_<identity,ts_<T>>,BP...>, // See note A below
+		  		  sort_<BP...>, // Recursive algo
+		  		  wrap_<input_append_>>; // See note B below
 			using right = eval_pipe_<ts_<Ts...>,
-		  		  remove_if_<pipe_<fork_<identity,ts_<T>>,BP...>>,
-		  		  sort_<BP...>,
-		  		  wrap_<input_append_>>;
+		  		  remove_if_<fork_<identity,ts_<T>>,BP...>, // See note A below
+		  		  sort_<BP...>, // Recursive algo
+		  		  wrap_<input_append_>>; // See note B below
 			using type = eval_pipe_<left,input_append_<T>,right>;
+
 		};
+	/* note A : To adapt a keep_if/remove_if to a binary predicate, the first
+	 * type of the sequence f<T,Ts...> is appended and integrated to the binary
+	 * predicate <BP...>. the sequence of transformation in the BP is this
+	 * InputType -> ts_<InputType,T> -> BP...
+	 *
+	 * note B : The trick of this algo is to create a meta-expression that append
+	 * the results to a sequence of types. input_append is basically a push_back.
+	 * So left and right result in input_append_<ResultTypes...>, with Resultypes being
+	 * the result of keep_if and remove_if respectively.
+	 *
+	 * In ::type, we join the three meta-expression and evaluate the result
+	 * */
 };
 template<>
-struct sort_<> : sort_<less_<>>{};
+struct sort_<> : sort_<less_<>>{}; // Default BinaryPredicate is less.
 
 // APPEND_RESULT
 template<typename ...Es>
