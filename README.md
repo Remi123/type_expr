@@ -131,13 +131,14 @@ Look at the doc | Unfortunately the doc is not complete since I think of adding 
 ___
 
 ## How to Debug and Develop in Meta-Programming :
-My favorite method to debug is to write a class with no conversion operator like this : `struct B{};` and then create an instance of a type like so `te::eval_pipe_<te::input_<int>, te::push_back_<float>> varname_not_important = B{};`
- This will not compile, but the compiler will happily give you this error or something similar : 
- `conversion from 'B' to non-scalar type type_expr::eval_pipe_<type_expr::input_<int>, type_expr::push_back_<float> >' {aka 'type_expr::input_<int, float>'} requested`
+My favorite method to debug is to write a class with no conversion operator like this : `struct B{};` and then create an instance of the result type that we then tried to convert to B. This will not compile, but the compiler will happily give you an semi-explicative error message.
+ ``
  The rest is just me iteratively adding meta-expression until it work.
  ```C++   
   te::eval_pipe_<te::input_<int>, te::push_back_<float>, is_<int,float>> varname_not_important = B{}; 
-  // Cannot convert type B to std::integral_constant<bool,true>
+  // conversion from 'B' to non-scalar type                    // We don't care about this
+  // te::eval_pipe_<te::input_<int>, te::push_back_<float> >   // Type of the function
+  // {aka 'te::input_<int, float>'} requested                  // Type of the result
 ```
 ___
 
