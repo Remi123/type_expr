@@ -1,0 +1,18 @@
+[project-init]
+command=mkdir build && cd build && cmake .. -GNinja
+cwd=<root>
+errorformat=
+
+[build]
+command= time cmake --build build
+cwd=<root>
+errorformat=%f:%l:%m
+
+[project-test]
+command= ctest
+cwd=<root>/build/
+output=terminal
+
+[project-clean]
+command= rm -rf build
+cwd=<root>
