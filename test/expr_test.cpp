@@ -218,12 +218,14 @@ int main() {
 						   >::value,
 				"");
   static_assert(
-	  eval_pipe_<input_<ts_<int[1], int[2]>, float[1]>, cartesian_<>,
-				 same_as_<ts_<int[1], float[1]>, ts_<int[2], float[1]>>>::value,
+	  eval_pipe_<input_<ts_<int[1], int[2]>, float[1]>, cartesian_<>
+				 ,same_as_<ts_<int[1], float[1]>, ts_<int[2], float[1]>>
+				 >::value,
 	  "");
   static_assert(
-	  eval_pipe_<input_<ts_<int[1]>, ts_<float[1], float[2]>>, cartesian_<>,
-				 same_as_<ts_<int[1], float[1]>, ts_<int[1], float[2]>>>::value,
+	  eval_pipe_<input_<ts_<int[1]>, ts_<float[1], float[2]>>, cartesian_<>
+				 ,same_as_<ts_<int[1], float[1]>, ts_<int[1], float[2]>>
+				 >::value,
 	  "");
   static_assert(
 	  eval_pipe_<input_<ts_<int[1], int[2], int[3]>, ts_<float[1], float[2]>>,

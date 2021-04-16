@@ -176,18 +176,6 @@ struct ts_prepend_
 	struct f : ts_<ts_<P...>,Ts...>{};
 };
 
-/*template <typename... Ts>*/
-//struct input_<kvasir::mpl::list<Ts...>> : ts_<Ts...> {};
-
-//template <typename... Ts>
-//struct input_<metal::list<Ts...>> : ts_<Ts...> {};
-
-//template <typename... Ts>
-//struct input_<boost::mp11::mp_list<Ts...>> : ts_<Ts...> {};
-
-//template <typename... Ts>
-/*struct input_<boost::fusion::list<Ts...>> : ts_<Ts...> {};*/
-
 // TRAIT_ : Universal customization point using template template. Get the ::type
 // The Farming field of our library
 template <template <typename...> class F>
@@ -213,6 +201,19 @@ struct wrap_ {
 
 template<template <typename ... > class F>
 using quote_ = wrap_<F>;
+
+template<typename KvasirMetaClosure>
+using kv_ = wrap_<KvasirMetaClosure::template f>;
+
+//template <typename... Ts>
+//struct input_<metal::list<Ts...>> : ts_<Ts...> {};
+
+//template <typename... Ts>
+//struct input_<boost::mp11::mp_list<Ts...>> : ts_<Ts...> {};
+
+//template <typename... Ts>
+/*struct input_<boost::fusion::list<Ts...>> : ts_<Ts...> {};*/
+
 
 // WRAP_STD_INTEGER_SEQUENCE
 // Specialization for std::integer_sequence
@@ -330,11 +331,10 @@ struct pipe_ {
   using type = pipe_;
 
   template <typename... Us>
-  constexpr pipe_<Es..., Us...> const operator|(const pipe_<Us...> &) {
+  constexpr pipe_<Es..., Us...> const operator|(const pipe_<Us...> &) const {
     return {};
   };
 };
-
 
 template <typename... Fs, typename... Args>
 constexpr eval_pipe_<Fs...> eval(const pipe_<Fs...> &, Args &&... args) {
@@ -586,6 +586,8 @@ struct mkseq_<Tval> {
   };
 };
 template<std::size_t N> using mkseq_c = mkseq_<i<N>>;
+template<std::size_t N> using iota = mkseq_<i<N>>;
+template<std::size_t N> using iota_c = mkseq_c<N>;
 
 
 // ZIP : Join together two list of type in multiple inputs
@@ -594,14 +596,11 @@ struct zip {
   struct f {
     typedef error_<zip> type;
   };
-  template <//template <typename...> class F, template <typename...> class G,
-            typename... Ts, typename... Us>
+  template < typename... Ts, typename... Us>
   struct f<ts_<Ts...>, ts_<Us...>> {
     typedef ts_<ts_<Ts, Us>...> type;
   };
-  template <//template <typename...> class F, template <typename...> class G,
-            //template <typename...> class H,
-            typename... fs, typename... gs,
+  template <typename... fs, typename... gs,
             typename... hs>
   struct f<ts_<fs...>, ts_<gs...>, ts_<hs...>> {
     typedef ts_<ts_<fs, gs, hs>...> type;
@@ -643,12 +642,9 @@ struct unzip_index {
 struct unzip {
   template <typename...>
   struct f;
-  template <//template <typename...> class F,
-  		   typename... Fs, typename... Gs>
+  template <typename... Fs, typename... Gs>
   struct f<ts_<Fs, Gs>...> : ts_<ts_<Fs...>, ts_<Gs...>> {};
-  template <//template <typename...> class F,
-  		   typename... Fs, typename... Gs,
-            typename... Hs>
+  template <typename... Fs, typename... Gs, typename... Hs>
   struct f<ts_<Fs, Gs, Hs>...> : ts_<ts_<Fs...>, ts_<Gs...>, ts_<Hs...>> {};
 };
 
@@ -731,6 +727,7 @@ struct at_c<1> {
   struct f {
     typedef nothing type;
   };
+  template<typename T>  struct f<T> : ts_<T>{};
   template <typename T, typename T2, typename... Ts>
   struct f<T, T2, Ts...> {
     typedef T2 type;
@@ -744,11 +741,14 @@ struct at_c<2> {
   struct f {
     typedef nothing type;
   };
+  template<typename T>  struct f<T> : ts_<T>{};
+  template<typename T,typename T2>  struct f<T,T2> : ts_<T>{};
   template <typename T, typename T2, typename T3, typename... Ts>
   struct f<T, T2, T3, Ts...> {
     typedef T3 type;
   };
 };
+
 
 // LAST : Continue with the last type
 struct last : at_c<-1> {};
@@ -767,7 +767,7 @@ typedef at_c<8> _9th; using ninth = at_c<8>;
 
 // FLATTEN : Continue with only one ts_. Sub-ts_ are removed.
 // The dirty but necessary tool of our library
-struct flatten {
+struct flatten{
   template <typename... Ts>
   struct flat;
   template <typename... Ls>
@@ -796,8 +796,9 @@ struct flatten {
       : flat<ts_<Ls..., Fs..., Gs..., Hs..., Is...>, Ts...> {};
 
   template <typename... Ts>
-  struct f : fold_left_<wraptype_<flatten::flat>>::template f<ts_<>, Ts...> {};
+  struct f : fold_left_<wraptype_<flat>>::template f<ts_<>, Ts...> {};
 };
+
 
 // LENGTH : Continue with the number of types in the ts_.
 struct length {
