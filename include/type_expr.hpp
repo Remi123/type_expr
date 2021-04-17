@@ -799,6 +799,12 @@ struct flatten{
   struct f : fold_left_<wraptype_<flat>>::template f<ts_<>, Ts...> {};
 };
 
+struct Flatten : write_null_<transform_<wrap_<input_append_>>>
+{};
+
+eval_pipe_<ts_<int[0], ts_<int[1], int[2]>, int[3], ts_<int[4]>>, Flatten> t = 0;
+
+
 
 // LENGTH : Continue with the number of types in the ts_.
 struct length {
@@ -935,6 +941,24 @@ struct cartesian_ {
 		>
 		type;
   };
+};
+
+struct Cartesian
+{
+	template<typename ... Ts> struct g{using type = input_append_<ts_<Ts...>>;};
+	template<typename ... Ts > struct g<ts_<Ts...>>{using type = input_append_<ts_<Ts...>>;};
+	template<typename A,typename ... Ts > struct g<A,ts_<Ts...>>{using type = input_append_<ts_<A,Ts>...>;};
+	template<typename B,typename ... Ts > struct g<ts_<Ts...>,B>{using type = input_append_<ts_<Ts,B>...>;};
+	template<typename ... A,typename ...B>
+		struct g<ts_<A...>,ts_<B...>>
+		{
+			using type = pipe_<typename g<A,ts_<B...>>::type...>;
+		};
+
+template<typename F,typename G>
+	struct f {
+		using type = eval_pipe_<typename g<F,G>::type>;
+	};
 };
 
 // ROTATE : rotate
