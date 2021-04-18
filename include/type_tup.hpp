@@ -183,9 +183,8 @@ namespace te {
   			// with the index inside
   			using zip_indexes = te::eval_pipe_<
       			te::ts_<Tups...>, te::transform_<te::trait_<std::remove_reference>,te::trait_<std::tuple_size>, te::mkseq_<>>,
-      			te::zip_index, transform_<te::cartesian_<te::listify>>
+      			te::zip_index, transform_<cartesian>
       				, te::flatten
-		  			,transform_<te::unwrap>
 		  			, te::unzip>;
 
   			using tup_index =

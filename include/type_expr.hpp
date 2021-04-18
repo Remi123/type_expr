@@ -355,7 +355,7 @@ template <typename... Es>
 struct transform_ {
   template <typename... Ts>
   struct f {
-    typedef ts_<eval_pipe_<input_<Ts>, pipe_<Es...>>...> type;
+    typedef ts_<eval_pipe_<ts_<Ts>,Es...>...> type;
   };
 };
 
@@ -365,7 +365,7 @@ template <typename... Es>
 struct fork_ {
   template <typename... Ts>
   struct f {
-    typedef ts_<eval_pipe_<input_<Ts...>, Es>...> type;
+    typedef ts_<eval_pipe_<ts_<Ts...>, Es>...> type;
   };
 };
 
@@ -375,7 +375,7 @@ template <typename... Es>
 struct each_ {
   template <typename... Ts>
   struct f {
-    typedef ts_<eval_pipe_<input_<Ts>, Es>...> type;
+    typedef ts_<eval_pipe_<ts_<Ts>, Es>...> type;
   };
 };
 
@@ -385,7 +385,7 @@ template <typename... PipableExpr>
 struct write_ {
   template <typename... Ts>
   struct f {
-    using metaexpr = eval_pipe_<input_<Ts...>, PipableExpr..., quote_<pipe_>>;
+    using metaexpr = eval_pipe_<ts_<Ts...>, PipableExpr..., quote_<pipe_>>;
     using type = typename metaexpr::template f<Ts...>::type;
   };
 };
@@ -395,7 +395,7 @@ struct write_debug_
 {
 	template <typename... Ts>
   struct f {
-    using type = eval_pipe_<input_<Ts...>, PipableExpr..., quote_<pipe_>>;
+    using type = eval_pipe_<ts_<Ts...>, PipableExpr..., quote_<pipe_>>;
   };
 };
 
@@ -405,7 +405,7 @@ template <typename... PipableExpr>
 struct write_null_ {
   template <typename... Ts>
   struct f {
-    using metaexpr = eval_pipe_<input_<Ts...>, PipableExpr..., quote_<pipe_>>;
+    using metaexpr = eval_pipe_<ts_<Ts...>, PipableExpr..., quote_<pipe_>>;
     using type = typename metaexpr::template f<>::type;
   };
 };
@@ -650,7 +650,7 @@ struct unzip {
 
 // ZIP_INPUT : Inputs are indexed
 template<typename ... Ts>
-struct zip_input_ : pipe_<input_<Ts...>,zip_index>{};
+struct zip_input_ : pipe_<ts_<Ts...>,zip_index>{};
 
 // PUSH_FRONT_ : Add anything you want to the front of the inputs.
 template <typename... Ts>
@@ -767,44 +767,8 @@ typedef at_c<8> _9th; using ninth = at_c<8>;
 
 // FLATTEN : Continue with only one ts_. Sub-ts_ are removed.
 // The dirty but necessary tool of our library
-struct flatten{
-  template <typename... Ts>
-  struct flat;
-  template <typename... Ls>
-  struct flat<ts_<Ls...>> {
-    typedef ts_<Ls...> type;
-  };
-  template <typename... Ls, typename T, typename... Ts>
-  struct flat<ts_<Ls...>, T, Ts...> : flat<ts_<Ls..., T>, Ts...> {};
-  template <typename... Ls, typename T, typename... Is, typename... Ts>
-  struct flat<ts_<Ls...>, T, ts_<Is...>, Ts...>
-      : flat<ts_<Ls..., T, Is...>, Ts...> {};
-
-  template <typename... Ls, typename... Fs, typename... Ts>
-  struct flat<ts_<Ls...>, ts_<Fs...>, Ts...> : flat<ts_<Ls..., Fs...>, Ts...> {
-  };
-  template <typename... Fs, typename... Gs, typename... Ls, typename... Ts>
-  struct flat<ts_<Ls...>, ts_<Fs...>, ts_<Gs...>, Ts...>
-      : flat<ts_<Ls..., Fs..., Gs...>, Ts...> {};
-  template <typename... Fs, typename... Gs, typename... Hs, typename... Ls,
-            typename... Ts>
-  struct flat<ts_<Ls...>, ts_<Fs...>, ts_<Gs...>, ts_<Hs...>, Ts...>
-      : flat<ts_<Ls..., Fs..., Gs..., Hs...>, Ts...> {};
-  template <typename... Fs, typename... Gs, typename... Hs, typename... Is,
-            typename... Ls, typename... Ts>
-  struct flat<ts_<Ls...>, ts_<Fs...>, ts_<Gs...>, ts_<Hs...>, ts_<Is...>, Ts...>
-      : flat<ts_<Ls..., Fs..., Gs..., Hs..., Is...>, Ts...> {};
-
-  template <typename... Ts>
-  struct f : fold_left_<wraptype_<flat>>::template f<ts_<>, Ts...> {};
-};
-
-struct Flatten : write_null_<transform_<wrap_<input_append_>>>
+struct flatten : write_null_<transform_<wrap_<input_append_>>>
 {};
-
-eval_pipe_<ts_<int[0], ts_<int[1], int[2]>, int[3], ts_<int[4]>>, Flatten> t = 0;
-
-
 
 // LENGTH : Continue with the number of types in the ts_.
 struct length {
@@ -845,7 +809,7 @@ struct not_<> {
 // std::true_type
 template<typename ...Up>
 struct removeif_ : write_null_<transform_<
-					 cond_<pipe_<Up...>,input_<identity>
+					 cond_<pipe_<Up...>,ts_<identity>
 					,wrap_<input_append_>>>
 					>{};
 template<typename ... Up>
@@ -853,7 +817,7 @@ struct remove_if_
 {
 	template<typename ... Ts>
 	struct f {
-		template<typename T> using Expr = typename std::conditional<eval_pipe_<input_<T>,Up...>::value,identity,input_append_<T>>::type;
+		template<typename T> using Expr = typename std::conditional<eval_pipe_<ts_<T>,Up...>::value,identity,input_append_<T>>::type;
 		using type = eval_pipe_<Expr<Ts>...> ;
 	};
 };
@@ -921,32 +885,10 @@ struct find_if_ : pipe_<zip_index, transform_<listify>,
                         filter_<unwrap, second, F...>, first, unwrap> {};
 
 // CARTESIAN : Given two lists, continue with every possible lists of two types.
-template <typename... BinF>  // Binary Function
-struct cartesian_ {
-  template <typename... Ts>
-  struct f /*{*/
-    //typedef ts_<Ts...> type;}
-  ;
-  template <typename A, typename B>
-  struct f<A, B> : pipe_<BinF...>::template f<ts_<A, B>> {  };
-  template <typename A, typename... B>
-  struct f<A, ts_<B...>> : pipe_<transform_<BinF...>>::template f<ts_<A,B>...> {};
-  template <typename... A, typename B>
-  struct f<ts_<A...>, B> : pipe_<transform_<BinF...>>::template f<ts_<A,B>...> {};
-  template <typename... A, typename... B>
-  struct f<ts_<A...>, ts_<B...>>
-  {
-	typedef eval_pipe_<fork_<pipe_<ts_<A, ts_<B...>>, cartesian_<BinF...>>...>
-		,flatten
-		>
-		type;
-  };
-};
-
-struct Cartesian
+struct cartesian
 {
 	template<typename ... Ts> struct g{using type = input_append_<ts_<Ts...>>;};
-	template<typename ... Ts > struct g<ts_<Ts...>>{using type = input_append_<ts_<Ts...>>;};
+	template<typename A,typename B> struct g<A,B>{using type = input_append_<ts_<A,B>>;};
 	template<typename A,typename ... Ts > struct g<A,ts_<Ts...>>{using type = input_append_<ts_<A,Ts>...>;};
 	template<typename B,typename ... Ts > struct g<ts_<Ts...>,B>{using type = input_append_<ts_<Ts,B>...>;};
 	template<typename ... A,typename ...B>
@@ -1023,7 +965,7 @@ struct or_if_ {
   };
   template <typename... Ts>
   struct f<detail::__then_context<false, Ts...>> {
-    typedef detail::__then_context<eval_pipe_<input_<Ts...>, NPred...>::value,
+    typedef detail::__then_context<eval_pipe_<ts_<Ts...>, NPred...>::value,
                                    Ts...>
         type;
   };
@@ -1041,7 +983,7 @@ struct and_if_ {
   };
   template <typename... Ts>
   struct f<detail::__then_context<true, Ts...>> {
-    typedef detail::__then_context<eval_pipe_<input_<Ts...>, NPred...>::value,
+    typedef detail::__then_context<eval_pipe_<ts_<Ts...>, NPred...>::value,
                                    Ts...>
         type;
   };
@@ -1055,7 +997,7 @@ struct else_if_ {
   };
   template <typename... Ts>
   struct f<detail::__then_context<false, Ts...>> {
-    typedef detail::__then_context<eval_pipe_<input_<Ts...>, NPred...>::value,
+    typedef detail::__then_context<eval_pipe_<ts_<Ts...>, NPred...>::value,
                                    Ts...>
         type;
   };
@@ -1077,7 +1019,7 @@ struct then_ {
   };
   template <typename... Ts>
   struct f<detail::__then_context<true, Ts...>> {
-    typedef eval_pipe_<input_<Ts...>, Es...> type;
+    typedef eval_pipe_<ts_<Ts...>, Es...> type;
   };
 };
 
@@ -1089,7 +1031,7 @@ struct else_ {
   };
   template <typename... Ts>
   struct f<detail::__then_context<false, Ts...>> {
-    typedef eval_pipe_<input_<Ts...>, Es...> type;
+    typedef eval_pipe_<ts_<Ts...>, Es...> type;
   };
   template <typename... Ts>
   struct f<detail::__then_context<true, Ts...>> {
@@ -1139,9 +1081,6 @@ template<typename I0, I0 v0, typename I1, I1 v1>
 struct less_<std::integral_constant<I0,v0>,std::integral_constant<I1,v1>> : ts_<std::integral_constant<decltype(v0 < v1), (v0 < v1)>>{};
 template<intmax_t N0, intmax_t D0,intmax_t N1, intmax_t D1>
 struct less_<std::ratio<N0,D0>,std::ratio<N1,D1>>: ts_<std::ratio_less<std::ratio<N0,D0>,std::ratio<N1,D1>>>{};
-static_assert(eval_pipe_<input_<i<1>>, less_<i<2>>>::value, "");
-static_assert(eval_pipe_<less_<i<1>, i<2>>>::value, "");
-static_assert(eval_pipe_<input_<i<1>, i<2>>, less_<>>::value, "");
 
 // LESS_EQ
 template <typename... Ts>
@@ -1452,7 +1391,7 @@ struct bind_on_args_ {
   template <typename... Ts>
   struct f
       : eval_pipe_<
-            input_<i<sizeof...(Ts)>>, mkseq_<>,
+            ts_<i<sizeof...(Ts)>>, mkseq_<>,
             transform_<cond_<same_as_<circular_modulo_t<I, sizeof...(Ts)>>,
                              ts_<pipe_<ts_<Ts...>, Es...>>, ts_<identity>>>,
             quote_<each_>>::template f<Ts...> {};
@@ -1461,13 +1400,9 @@ struct bind_on_args_ {
 template<int I, typename T>
 struct insert_c : write_null_<zip_index, transform_<listify>
 				  , partition_<unwrap,first,less_<i<I>>>
-				,fork_<pipe_<_1st,transform_<unwrap,_2nd>>
-					  ,input_<T>
-					  , pipe_<_2nd,transform_<unwrap,_2nd>>>
-				,each_<
-					wrap_<input_>
-					, wrap_<push_back_>
-					, wrap_<push_back_>>
+				,fork_<pipe_<_1st,transform_<unwrap,_2nd>,wrap_<input_append_>>
+					  ,ts_<input_append_<T>>
+					  , pipe_<_2nd,transform_<unwrap,_2nd>>, wrap_<input_append_>>
 					>
 {};
 template<typename V, typename T> using insert_ = insert_c<V::value,T>;
