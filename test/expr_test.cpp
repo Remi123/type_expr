@@ -13,15 +13,6 @@
 
 using namespace te;
 
-template<typename Tl,typename Ul> 
-struct cartesian_accumulate;
-template<typename ... Ts, typename ... Us>
-struct cartesian_accumulate<ts_<Ts...>,ts_<Us...>> :ts_<ts_<Ts...,Us...>>{};
-template<typename T, typename ... Us>
-struct cartesian_accumulate<T,ts_<Us...>> : ts_<ts_<T,Us...>>{};
-template<typename ... Ts,typename U>
-struct cartesian_accumulate<ts_<Ts...>,U> :ts_<ts_<Ts...,U>>{};
-
 int main() {
   using namespace te;
 
@@ -95,6 +86,10 @@ int main() {
   static_assert(
       te::eval_pipe_<input_<i<21>, i<49>>, lcm, same_as_<i<147>>>::value, "");
   // -------------------------------------------------------------------
+	static_assert(eval_pipe_<input_<i<1>>, less_<i<2>>>::value, "");
+	static_assert(eval_pipe_<less_<i<1>, i<2>>>::value, "");
+	static_assert(eval_pipe_<input_<i<1>, i<2>>, less_<>>::value, "");
+
 
   auto pipe_less_ = te::eval_pipe_<input_<i<1>, i<2>>, less_<>>{};
   auto pipe_less__2 = te::eval_pipe_<input_<i<1>>, less_<i<2>>>{};
@@ -157,7 +152,7 @@ int main() {
   static_assert(te::eval_pipe_<input_<int, ts_<int>, ls_<int, int>>, flatten,
                                same_as_<int, int, ls_<int, int>>>::value,
                 "");
-  // Flatten and join_list might be reworked
+  // flatten and join_list might be reworked
 
   static_assert(te::eval_pipe_<input_<int, int, int>,
                                cond_<same_as_<int, int>, ts_<b<false>>,
@@ -205,31 +200,31 @@ int main() {
   // replace_if transform the type into another if the predicate is true
 
   static_assert(
-	  te::eval_pipe_<input_<ts_<int, short>, ts_<float, char>>, cartesian_<>,
+	  te::eval_pipe_<input_<ts_<int, short>, ts_<float, char>>, cartesian,
 					 same_as_<ts_<int, float>, ts_<int, char>,
 							  ts_<short, float>, ts_<short, char>>>::value,
 	  "");
   static_assert(eval_pipe_<input_<ts_<i<1>, i<2>>, ts_<i<3>, i<4>>>,
-						   cartesian_<multiply_<>>,
+						   cartesian,transform_<multiply_<>>,
 						   same_as_<i<3>, i<4>, i<6>, i<8>>>::value,
 				"");
-  static_assert(eval_pipe_<input_<ts_<int[1]>, ts_<float[1]>>, cartesian_<>
+  static_assert(eval_pipe_<input_<ts_<int[1]>, ts_<float[1]>>, cartesian
 						   ,same_as_<ts_<int[1], float[1]>>
 						   >::value,
 				"");
   static_assert(
-	  eval_pipe_<input_<ts_<int[1], int[2]>, float[1]>, cartesian_<>
+	  eval_pipe_<input_<ts_<int[1], int[2]>, float[1]>, cartesian
 				 ,same_as_<ts_<int[1], float[1]>, ts_<int[2], float[1]>>
 				 >::value,
 	  "");
   static_assert(
-	  eval_pipe_<input_<ts_<int[1]>, ts_<float[1], float[2]>>, cartesian_<>
+	  eval_pipe_<input_<ts_<int[1]>, ts_<float[1], float[2]>>, cartesian
 				 ,same_as_<ts_<int[1], float[1]>, ts_<int[1], float[2]>>
 				 >::value,
 	  "");
   static_assert(
 	  eval_pipe_<input_<ts_<int[1], int[2], int[3]>, ts_<float[1], float[2]>>,
-				 cartesian_<>,
+				 cartesian,
 				 same_as_<ts_<int[1], float[1]>, ts_<int[1], float[2]>,
 						  ts_<int[2], float[1]>, ts_<int[2], float[2]>,
 						  ts_<int[3], float[1]>, ts_<int[3], float[2]>>>::value,
@@ -291,19 +286,16 @@ int main() {
                                same_as_<i<0>, i<1>>>::value,
                 "");
 
-
   static_assert(
-      te::eval_pipe_<
-          te::input_<
-		  te::ls_<int, float, char>,
-          te::ls_<>, te::ls_<int *, char *>, te::ls_<int>>,
-          te::transform_<te::unwrap, te::length, te::mkseq_<>>, te::zip_index
-		  ,transform_<te::cartesian_<listify>>
-		  , te::flatten,transform_<te::unwrap>
+      te::eval_pipe_<te::ts_<
+		  te::ls_<int, float, char>,te::ls_<>, te::ls_<int *, char *>, te::ls_<int>>
+          , te::transform_<te::unwrap, te::length, te::mkseq_<>>
+		  , te::zip_index
+		  , transform_<te::cartesian> ,flatten
 		  , te::unzip
 		  , transform_<wrap_std_integer_sequence_<int>>
-		  ,same_as_<std::integer_sequence<int, 0, 0, 0, 2, 2, 3>,
-				   std::integer_sequence<int, 0, 1, 2, 0, 1, 0>>
+		  , same_as_<	std::integer_sequence<int, 0, 0, 0, 2, 2, 3>,
+						std::integer_sequence<int, 0, 1, 2, 0, 1, 0>>
                    >::value,
       "Eric Niebler Challenge");
   // On this challenge, the goal was to unwrap, remove empty class, sort them by
@@ -407,22 +399,22 @@ static_assert(
     "Find_if returns both the index and the type that answer to the pred");
 
 static_assert(
-	eval_pipe_<input_<int, float>, cartesian_<>
+	eval_pipe_<input_<int, float>, cartesian
 	, same_as_<ts_<int, float>>
 	>::value,
 	"");
-static_assert(eval_pipe_<input_<int, ts_<float>>, cartesian_<>,
-						 same_as_<ts_<int, float>>>::value,
+static_assert(eval_pipe_<input_<int, ts_<float>>, cartesian
+						 ,same_as_<ts_<int, float>>>::value,
 			  "");
-static_assert(eval_pipe_<input_<int, ts_<float, int>>, cartesian_<>,
-						 same_as_<ts_<int, float>, ts_<int, int>>>::value,
+static_assert(eval_pipe_<input_<int, ts_<float, int>>, cartesian
+						 ,same_as_<ts_<int, float>, ts_<int, int>>>::value,
 			  "");
 static_assert(
 	eval_pipe_<
-		input_<ts_<int[1], int[2]>, ts_<int[3], int[4]>>, cartesian_<listify>,
+		input_<ts_<int[1], int[2]>, ts_<int[3], int[4]>>,cartesian,transform_<listify>,
 		same_as_<te::ls_<int[1], int[3]>, te::ls_<int[1], int[4]>,
 				 te::ls_<int[2], int[3]>, te::ls_<int[2], int[4]>>>::value,
-	"Cartesian give you the option of a BinaryFct to apply on the types");
+	"cartesian give you the option of a BinaryFct to apply on the types");
 
 static_assert(eval_pipe_<input_<int, float, short, int[2]>, rotate_c<5>,
                          same_as_<float, short, int[2], int>>::value,
@@ -531,7 +523,9 @@ static_assert(eval_pipe_<mkseq_<i<4>>,append_result_<fold_left_<plus_<>>>,same_a
 static_assert( eval_pipe_<input_<int,float,char>,erase_c<1>,same_as_<int,char>>::value,"");
 
 
-static_assert(eval_pipe_<input_<int,float,char>,zip_index, remove_if_<first,less_<i<1>>>
+static_assert(eval_pipe_<input_<int,float,char>
+		,zip_index
+		, remove_if_<first,less_<i<1>>>
 		,transform_<second>
 		,same_as_<float,char>
 		>::value,"");
