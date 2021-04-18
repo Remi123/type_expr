@@ -523,7 +523,9 @@ static_assert(eval_pipe_<mkseq_<i<4>>,append_result_<fold_left_<plus_<>>>,same_a
 static_assert( eval_pipe_<input_<int,float,char>,erase_c<1>,same_as_<int,char>>::value,"");
 
 
-static_assert(eval_pipe_<input_<int,float,char>,zip_index, remove_if_<first,less_<i<1>>>
+static_assert(eval_pipe_<input_<int,float,char>
+		,zip_index
+		, remove_if_<first,less_<i<1>>>
 		,transform_<second>
 		,same_as_<float,char>
 		>::value,"");

@@ -807,11 +807,6 @@ struct not_<> {
 
 // REMOVE_IF_ : Remove every type where the metafunction "returns"
 // std::true_type
-template<typename ...Up>
-struct removeif_ : write_null_<transform_<
-					 cond_<pipe_<Up...>,ts_<identity>
-					,wrap_<input_append_>>>
-					>{};
 template<typename ... Up>
 struct remove_if_
 {
