@@ -21,6 +21,9 @@ if (BUILD_TESTING AND TYPE_EXPR_TEST  )
     endif()
 	if(TYPE_EXPR_TEST_TUP)
         add_executable(test_tup tup_test.cpp)
+		set_target_properties(test_tup
+			PROPERTIES
+			CXX_STANDARD 17)
         target_link_libraries(test_tup type_expr)
         add_test(Test_of_Tup test_tup)
 	endif()

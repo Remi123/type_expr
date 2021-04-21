@@ -31,6 +31,10 @@ namespace std{
 	template<typename > struct tuple_size;
 	template<typename ... Ts>
 		struct tuple_size<te::tup<Ts...>> : public std::integral_constant<std::size_t,te::tup<Ts...>::size>{};
+	template<std::size_t I, typename ... Ts>
+		struct tuple_element<I,te::tup<Ts...>> {
+			using type = te::eval_pipe_<te::ts_<Ts...>,te::at_c<I>>;
+		};
 }
 
 namespace te {
@@ -46,9 +50,9 @@ namespace te {
 
 			tup_element(const tup_element<te::i<I>,T>& other) : data{other.data} {}
 			tup_element(te::tup_element<te::i<I>,T>&& o) : data{std::forward<T>(o.data)}{}
-			T& get()
+			T& get() const
 			{
-				return data;
+				return const_cast<T&>(data);
 			}
 			protected:
   			T data;
@@ -91,7 +95,7 @@ namespace te {
 			tup_impl(tup_impl<tup_element<Is,Ts>...>&& o) : tup_element<Is,Ts>{std::forward<tup_element<Is,Ts>>(o)}...{}
 
   			template <std::size_t I>
-  				constexpr auto get() -> te::eval_pipe_<te::ts_<te::ls_<Is,Ts>...>,te::filter_<te::unwrap,te::first,te::same_as_<te::i<I>>>,te::unwrap,te::second> & {
+  				constexpr auto get() const -> te::eval_pipe_<te::ts_<te::ls_<Is,Ts>...>,te::filter_<te::unwrap,te::first,te::same_as_<te::i<I>>>,te::unwrap,te::second> & {
 					return te::eval_pipe_<te::ts_<te::ls_<Is,Ts>...>,te::filter_<te::unwrap,te::first,te::same_as_<i<I>>>,te::unwrap,te::wrap_<tup_element>>::get();
   				}
 			template<typename T, int I = 0>
@@ -143,11 +147,6 @@ namespace te {
     		return te::tup<unwrap_decay_t<Types>...>{std::forward<Types>(args)...};
 		}
 
-	template <unsigned int I, typename... Ts>
-		constexpr auto get(te::tup<Ts...> &t) -> decltype(t.template get<I>()) {
-			return t.template get<I>();
-		}
-
 	template <typename... Args>
 		constexpr // since C++14
 		std::tuple<Args&...> tie(Args&... args) noexcept {
@@ -162,18 +161,8 @@ namespace te {
 	template<typename ... Ts, std::size_t ... Is>
 		constexpr te::eval_pipe_<te::input_<Ts...>,te::fork_<te::at_c<Is>...>,te::wrap_<tup>> tup_get(std::integer_sequence<std::size_t,Is...>,te::tup<Ts...>& tup)  
 		{
-			return te::make_tup(std::move(te::get<Is>(tup))...);
+			return te::make_tup(std::move(std::get<Is>(tup))...);
 		}
-
-	template<typename ... Ts>
-		using indexes = 
-		te::eval_pipe_<te::input_<Ts...>, te::zip_index
-		,te::group_range_<te::second,te::size> 
-		,te::sort_<transform_<te::second,te::size>,te::greater_<>>
-		,te::transform_<te::first>
-		,te::wrap_std_integer_sequence_<std::size_t>
-		>;
-
 
 	// TUP_CAT
 	// Given multiple tup, concatenate them using the same expension trick than Eric
@@ -220,6 +209,19 @@ namespace te {
 		};
 
 };  // namespace te
+
+namespace std{
+
+	template <unsigned int I, typename... Ts>
+		constexpr auto get(te::tup<Ts...> &t) -> decltype(t.template get<I>()) {
+			return t.template get<I>();
+		}
+	template <typename T,unsigned int I = 0, typename... Ts>
+		constexpr auto get(te::tup<Ts...> &t) -> decltype(t.template get<T,I>()) {
+			return t.template get<T,I>();
+		}
+
+};
 
 
 #endif  // TYPE_EXPR_TUP_HPP

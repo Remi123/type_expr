@@ -5,6 +5,7 @@
 
 #include <assert.h>
 
+#include <iostream>
 #include <tuple>
 #include <string>
 #include <memory>
@@ -13,25 +14,26 @@
 #include <type_expr.hpp>
 #include <type_tup.hpp>
 
-	static_assert(
-			sizeof(te::tup<short,int,char>) < sizeof(std::tuple<short,int,char>)
-			,"");
-	//tup's types are internally sorted from biggest to smallest size to avoid
-	// padding issues while still allowing typical get<int N>() access 
 
-	struct bad_padding {
-		short s;
-		int i;
-		char c;
-	};
+struct bad_padding {
+	short s;
+	int i;
+	char c;
+};
 
 struct good_padding{
 	int i;
 	short s;
 	char c;
 };
-static_assert(sizeof(good_padding) < sizeof(bad_padding),"");
-static_assert(sizeof(good_padding) == sizeof(te::tup<short,int,char>),"");
+	static_assert(
+			sizeof(te::tup<short,int,char>) < sizeof(std::tuple<short,int,char>)
+			,"");
+	static_assert(sizeof(good_padding) < sizeof(bad_padding),"");
+	static_assert(sizeof(good_padding) == sizeof(te::tup<short,int,char>),"");
+	//tup's types are internally sorted from biggest to smallest size to avoid
+	// padding issues while still allowing typical get<int N>() access 
+
 
 
 
@@ -98,23 +100,35 @@ int main()
 		te::tup<int,float> t2{23,100.0f};
 		te::tup<std::string,int > t3{"Hello",100};
 		auto tt5 = te::tup_cat(t1, t2, t3);
-		assert(	tt5.get<0>() == 42 &&
+		assert((tt5.get<0>() == 42 &&
 				tt5.get<1>() == 23 &&
 				tt5.get<2>() == 100.0f &&
 				tt5.get<3>() == "Hello" &&
 				tt5.get<4>() == 100
-			  );
+			  ));
 	}
 	{
 		te::tup<int,std::string,int,std::string> isis{1,"Hello",3,"World"};
-		bool test = 
+		assert(( 
 			isis.get<int>() == 1 &&
 			isis.get<int,1>() == 3 &&
 			isis.get<std::string>() == "Hello" &&
-			isis.get<std::string,1>() == "World"; 
-		assert(test == true);
+			isis.get<std::string,1>() == "World")); 
+		//assert(test == true);
 		isis.get<int>() = 0;
+		assert(std::get<0>(isis) == 0 );
+		assert((std::get<int,1>(isis) == 3));
 		assert(isis.get<int>() == 0);
 	}
+	std::cout << "C++ Version : " <<  __cplusplus << std::endl;
+#if __cplusplus >= 201703L
+	{
+		int x{}, y{2}; float z{3.0f};
+		te::tup<int&,const int,float&&> tpl{x,2,std::move(z)};
+		const auto& [a,b,c] = tpl;
+		a = 42;
+		assert(a == x);
+	}
+#endif
   	return 0;
 }
