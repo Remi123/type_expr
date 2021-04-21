@@ -779,12 +779,17 @@ struct length {
 };
 
 // SIZE : Continue with the sizeof(T). T is one input_
+namespace detail{
+	template<typename T>
+	struct size_impl{using type = te::i<sizeof(T)>;};
+	template<>
+	struct size_impl<void> {using type = te::i<0>;};
+}
 struct size {
   template <typename T>
-  struct f {
-    typedef i<sizeof(T)> type;
-  };
+  struct f: detail::size_impl<T>{};
 };
+//struct size::f<void> { using type = i<0>;};
 
 // ALIGNMENT : Continue with the alignment of one input_.
 struct alignment {

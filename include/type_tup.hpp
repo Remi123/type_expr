@@ -50,8 +50,25 @@ namespace te {
 			{
 				return data;
 			}
-
+			protected:
   			T data;
+		};
+	template<int I>
+		struct tup_element<te::i<I>,void>{
+			/*	The goal of this class is to not make the compiler explode when instantiating a void element.
+			 *	A void is a perfectly valid tup element. Accessing it should be forbidden
+			 * */
+			tup_element() {} 
+			template<typename T>
+	  		tup_element(const T& t) {} 
+			template<typename U>
+	  			tup_element(U &&t){} // Move or copy
+  			~tup_element() = default;
+			template<typename T>
+			tup_element(const tup_element<te::i<I>,T>& other) {}
+			template<typename T>
+			tup_element(te::tup_element<te::i<I>,T>&& o) {}
+		
 		};
 
 	template<int Index,typename ... IElem>
@@ -64,28 +81,27 @@ namespace te {
 	template <typename... Is, typename... Ts>
 		struct tup_impl<tup_element<Is, Ts>...> : nth_tup_element_<Is::value,Ts...>... {
 
-
 			tup_impl()  : tup_element<Is,Ts>{}... {} 
   			tup_impl(const Ts& ... ts) : tup_element<Is, Ts>(ts)... {}
   			template<typename ... Us>
-  				tup_impl(Ts&&... ts) : tup_element<Is, Ts>{std::forward<Ts>(ts)}... {}
+  				tup_impl(Us&&... ts) : tup_element<Is, Ts>{std::forward<Us>(ts)}... {}
   			~tup_impl() = default;
 
 			tup_impl(const tup_impl<tup_element<Is,Ts>...>& o) : tup_element<Is, Ts>{o}... {}
 			tup_impl(tup_impl<tup_element<Is,Ts>...>&& o) : tup_element<Is,Ts>{std::forward<tup_element<Is,Ts>>(o)}...{}
 
   			template <std::size_t I>
-  				auto get() -> te::eval_pipe_<te::ts_<te::ls_<Is,Ts>...>,te::filter_<te::unwrap,te::first,te::same_as_<te::i<I>>>,te::unwrap,te::second> & {
-					return te::eval_pipe_<te::ts_<te::ls_<Is,Ts>...>,te::filter_<te::unwrap,te::first,te::same_as_<i<I>>>,te::unwrap,te::wrap_<tup_element>>::data;
+  				constexpr auto get() -> te::eval_pipe_<te::ts_<te::ls_<Is,Ts>...>,te::filter_<te::unwrap,te::first,te::same_as_<te::i<I>>>,te::unwrap,te::second> & {
+					return te::eval_pipe_<te::ts_<te::ls_<Is,Ts>...>,te::filter_<te::unwrap,te::first,te::same_as_<i<I>>>,te::unwrap,te::wrap_<tup_element>>::get();
   				}
 			template<typename T, int I = 0>
-  				auto get() -> T&
+  				constexpr auto get() -> T&
   				{
   					return 
 						te::eval_pipe_<te::ts_<te::tup_element<Is,Ts>...>
 						, te::filter_<te::unwrap,te::second,te::same_as_<T>>
 						, te::at_c<I>
-					    >::data;
+					    >::get();
   				}
 		};
 
@@ -128,17 +144,23 @@ namespace te {
 		}
 
 	template <unsigned int I, typename... Ts>
-		auto get(te::tup<Ts...> &t) -> decltype(t.template get<I>()) {
-  			return t.template get<I>();
+		constexpr auto get(te::tup<Ts...> &t) -> decltype(t.template get<I>()) {
+			return t.template get<I>();
+		}
+
+	template <typename... Args>
+		constexpr // since C++14
+		std::tuple<Args&...> tie(Args&... args) noexcept {
+			return {args...};
 		}
 
 	template <class... Types>
-		tup<Types &&...> forward_as_tup(Types &&... args) noexcept {
-  			return te::tup<Types &&...>(std::forward<Types>(args)...);
+		constexpr tup<Types &&...> forward_as_tup(Types &&... args) noexcept {
+			return te::tup<Types &&...>(std::forward<Types>(args)...);
 		}
 
 	template<typename ... Ts, std::size_t ... Is>
-		te::eval_pipe_<te::input_<Ts...>,te::fork_<te::at_c<Is>...>,te::wrap_<tup>> tup_get(std::integer_sequence<std::size_t,Is...>,te::tup<Ts...>& tup)  
+		constexpr te::eval_pipe_<te::input_<Ts...>,te::fork_<te::at_c<Is>...>,te::wrap_<tup>> tup_get(std::integer_sequence<std::size_t,Is...>,te::tup<Ts...>& tup)  
 		{
 			return te::make_tup(std::move(te::get<Is>(tup))...);
 		}
@@ -163,7 +185,7 @@ namespace te {
 	//
 	namespace detail {
 		template <int... Is, int... Ks, typename... Ts, typename Tup_of_Tups>
-			auto tup_cat_impl(std::integer_sequence<int, Is...>, 
+			constexpr auto tup_cat_impl(std::integer_sequence<int, Is...>, 
 					std::integer_sequence<int, Ks...>,
                     Tup_of_Tups &&tpls) 
             -> decltype(te::make_tup(tpls.template get<Is>().template get<Ks>()...))
@@ -178,7 +200,7 @@ namespace te {
 		using tup_cat_return = te::eval_pipe_<te::ts_<Ts...>,te::transform_<te::unwrap>,te::flatten,te::wrap_<te::tup>>;
 
 	template <typename... Tups>
-		tup_cat_return<Tups...> tup_cat(Tups &&... tups) {
+			constexpr tup_cat_return<Tups...> tup_cat(Tups &&... tups) {
   			// This do the magic of getting the cartesian cartesian of each tup's types
   			// with the index inside
   			using zip_indexes = te::eval_pipe_<
