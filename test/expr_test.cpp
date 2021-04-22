@@ -330,25 +330,6 @@ int main() {
           te::wraptype_<std::is_same>>::value,
       "");
 
-  static_assert(eval_pipe_<input_<int>, if_<same_as_<int>>,
-                           then_<input_<int *>>, endif, same_as_<int *>>::value,
-                "");
-  static_assert(
-      eval_pipe_<input_<float>, if_<same_as_<int>>,
-                 then_<wraptype_<std::add_pointer>>, else_if_<same_as_<float>>,
-                 then_<wraptype_<std::add_const>>, endif,
-                 same_as_<const float>>::value,
-      "");
-  static_assert(
-      eval_pipe_<input_<char, int>, if_<same_as_<char, float>>,
-                 or_if_<same_as_<char, int>>, then_<listify>,
-                 else_<input_<int>>, endif, same_as_<ls_<char, int>>>::value,
-      "");
-  static_assert(eval_pipe_<input_<char, int>, if_<same_as_<char, float>>,
-                           and_if_<same_as_<char, int>>, then_<listify>,
-                           else_<input_<int>>, endif, same_as_<int>>::value,
-                "");
-
   return 0;
 }
 
