@@ -1050,45 +1050,14 @@ struct equal_<std::ratio<N0,D0>,std::ratio<N1,D1>> { using type = std::ratio_equ
 
 // MODULO 
 template <typename... Ts>
-struct modulo_ {
-  typedef error_<modulo_<Ts...>> type;
-};
-template <typename P>
-struct modulo_<P> {
-  template <typename... Ts>
-  struct f;
-  template <typename I>
-  struct f<I> {
-    typedef decltype(std::declval<I>() % std::declval<P>()) type;
-  };
-};
-template <typename T, T t>
-struct modulo_<std::integral_constant<T, t>> {
-  template <typename>
-  struct f;
-  template <typename U, U u>
-  struct f<std::integral_constant<U, u>> {
-    typedef std::integral_constant<decltype(u % t), u % t> type;
-  };
-};
-template <intmax_t nA, intmax_t dA>
-struct modulo_<std::ratio<nA, dA>> {
-  template <typename...>
-  struct f {
-    typedef error_<plus_<std::ratio<nA, dA>>> type;
-  };
-};
-template <>
-struct modulo_<> {
-  template <typename P, typename B>
-  struct f {
-    typedef decltype(std::declval<P>() % std::declval<B>()) type;
-  };
-  template <typename T, typename U, T t, U u>
-  struct f<std::integral_constant<T, t>, std::integral_constant<U, u>> {
-    typedef std::integral_constant<decltype(t % u), t % u> type;
-  };
-};
+struct modulo_ : post_op<modulo_,Ts...> {};
+template <typename I,typename P>
+struct modulo_<I,P> { using type = decltype(std::declval<I>() % std::declval<P>());};
+template <typename T, T t, typename U, U u>
+struct modulo_< std::integral_constant<T, t>, std::integral_constant<U,u>> 
+{using type = std::integral_constant<decltype(t % u), t % u>;  };
+
+
 
 struct gcd {
   template <typename...>

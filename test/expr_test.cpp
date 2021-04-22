@@ -438,10 +438,9 @@ static_assert(eval_pipe_<input_<void, int, void, float, float, int>, unique,
 
 static_assert(
     eval_pipe_<
-        input_<i<1>, i<2>, i<3>, i<4>>, group_by_<modulo_<i<2>>>,
-        same_as_<std::integral_constant<int, 1>, std::integral_constant<int, 3>,
-                 std::integral_constant<int, 2>,
-                 std::integral_constant<int, 4>>>::value,
+        input_<i<1>, i<2>, i<3>, i<4>>, group_by_<modulo_<i<2>>>
+		,same_as_<i<1>,i<3>,i<2>,i<4>>
+		>::value,
     "Grouped by modulo 2");
 
 static_assert(
