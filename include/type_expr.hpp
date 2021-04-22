@@ -319,11 +319,7 @@ constexpr eval_pipe_<Fs...> eval_pipe_v = eval_pipe_<Fs...>::value;
 template <typename... Es>
 struct pipe_ {
   template <typename... Ts>
-  struct f {
-    typedef
-        typename fold_left_<wraptype_<pipe_context>>::template f<ts_<Ts...>,
-                                                             Es...>::type type;
-  };
+  using f =  fold_left_<wraptype_<pipe_context>>::template f<ts_<Ts...>, Es...>;  
   // No ::type a la type_traits. The problem since it's always instanciated even if not
   // asked. required to have an alias eval_pipe_ = typename
   // pipe_<Fs...>::template f<>::type; to instanciate to the result type;
@@ -345,10 +341,9 @@ constexpr eval_pipe_<Fs...> eval(const pipe_<Fs...> &, Args &&... args) {
 template <typename... Ts>
 struct same_as_ {
   template <typename... Us>
-  struct f {
-    typedef typename std::is_same<ts_<Ts...>, ts_<Us...>>::type type;
-  };
+	using f =  std::is_same<ts_<Ts...>, ts_<Us...>>;
 };
+
 // TRANSFORM_ :
 // Similar to haskell's map. Also similar to std::transform
 template <typename... Es>
@@ -1052,10 +1047,10 @@ struct equal_<std::ratio<N0,D0>,std::ratio<N1,D1>> { using type = std::ratio_equ
 template <typename... Ts>
 struct modulo_ : post_op<modulo_,Ts...> {};
 template <typename I,typename P>
-struct modulo_<I,P> { using type = decltype(std::declval<I>() % std::declval<P>());};
+struct modulo_<I,P> : ts_<decltype(std::declval<I>() % std::declval<P>())>{};
 template <typename T, T t, typename U, U u>
 struct modulo_< std::integral_constant<T, t>, std::integral_constant<U,u>> 
-{using type = std::integral_constant<decltype(t % u), t % u>;  };
+: ts_<std::integral_constant<decltype(t % u), t % u>> {  };
 
 
 
