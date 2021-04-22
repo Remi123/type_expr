@@ -42,11 +42,11 @@ namespace te {
 	// TUP_ELEMENT
 	template <int I, typename T>
 		struct tup_element<te::i<I>, T> {
-	  		tup_element() : data{}{} 
-	  		tup_element(const T& t) : data{t} {} // Ref
+			tup_element() : data{}{} 
+			tup_element(const T& t) : data{t} {} // Ref
 			template<typename U>
-	  			tup_element(U &&t) : data{std::forward<U>(t)} {} // Move or copy
-  			~tup_element() = default;
+				tup_element(U &&t) : data{std::forward<U>(t)} {} // Move or copy
+			~tup_element() = default;
 
 			tup_element(const tup_element<te::i<I>,T>& other) : data{other.data} {}
 			tup_element(te::tup_element<te::i<I>,T>&& o) : data{std::forward<T>(o.data)}{}
@@ -55,7 +55,7 @@ namespace te {
 				return const_cast<T&>(data);
 			}
 			protected:
-  			T data;
+			T data;
 		};
 	template<int I>
 		struct tup_element<te::i<I>,void>{
@@ -64,15 +64,15 @@ namespace te {
 			 * */
 			tup_element() {} 
 			template<typename T>
-	  		tup_element(const T& t) {} 
+				tup_element(const T& t) {} 
 			template<typename U>
-	  			tup_element(U &&t){} // Move or copy
-  			~tup_element() = default;
+				tup_element(U &&t){} // Move or copy
+			~tup_element() = default;
 			template<typename T>
-			tup_element(const tup_element<te::i<I>,T>& other) {}
+				tup_element(const tup_element<te::i<I>,T>& other) {}
 			template<typename T>
-			tup_element(te::tup_element<te::i<I>,T>&& o) {}
-		
+				tup_element(te::tup_element<te::i<I>,T>&& o) {}
+
 		};
 
 	template<int Index,typename ... IElem>
@@ -86,27 +86,27 @@ namespace te {
 		struct tup_impl<tup_element<Is, Ts>...> : nth_tup_element_<Is::value,Ts...>... {
 
 			tup_impl()  : tup_element<Is,Ts>{}... {} 
-  			tup_impl(const Ts& ... ts) : tup_element<Is, Ts>(ts)... {}
-  			template<typename ... Us>
-  				tup_impl(Us&&... ts) : tup_element<Is, Ts>{std::forward<Us>(ts)}... {}
-  			~tup_impl() = default;
+			tup_impl(const Ts& ... ts) : tup_element<Is, Ts>(ts)... {}
+			template<typename ... Us>
+				tup_impl(Us&&... ts) : tup_element<Is, Ts>{std::forward<Us>(ts)}... {}
+			~tup_impl() = default;
 
 			tup_impl(const tup_impl<tup_element<Is,Ts>...>& o) : tup_element<Is, Ts>{o}... {}
 			tup_impl(tup_impl<tup_element<Is,Ts>...>&& o) : tup_element<Is,Ts>{std::forward<tup_element<Is,Ts>>(o)}...{}
 
-  			template <std::size_t I>
-  				constexpr auto get() const -> te::eval_pipe_<te::ts_<te::ls_<Is,Ts>...>,te::filter_<te::unwrap,te::first,te::same_as_<te::i<I>>>,te::unwrap,te::second> & {
+			template <std::size_t I>
+				constexpr auto get() const -> te::eval_pipe_<te::ts_<te::ls_<Is,Ts>...>,te::filter_<te::unwrap,te::first,te::same_as_<te::i<I>>>,te::unwrap,te::second> & {
 					return te::eval_pipe_<te::ts_<te::ls_<Is,Ts>...>,te::filter_<te::unwrap,te::first,te::same_as_<i<I>>>,te::unwrap,te::wrap_<tup_element>>::get();
-  				}
+				}
 			template<typename T, int I = 0>
-  				constexpr auto get() -> T&
-  				{
-  					return 
+				constexpr auto get() -> T&
+				{
+					return 
 						te::eval_pipe_<te::ts_<te::tup_element<Is,Ts>...>
 						, te::filter_<te::unwrap,te::second,te::same_as_<T>>
 						, te::at_c<I>
-					    >::get();
-  				}
+						>::get();
+				}
 		};
 
 
@@ -122,7 +122,7 @@ namespace te {
 
 			~tup() = default;
 			tup(){
-    			using dft_ctor = te::trait_<std::is_nothrow_default_constructible>;
+				using dft_ctor = te::trait_<std::is_nothrow_default_constructible>;
 				static_assert(te::eval_pipe_<te::ts_<Ts...>,te::all_of_<dft_ctor>>::value,"All Types are not default constructible");
 			}
 			tup(const Ts& ... ts) : te_tup_metafunction<Ts...>(ts...) {}
@@ -131,7 +131,7 @@ namespace te {
 			tup(const te::tup<Ts...>& o) : te_tup_metafunction<Ts...>{(te_tup_metafunction<Ts...>)o} {}
 			tup(te::tup<Ts...>&& o) : te_tup_metafunction<Ts...>{std::forward<te_tup_metafunction<Ts...>>(o)} {}
 
-  		};
+		};
 
 	template <class T>
 		struct unwrap_refwrapper{using type = T;};
@@ -144,7 +144,7 @@ namespace te {
 		static inline constexpr // since C++14
 		te::tup<unwrap_decay_t<Types>...> make_tup(Types&&... args)
 		{
-    		return te::tup<unwrap_decay_t<Types>...>{std::forward<Types>(args)...};
+			return te::tup<unwrap_decay_t<Types>...>{std::forward<Types>(args)...};
 		}
 
 	template <typename... Args>
@@ -176,12 +176,12 @@ namespace te {
 		template <int... Is, int... Ks, typename... Ts, typename Tup_of_Tups>
 			constexpr auto tup_cat_impl(std::integer_sequence<int, Is...>, 
 					std::integer_sequence<int, Ks...>,
-                    Tup_of_Tups &&tpls) 
-            -> decltype(te::make_tup(tpls.template get<Is>().template get<Ks>()...))
-            {
-  				return te::make_tup(
-      					// get<0>().get<0>(), get<0>().get<1>(), ...
-      					tpls.template get<Is>().template get<Ks>()...);
+					Tup_of_Tups &&tpls) 
+			-> decltype(te::make_tup(tpls.template get<Is>().template get<Ks>()...))
+			{
+				return te::make_tup(
+						// get<0>().get<0>(), get<0>().get<1>(), ...
+						tpls.template get<Is>().template get<Ks>()...);
 			}
 	};  // namespace detail
 
@@ -189,23 +189,23 @@ namespace te {
 		using tup_cat_return = te::eval_pipe_<te::ts_<Ts...>,te::transform_<te::unwrap>,te::flatten,te::wrap_<te::tup>>;
 
 	template <typename... Tups>
-			constexpr tup_cat_return<Tups...> tup_cat(Tups &&... tups) {
-  			// This do the magic of getting the cartesian cartesian of each tup's types
-  			// with the index inside
-  			using zip_indexes = te::eval_pipe_<
-      			te::ts_<Tups...>, te::transform_<te::trait_<std::remove_reference>,te::trait_<std::tuple_size>, te::mkseq_<>>,
-      			te::zip_index, transform_<cartesian>
-      				, te::flatten
-		  			, te::unzip>;
+		constexpr tup_cat_return<Tups...> tup_cat(Tups &&... tups) {
+			// This do the magic of getting the cartesian cartesian of each tup's types
+			// with the index inside
+			using zip_indexes = te::eval_pipe_<
+				te::ts_<Tups...>, te::transform_<te::trait_<std::remove_reference>,te::trait_<std::tuple_size>, te::mkseq_<>>,
+				te::zip_index, transform_<cartesian>
+					, te::flatten
+					, te::unzip>;
 
-  			using tup_index =
-      			te::eval_pipe_<zip_indexes, te::first, te::wrap_std_integer_sequence_<int>>;
-  			using types_index =
-      			te::eval_pipe_<zip_indexes, te::second, te::wrap_std_integer_sequence_<int>>;
-  			return detail::tup_cat_impl(
-      				tup_index{},    // int_seq
-      				types_index{},  // int_seq
-      				te::forward_as_tup(std::forward<Tups>(tups)...));
+			using tup_index =
+				te::eval_pipe_<zip_indexes, te::first, te::wrap_std_integer_sequence_<int>>;
+			using types_index =
+				te::eval_pipe_<zip_indexes, te::second, te::wrap_std_integer_sequence_<int>>;
+			return detail::tup_cat_impl(
+					tup_index{},    // int_seq
+					types_index{},  // int_seq
+					te::forward_as_tup(std::forward<Tups>(tups)...));
 		};
 
 };  // namespace te
