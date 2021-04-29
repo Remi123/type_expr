@@ -15,26 +15,24 @@
 #include <type_tup.hpp>
 
 
-struct bad_padding {
-	short s;
-	int i;
-	char c;
-};
+//struct bad_padding {
+	//short s;
+	//int i;
+	//char c;
+//};
 
-struct good_padding{
-	int i;
-	short s;
-	char c;
-};
-	static_assert(
-			sizeof(te::tup<short,int,char>) < sizeof(std::tuple<short,int,char>)
-			,"");
-	static_assert(sizeof(good_padding) < sizeof(bad_padding),"");
-	static_assert(sizeof(good_padding) == sizeof(te::tup<short,int,char>),"");
-	//tup's types are internally sorted from biggest to smallest size to avoid
-	// padding issues while still allowing typical get<int N>() access 
-
-
+//struct good_padding{
+	//int i;
+	//short s;
+	//char c;
+//};
+	//static_assert(
+			//sizeof(te::tup<short,int,char>) < sizeof(std::tuple<short,int,char>)
+			//,"");
+	//static_assert(sizeof(good_padding) < sizeof(bad_padding),"");
+	//static_assert(sizeof(good_padding) == sizeof(te::tup<short,int,char>),"");
+	////tup's types are internally sorted from biggest to smallest size to avoid
+	//// padding issues while still allowing typical get<int N>() access 
 
 
 // TYPE_TUP Test
