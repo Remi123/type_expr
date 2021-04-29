@@ -330,6 +330,10 @@ int main() {
           te::wraptype_<std::is_same>>::value,
       "");
 
+  static_assert(te::eval_pipe_<	te::mkseq_c<8>, nth_element_<i<7>>>::value == 7,"");
+  static_assert(te::eval_pipe_<	te::mkseq_c<8>, nth_element_<i<7>,less_<>>>::value == 7,"");
+  static_assert(te::eval_pipe_<	te::mkseq_c<8>, nth_element_<i<7>,greater_<>>>::value == 0,"");
+
   return 0;
 }
 

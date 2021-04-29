@@ -64,6 +64,10 @@ struct ts_<T> {
     typedef T type;
   };
 };
+
+template<typename T>
+struct type_identity {using type = T;};
+
 // Recursive ts_. Very powerful feature but make some algo not very intuitive.
 //template <typename... Ts>
 //struct ts_<ts_<Ts...>> : ts_<Ts...> {};
@@ -347,12 +351,14 @@ struct same_as_ {
 // TRANSFORM_ :
 // Similar to haskell's map. Also similar to std::transform
 template <typename... Es>
-struct transform_ {
+struct for_each_ {
   template <typename... Ts>
   struct f {
     typedef ts_<eval_pipe_<ts_<Ts>,Es...>...> type;
   };
 };
+template<typename ... Es> using transform_ = for_each_<Es...>;
+template<typename ... Es> using map_ = for_each_<Es...>;
 
 // FORK_ : Inputs are copied to each metafunctions
 // The Peanut Butter of the library
@@ -522,37 +528,37 @@ struct pre_op {
   };
 };
 
-
-template<typename ... Is> struct seq
-{
-    using as_ts = te::ts_<Is...>;
-    auto operator + ( te::b<false> )  
-    -> seq<Is...> ;
-    auto operator + ( te::b<true>)  
-    -> seq<Is...,te::i<sizeof...(Is)>> ;
-    template<int I> 
-    auto operator * (te::i<I>) 
-    -> seq<Is...,te::i<Is::value+I>...>;
-};
+namespace detail {
+    template <bool b, int HalfN, typename Is>
+    struct expanding;
+    template <bool b, int HalfN, typename... Is>
+    struct expanding<b, HalfN, ts_<Is...>> {
+    using type =
+        ts_<Is..., std::integral_constant<int, (Is::value + HalfN)>...>;
+    };
+    template <int HalfN, typename... Is>
+    struct expanding<true, HalfN, ts_<Is...>> {
+    using type =
+        ts_<Is...,  std::integral_constant<int, (Is::value + HalfN)>...,
+                    std::integral_constant<int, sizeof...(Is) * 2>>;
+    };
+}  // namespace detail
 
 template<typename ... N>
 struct mkseq_ : post_op<mkseq_,N...>{};
 
-template<typename T,T N>
-struct mkseq_<std::integral_constant<T,N>> 
+template<int N>
+struct mkseq_<std::integral_constant<int,N>> 
 {
-    using curr = typename mkseq_<te::i<N/2>>::type_impl;
-    using type_impl = decltype(curr{}  * te::i<N/2>{}  + te::b<(N%2)>{});
-    using type = typename type_impl::as_ts;
-	template<typename ... > using f = type;
-
+	using current_sequence = typename mkseq_<std::integral_constant<int,N/2>>::type;
+	using type = typename detail::expanding<N % 2, N / 2, current_sequence>::type;
+	template<typename ... > using f = type_identity<type>; 
 };
 
-template<typename T> struct mkseq_<std::integral_constant<T,0>>
+template<> struct mkseq_<std::integral_constant<int,0>>
 {
-    using type_impl = seq<>;
     using type = te::ts_<>;
-	template<typename ... > using f = type;
+	template<typename ... > using f = ts_<>; 
 };
 template<std::size_t N> using mkseq_c = mkseq_<i<N>>;
 template<std::size_t N> using iota = mkseq_<i<N>>;
@@ -1087,6 +1093,13 @@ struct sort_
 };
 template<>
 struct sort_<> : sort_<less_<>>{}; // Default BinaryPredicate is less.
+
+// Nth_ELEMENT
+template<typename N,typename ... Bp>
+struct nth_element_ : pipe_<sort_<Bp...>,at_<N>>{};
+
+template<int N,typename ... Bp>
+using nth_element_c = nth_element_<i<N>,Bp...>;
 
 // APPEND_RESULT
 template<typename ...Es>

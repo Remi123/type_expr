@@ -76,15 +76,17 @@ namespace te {
 		};
 
 	template<int Index,typename ... IElem>
-		using nth_tup_element_ = te::eval_pipe_<te::ts_<IElem...>,te::zip_index,te::transform_<te::listify>
+		using nth_tup_element_ = 
+		te::eval_pipe_<te::ts_<IElem...>,te::zip_index,te::transform_<te::listify>
 		,te::sort_<te::transform_<te::unwrap,te::second,te::size>,te::greater_<>>
 		, te::at_c<Index>, te::unwrap,te::wrap_<tup_element>
 		>;
 
 	// TUP_IMPL
 	template <typename... Is, typename... Ts>
-		struct tup_impl<tup_element<Is, Ts>...> : nth_tup_element_<Is::value,Ts...>... {
-
+		struct tup_impl<tup_element<Is, Ts>...> 
+		: nth_tup_element_<Is::value,Ts...>... 
+		{
 			tup_impl()  : tup_element<Is,Ts>{}... {} 
 			tup_impl(const Ts& ... ts) : tup_element<Is, Ts>(ts)... {}
 			template<typename ... Us>
@@ -109,28 +111,26 @@ namespace te {
 				}
 		};
 
-
-	using sort_pred = te::pipe_<te::transform_<te::unwrap,te::second,te::size>,te::greater_<>>;
 	template <typename... Ts>
 		using te_tup_metafunction =
-		te::eval_pipe_<te::ts_<Ts...>, te::zip_index,te::transform_<wrap_<tup_element>>,/*te::sort_<sort_pred>,*/  te::wrap_<tup_impl>>;
+		te::eval_pipe_<te::ts_<Ts...>, te::zip_index,te::transform_<wrap_<tup_element>>, te::wrap_<tup_impl>>;
 
 	// TUP
 	template <typename... Ts>
-		struct tup : te_tup_metafunction<Ts...> {
+		struct tup : te_tup_metafunction<Ts...>{
 			static constexpr std::size_t size = sizeof...(Ts);
-
+			using _base = te_tup_metafunction<Ts...> ;
 			~tup() = default;
 			tup(){
 				using dft_ctor = te::trait_<std::is_nothrow_default_constructible>;
-				static_assert(te::eval_pipe_<te::ts_<Ts...>,te::all_of_<dft_ctor>>::value,"All Types are not default constructible");
+				static_assert(te::eval_pipe_<te::ts_<Ts...>,te::all_of_<te::trait_<std::is_nothrow_default_constructible>>>::value
+						,"All Types are not default constructible");
 			}
-			tup(const Ts& ... ts) : te_tup_metafunction<Ts...>(ts...) {}
+			tup(const Ts& ... ts) : _base(ts...) {}
 			template<typename ... Us>
-				tup(Ts&&... us) : te_tup_metafunction<Ts...>(std::forward<Ts>(us)...) {}
-			tup(const te::tup<Ts...>& o) : te_tup_metafunction<Ts...>{(te_tup_metafunction<Ts...>)o} {}
-			tup(te::tup<Ts...>&& o) : te_tup_metafunction<Ts...>{std::forward<te_tup_metafunction<Ts...>>(o)} {}
-
+				tup(Ts&&... us) : _base(std::forward<Ts>(us)...) {}
+			tup(const te::tup<Ts...>& o) : _base{(_base)o} {}
+			tup(te::tup<Ts...>&& o) : _base{std::forward<_base>(o)} {}
 		};
 
 	template <class T>

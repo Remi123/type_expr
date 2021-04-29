@@ -108,19 +108,18 @@ int main()
 			  ));
 	}
 	{
-		te::tup<int,std::string,int,std::string> isis{1,"Hello",3,"World"};
+		te::tup<int,std::string,int,std::string> sisi{1,"Hello",3,"World"};
 		assert(( 
-			isis.get<int>() == 1 &&
-			isis.get<int,1>() == 3 &&
-			isis.get<std::string>() == "Hello" &&
-			isis.get<std::string,1>() == "World")); 
+			sisi.get<int>() == 1 &&
+			sisi.get<int,1>() == 3 &&
+			sisi.get<std::string>() == "Hello" &&
+			sisi.get<std::string,1>() == "World")); 
 		//assert(test == true);
-		isis.get<int>() = 0;
-		assert(std::get<0>(isis) == 0 );
-		assert((std::get<int,1>(isis) == 3));
-		assert(isis.get<int>() == 0);
+		sisi.get<int>() = 0;
+		assert(std::get<0>(sisi) == 0 );
+		assert((std::get<int,1>(sisi) == 3));
+		assert(sisi.get<int>() == 0);
 	}
-	std::cout << "C++ Version : " <<  __cplusplus << std::endl;
 #if __cplusplus >= 201703L
 	{
 		int x{}, y{2}; float z{3.0f};
