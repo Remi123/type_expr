@@ -559,6 +559,9 @@ template<> struct mkseq_<std::integral_constant<int,0>>
     using type = te::ts_<>;
 	template<typename ... > using f = ts_<ts_<>>; 
 };
+template<typename ValueType>
+struct mkseq_<ValueType> : mkseq_<te::i<ValueType::value>>{};
+
 template<std::size_t N> using mkseq_c = mkseq_<i<N>>;
 template<std::size_t N> using iota = mkseq_<i<N>>;
 template<std::size_t N> using iota_c = mkseq_c<N>;

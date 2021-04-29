@@ -262,6 +262,9 @@ int main() {
   static_assert(
       te::eval_pipe_<mkseq_<i<5>>, pipe_<at_c<-1>>, same_as_<i<4>>>::value,
       "the last of {0,1,2,3,4} is 4");
+  static_assert(te::eval_pipe_<
+		  mkseq_<std::integral_constant<std::size_t,3>>
+		  ,same_as_<i<0>,i<1>,i<2>>>::value,"");
 
   static_assert(
       te::eval_pipe_<input_<i<2>>, mkseq_<>, same_as_<i<0>, i<1>>>::value, "");
