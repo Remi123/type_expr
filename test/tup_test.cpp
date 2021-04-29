@@ -53,6 +53,14 @@ int main()
 		assert(t1.get<0>() == 42 && t2.get<0>() == 42 && t3.get<0>() == 42);
 	}
 	{
+		constexpr te::tup<int> t = 8; 
+		constexpr te::tup<int,float> t2{ 8,4 }; 
+		constexpr te::tup<const char *> t3{"Hello World"};
+		static_assert(t.get<0>() == 8,"");
+		static_assert(t2.get<0>() == 8,"");
+		static_assert(t3.get<0>() == "Hello World");
+	}
+	{
 		int j = 42, k = 43;
 		te::tup<int&> tr1{j};
 		te::tup<int,int> tii {1,2};

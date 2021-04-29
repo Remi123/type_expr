@@ -42,15 +42,15 @@ namespace te {
 	// TUP_ELEMENT
 	template <int I, typename T>
 		struct tup_element<te::i<I>, T> {
-			tup_element() : data{}{} 
-			tup_element(const T& t) : data{t} {} // Ref
+			constexpr tup_element() : data{}{} 
+			constexpr tup_element(const T& t) : data{t} {} // Ref
 			template<typename U>
-				tup_element(U &&t) : data{std::forward<U>(t)} {} // Move or copy
+				constexpr tup_element(U &&t) : data{std::forward<U>(t)} {} // Move or copy
 			~tup_element() = default;
 
-			tup_element(const tup_element<te::i<I>,T>& other) : data{other.data} {}
-			tup_element(te::tup_element<te::i<I>,T>&& o) : data{std::forward<T>(o.data)}{}
-			T& get() const
+			constexpr tup_element(const tup_element<te::i<I>,T>& other) : data{other.data} {}
+			constexpr tup_element(te::tup_element<te::i<I>,T>&& o) : data{std::forward<T>(o.data)}{}
+			constexpr T& get() const
 			{
 				return const_cast<T&>(data);
 			}
@@ -62,16 +62,16 @@ namespace te {
 			/*	The goal of this class is to not make the compiler explode when instantiating a void element.
 			 *	A void is a perfectly valid tup element. Accessing it should be forbidden
 			 * */
-			tup_element() {} 
+			constexpr tup_element() {} 
 			template<typename T>
-				tup_element(const T& t) {} 
+				constexpr tup_element(const T& t) {} 
 			template<typename U>
-				tup_element(U &&t){} // Move or copy
+				constexpr tup_element(U &&t){} // Move or copy
 			~tup_element() = default;
 			template<typename T>
-				tup_element(const tup_element<te::i<I>,T>& other) {}
+				constexpr tup_element(const tup_element<te::i<I>,T>& other) {}
 			template<typename T>
-				tup_element(te::tup_element<te::i<I>,T>&& o) {}
+				constexpr tup_element(te::tup_element<te::i<I>,T>&& o) {}
 
 		};
 
@@ -87,14 +87,14 @@ namespace te {
 		struct tup_impl<tup_element<Is, Ts>...> 
 		: nth_tup_element_<Is::value,Ts...>... 
 		{
-			tup_impl()  : tup_element<Is,Ts>{}... {} 
-			tup_impl(const Ts& ... ts) : tup_element<Is, Ts>(ts)... {}
+			constexpr tup_impl()  : tup_element<Is,Ts>{}... {} 
+			constexpr tup_impl(const Ts& ... ts) : tup_element<Is, Ts>(ts)... {}
 			template<typename ... Us>
-				tup_impl(Us&&... ts) : tup_element<Is, Ts>{std::forward<Us>(ts)}... {}
+				constexpr tup_impl(Us&&... ts) : tup_element<Is, Ts>{std::forward<Us>(ts)}... {}
 			~tup_impl() = default;
 
-			tup_impl(const tup_impl<tup_element<Is,Ts>...>& o) : tup_element<Is, Ts>{o}... {}
-			tup_impl(tup_impl<tup_element<Is,Ts>...>&& o) : tup_element<Is,Ts>{std::forward<tup_element<Is,Ts>>(o)}...{}
+			constexpr tup_impl(const tup_impl<tup_element<Is,Ts>...>& o) : tup_element<Is, Ts>{o}... {}
+			constexpr tup_impl(tup_impl<tup_element<Is,Ts>...>&& o) : tup_element<Is,Ts>{std::forward<tup_element<Is,Ts>>(o)}...{}
 
 			template <std::size_t I>
 				constexpr auto get() const -> te::eval_pipe_<te::ts_<te::ls_<Is,Ts>...>,te::filter_<te::unwrap,te::first,te::same_as_<te::i<I>>>,te::unwrap,te::second> & {
@@ -121,16 +121,16 @@ namespace te {
 			static constexpr std::size_t size = sizeof...(Ts);
 			using _base = te_tup_metafunction<Ts...> ;
 			~tup() = default;
-			tup(){
+			constexpr tup(){
 				using dft_ctor = te::trait_<std::is_nothrow_default_constructible>;
 				static_assert(te::eval_pipe_<te::ts_<Ts...>,te::all_of_<te::trait_<std::is_nothrow_default_constructible>>>::value
 						,"All Types are not default constructible");
 			}
-			tup(const Ts& ... ts) : _base(ts...) {}
+			constexpr tup(const Ts& ... ts) : _base(ts...) {}
 			template<typename ... Us>
-				tup(Ts&&... us) : _base(std::forward<Ts>(us)...) {}
-			tup(const te::tup<Ts...>& o) : _base{(_base)o} {}
-			tup(te::tup<Ts...>&& o) : _base{std::forward<_base>(o)} {}
+				constexpr tup(Ts&&... us) : _base(std::forward<Ts>(us)...) {}
+			constexpr tup(const te::tup<Ts...>& o) : _base{(_base)o} {}
+			constexpr tup(te::tup<Ts...>&& o) : _base{std::forward<_base>(o)} {}
 		};
 
 	template <class T>
