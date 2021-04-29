@@ -30,7 +30,7 @@ namespace te {
 namespace std{
 	template<typename > struct tuple_size;
 	template<typename ... Ts>
-		struct tuple_size<te::tup<Ts...>> : public std::integral_constant<std::size_t,te::tup<Ts...>::size>{};
+		struct tuple_size<te::tup<Ts...>> : public std::integral_constant<int,te::tup<Ts...>::size>{};
 	template<std::size_t I, typename ... Ts>
 		struct tuple_element<I,te::tup<Ts...>> {
 			using type = te::eval_pipe_<te::ts_<Ts...>,te::at_c<I>>;
@@ -158,8 +158,8 @@ namespace te {
 			return te::tup<Types &&...>(std::forward<Types>(args)...);
 		}
 
-	template<typename ... Ts, std::size_t ... Is>
-		constexpr te::eval_pipe_<te::input_<Ts...>,te::fork_<te::at_c<Is>...>,te::wrap_<tup>> tup_get(std::integer_sequence<std::size_t,Is...>,te::tup<Ts...>& tup)  
+	template<typename ... Ts, int ... Is>
+		constexpr te::eval_pipe_<te::input_<Ts...>,te::fork_<te::at_c<Is>...>,te::wrap_<tup>> tup_get(std::integer_sequence<int,Is...>,te::tup<Ts...>& tup)  
 		{
 			return te::make_tup(std::move(std::get<Is>(tup))...);
 		}

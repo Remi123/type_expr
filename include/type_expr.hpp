@@ -515,9 +515,7 @@ struct cond_ {
 template <template <typename...> class CRTP, typename... Ts>
 struct post_op {
   template <typename... Us>
-  struct f {
-    using type = typename CRTP<Us..., Ts...>::type;
-  };
+	struct f {using type = typename CRTP<Us..., Ts...>::type;};
 };
 // prefix_operator : Internal type
 template <template <typename...> class CRTP, typename... Ts>
@@ -534,12 +532,12 @@ namespace detail {
     template <bool b, int HalfN, typename... Is>
     struct expanding<b, HalfN, ts_<Is...>> {
     using type =
-        ts_<Is..., std::integral_constant<int, (Is::value + HalfN)>...>;
+        te::ts_<Is..., std::integral_constant<int, (Is::value + HalfN)>...>;
     };
     template <int HalfN, typename... Is>
     struct expanding<true, HalfN, ts_<Is...>> {
     using type =
-        ts_<Is...,  std::integral_constant<int, (Is::value + HalfN)>...,
+        te::ts_<Is...,  std::integral_constant<int, (Is::value + HalfN)>...,
                     std::integral_constant<int, sizeof...(Is) * 2>>;
     };
 }  // namespace detail
@@ -551,14 +549,15 @@ template<int N>
 struct mkseq_<std::integral_constant<int,N>> 
 {
 	using current_sequence = typename mkseq_<std::integral_constant<int,N/2>>::type;
-	using type = typename detail::expanding<N % 2, N / 2, current_sequence>::type;
-	template<typename ... > using f = type_identity<type>; 
+	using type_impl = typename detail::expanding<N % 2, N / 2, current_sequence>::type;
+	using type = type_impl;
+	template<typename ... > struct f {using type = type_impl;}; 
 };
 
 template<> struct mkseq_<std::integral_constant<int,0>>
 {
     using type = te::ts_<>;
-	template<typename ... > using f = ts_<>; 
+	template<typename ... > using f = ts_<ts_<>>; 
 };
 template<std::size_t N> using mkseq_c = mkseq_<i<N>>;
 template<std::size_t N> using iota = mkseq_<i<N>>;
