@@ -11,6 +11,9 @@ option(TYPE_EXPR_TEST_TUP
 option(TYPE_EXPR_TEST_VAR
 	"Generate 'te::var' tests` "
 	ON)
+option(TYPE_EXPR_TEST_VARIANT
+	"Generate 'te::variant' tests` "
+	ON)
 
 if (BUILD_TESTING AND TYPE_EXPR_TEST  )
 
@@ -32,5 +35,9 @@ if (BUILD_TESTING AND TYPE_EXPR_TEST  )
         target_link_libraries(test_var type_expr)
         add_test(Test_of_Var test_var)
     endif()
-
+	if(TYPE_EXPR_TEST_VARIANT)
+        add_executable(test_variant variant_test.cpp)
+        target_link_libraries(test_variant type_expr)
+        add_test(Test_of_Variant test_variant)
+    endif()
 endif()
