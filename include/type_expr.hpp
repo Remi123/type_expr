@@ -1236,6 +1236,28 @@ struct erase_c : write_null_<
 
 template<typename V> using erase_ = erase_c<V::value>;
 
+template<typename ... Ts> struct Overload_ctor;
+template <typename T, typename... Ts>
+struct Overload_ctor<T,Ts...> : Overload_ctor<Ts...>
+{
+    T overload(T);
+    using Overload_ctor<Ts...>::overload;
+};
+template <typename T> struct Overload_ctor<T> {
+    T overload(T);
+};
+
+template<typename T>
+struct find_overload{
+    template<typename ...  Ts>
+    struct f {
+        using type =
+    decltype(
+        Overload_ctor<Ts...>{}.
+        overload(std::declval<T>())
+        );
+    };
+};
 
 };  // namespace te
 #endif
