@@ -5,6 +5,12 @@
 #ifndef TYPE_EXPR_VARIANT_HPP
 #define TYPE_EXPR_VARIANT_HPP
 
+#if __cplusplus < 201402L
+#define TE_VARIANT_CTOR_CONSTEXPR 
+#else
+#define TE_VARIANT_CTOR_CONSTEXPR constexpr
+#endif
+
 #include <new>
 
 #include "type_expr.hpp"
@@ -29,14 +35,18 @@ namespace te{
 			storage_t m_storage;
 			int32_t m_index_types;
 
-			constexpr variant() 
+      using dft_ctor_type = te::eval_pipe_<unique_fct,te::find_type_if_<te::trait_<std::is_default_constructible>>>;
+			
+      TE_VARIANT_CTOR_CONSTEXPR 
+          variant() 
 				: m_index_types{te::eval_pipe_<unique_fct,find_index_if_<te::trait_<std::is_default_constructible>>>::value}
 			{
-				using dft_ctor_type = te::eval_pipe_<unique_fct,te::find_type_if_<te::trait_<std::is_default_constructible>>>;
 				variant_assign_mem<dft_ctor_type>(m_storage);
 			}
 			template<typename U>
-				constexpr variant(U&& u) 
+
+      TE_VARIANT_CTOR_CONSTEXPR 
+				variant(U&& u) 
 				: m_index_types{te::eval_pipe_<unique_fct,te::find_index_if_<te::same_as_<U>>>::value}
 			{
 				using overload = te::eval_pipe_<unique_fct,te::find_overload<U>>;
@@ -51,11 +61,13 @@ namespace te{
 				destroy(unique_fct{});
 			}
 
+        using notconst_storage = typename std::remove_const<storage_t>::type;
 			template<typename ... Us>
 				constexpr void destroy(te::input_<Us...> unique)
 				{
 					const bool fold_trick[] = {
-						(is<Us>() ? reinterpret_cast<Us&>(m_storage).~Us(), true : false)...};
+            (is<Us>() ? reinterpret_cast<Us&>(const_cast<notconst_storage&>(m_storage)).~Us(), true : false)...
+          };
 				}
 			template<typename T>
 				constexpr inline bool is()const noexcept
@@ -68,10 +80,11 @@ namespace te{
 				T* get_if()  noexcept
 				{
 					return is<T>() ? 
-						  reinterpret_cast<T*>(&m_storage)
+						  reinterpret_cast<T*>(&const_cast<notconst_storage&>(m_storage))
 					: nullptr;
 				}
 		};
 }; // Namespace te
 
+#undef TE_VARIANT_CTOR_CONSTEXPR  
 #endif

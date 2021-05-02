@@ -24,10 +24,12 @@ int main()
 	std::cout << reinterpret_cast<int&>(v.m_storage) << std::endl;
 	assert(reinterpret_cast<int&>(v.m_storage) == 4 );
 	}
+#if __cplusplus >= 201402L
 	{
 	te::variant<int,float> v{42};
-	assert(v.is<int>());
-	assert(*v.get_if<int>() == 42);
+  assert(v.is<int>());
+  assert(*v.get_if<int>() == 42);
 	}
+#endif
   return 0;
 }
