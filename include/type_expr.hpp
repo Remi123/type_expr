@@ -67,6 +67,8 @@ struct ts_<T> {
 
 template<typename T>
 struct type_identity {using type = T;};
+template<typename T, T ... N>
+struct sequence {};
 
 // Recursive ts_. Very powerful feature but make some algo not very intuitive.
 //template <typename... Ts>
@@ -227,6 +229,11 @@ struct wrap_std_integer_sequence_ {
   struct f {
     typedef std::integer_sequence<T, (T)Is::value...> type;
   };
+};
+template<typename T>
+struct wrap_sequence_ {
+    template<typename ... Is>
+    struct f { using type = te::sequence<T,Is::value...>;};
 };
 
 // QUOTE_STD_ARRAY

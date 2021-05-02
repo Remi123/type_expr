@@ -43,7 +43,7 @@ namespace te{
 				variant_assign_mem<overload>(m_storage,std::forward<U>(u));
 			}
 
-#if __cplusplus >= 201703
+#if __cplusplus > 201703
 			constexpr
 #endif
 			~variant()
