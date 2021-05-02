@@ -62,7 +62,7 @@ class var_impl {
   // simple helper to retrive the index from the type list
   template <typename T>
   using index_helper = te::eval_pipe_<
-      te::ts_<Ts...>, find_if_<same_as_<T>>, first>;
+      te::ts_<Ts...>, find_index_if_<same_as_<T>>>;
   //
   template <typename T>
   var_impl(T&& value) : m_index(index_helper<T>::value), m_storage{} {
@@ -113,8 +113,7 @@ class var_impl {
   template <typename T>
   constexpr inline bool is() const noexcept {
     return m_index ==
-           te::eval_pipe_<te::ts_<Ts...>, te::find_if_<te::same_as_<T>>,
-                          first>::value;
+           te::eval_pipe_<te::ts_<Ts...>, te::find_index_if_<te::same_as_<T>>>::value;
   }
 
   // STATIC ASSERTION

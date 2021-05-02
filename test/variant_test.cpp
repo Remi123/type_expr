@@ -16,13 +16,18 @@ int main()
 	{// Default
 	  te::variant<int,float> a {};
 	  assert(a.is<int>());
-		std::cout << reinterpret_cast<int&>(a.base.m_storage) << std::endl;
+		std::cout << reinterpret_cast<int&>(a.m_storage) << std::endl;
 	}
 	{// Simple Assignment
 	te::variant<int,float> v{4};
 	assert(v.is<int>());
-	std::cout << reinterpret_cast<int&>(v.base.m_storage) << std::endl;
-	assert(reinterpret_cast<int&>(v.base.m_storage) == 4 );
+	std::cout << reinterpret_cast<int&>(v.m_storage) << std::endl;
+	assert(reinterpret_cast<int&>(v.m_storage) == 4 );
+	}
+	{
+	te::variant<int,float> v{42};
+	assert(v.is<int>());
+	assert(*v.get_if<int>() == 42);
 	}
   return 0;
 }

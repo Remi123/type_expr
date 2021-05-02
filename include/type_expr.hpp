@@ -857,9 +857,14 @@ struct count_if_ : pipe_<filter_<F...>, length> {};
 
 // FIND_IF_ : Return the first index that respond to the predicate, along with
 // the type.
+template<typename T,typename ...> using detail_first_type = T;
 template <typename... F>
-struct find_if_ : pipe_<zip_index, transform_<listify>,
-                        filter_<unwrap, second, F...>, first, unwrap> {};
+struct find_if_ : pipe_<zip_index,
+                        filter_<second, F...>,wrap_<detail_first_type> > {};
+template<typename ... Up>
+struct find_index_if_ : pipe_<zip_index,keep_if_<second,Up...>,first,first>{};
+template<typename ...Up>
+struct find_type_if_ : pipe_<keep_if_<Up...>,first>{};
 
 // CARTESIAN : Given two lists, continue with every possible lists of two types.
 struct cartesian
