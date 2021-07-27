@@ -874,22 +874,40 @@ template<typename ...Up>
 struct find_type_if_ : pipe_<keep_if_<Up...>,first>{};
 
 // CARTESIAN : Given two lists, continue with every possible lists of two types.
-struct cartesian
+namespace te_impl{
+struct impl_cartesian
 {
-	template<typename ... Ts> struct g{using type = input_append_<ts_<Ts...>>;};
-	template<typename A,typename B> struct g<A,B>{using type = input_append_<ts_<A,B>>;};
-	template<typename A,typename ... Ts > struct g<A,ts_<Ts...>>{using type = input_append_<ts_<A,Ts>...>;};
-	template<typename B,typename ... Ts > struct g<ts_<Ts...>,B>{using type = input_append_<ts_<Ts,B>...>;};
-	template<typename ... A,typename ...B>
-		struct g<ts_<A...>,ts_<B...>>
-		{
-			using type = pipe_<typename g<A,ts_<B...>>::type...>;
-		};
+    template<typename T, typename U>
+    struct f;
+    template<typename T, typename U>
+    struct f<ts_<T>,ts_<U>>
+    {
+        using type = ts_<ts_<T,U>>;
+    };
+    template<typename T, typename ... Us>
+    struct f<ts_<T>,ts_<Us...>>
+    {
+        using type = eval_pipe_<ts_<T>,fork_<push_back_<Us>...>>;
+    };
+    template<typename ... Ts, typename ... Us>
+    struct f<ts_<Ts...>,ts_<Us...>>
+    {
+        using type = eval_pipe_<ts_<Ts...>,transform_<fork_<push_back_<Us>...>>,flatten>;
+    };
+};
 
-template<typename F,typename G>
-	struct f {
-		using type = eval_pipe_<typename g<F,G>::type>;
-	};
+template<typename T>
+struct as_list{using type = ts_<T>;};
+template<typename ... Ts>
+struct as_list<ts_<Ts...>>{using type = ts_<Ts...>;};
+};
+
+struct cartesian 
+{
+template<typename ... Ts>
+struct f{
+    using type = eval_pipe_<input_<typename te_impl::as_list<Ts>::type ...>,fold_left_<te_impl::impl_cartesian>>;
+};
 };
 
 // ROTATE : rotate
@@ -1248,6 +1266,7 @@ struct erase_c : write_null_<
 
 template<typename V> using erase_ = erase_c<V::value>;
 
+
 template<typename ... Ts> struct Overload_ctor;
 template <typename T, typename... Ts>
 struct Overload_ctor<T,Ts...> : Overload_ctor<Ts...>
@@ -1270,6 +1289,24 @@ struct find_overload{
         );
     };
 };
+
+namespace te_impl{
+template<typename ... Ts>
+struct power_set_impl;
+template<typename T>
+struct power_set_impl<T> : ts_<ts_<>,ts_<T>>{};
+template<typename T,typename ...Ts>
+struct power_set_impl<T,Ts...>
+{
+	using r1 = eval_pipe_<ts_<Ts...>,wraptype_<power_set_impl>,wrap_<input_>>;
+	using type = eval_pipe_<r1,fork_<identity,transform_<push_front_<T>>>,flatten>;
+};
+template<typename T,typename U>
+struct power_set_impl<T,U> : ts_<ts_<>,ts_<T>,ts_<U>,ts_<T,U>>{};
+
+};
+struct power_set : wraptype_<te_impl::power_set_impl>{};
+
 
 };  // namespace te
 #endif
