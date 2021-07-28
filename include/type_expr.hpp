@@ -1262,7 +1262,7 @@ struct power_set_impl<T> : ts_<ts_<>,ts_<T>>{};
 template<typename T,typename ...Ts>
 struct power_set_impl<T,Ts...>
 {
-	using r1 = eval_pipe_<ts_<Ts...>,wraptype_<power_set_impl>,wrap_<input_>>;
+	using r1 = eval_pipe_<ts_<Ts...>,wraptype_<te_impl::power_set_impl>,wrap_<input_>>;
 	using type = eval_pipe_<r1,fork_<identity,transform_<push_front_<T>>>,flatten>;
 };
 template<typename T,typename U>
