@@ -516,4 +516,8 @@ static_assert(eval_pipe_<input_<int,float,char>
 		,transform_<second>
 		,same_as_<float,char>
 		>::value,"");
+		
+static_assert(te::eval_pipe_<ts_<i<24>,i<2>,i<3>,i<4>>,
+							fold_left_list_<divide_<>>, 
+							same_as_<i<12>, i<4>, i<1> >>::value ,"");
 
