@@ -1293,6 +1293,8 @@ struct power_set_impl<T,U> : ts_<ts_<>,ts_<T>,ts_<U>,ts_<T,U>>{};
 // POWER_SET : Same as mp11, but the order is different
 struct power_set : wraptype_<te_impl::power_set_impl>{};
 
+// FOLD_RIGHT : Fold right instead of left.
+template<typename ... BF> using fold_right_ = te::pipe_<te::reverse,te::fold_left_<BF...>>;
 
 // FOLD_LEFT_LIST_ : Same as fold_left, but accumulate the result into a list 
 template<typename ... BF>
