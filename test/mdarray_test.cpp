@@ -9,7 +9,7 @@
 #include <memory>
 #include <numeric>
 
-void Test_mdarray()
+int main()
 {
     static_assert(te::mdarray<int,2,3,4>{}.size() == 24,"");
     static_assert(std::is_same<te::mdarray<int,1,2,3>::multibuffer,int[1][2][3]>::value,"");
