@@ -5,6 +5,7 @@
 #ifndef TYPE_EXPR_VARIANT_HPP
 #define TYPE_EXPR_VARIANT_HPP
 
+// C++11 can't be constexpr
 #if __cplusplus < 201402L
 #define TE_VARIANT_CTOR_CONSTEXPR 
 #else
@@ -17,73 +18,92 @@
 
 namespace te{
 
-	template<typename T, typename S, typename U>
-	constexpr static inline void variant_assign_mem(S& s,U&& u)
-	{ new (&s) T(std::forward<T>(u));}
+    template<typename TypeList,bool TrivialDtor>
+    struct base_variant;
 
-	template<typename T, typename S>
-	constexpr static inline void variant_assign_mem(S& s)
-	{ new (&s) T{};}
+    template<typename ... Ts, bool TrivialDtor>
+        struct base_variant<te::ls_<Ts...>,TrivialDtor>{
+            using storage_t =typename std::aligned_union<1, Ts...>::type;
+            storage_t m_storage;
+
+            template<typename T>
+                constexpr void destroy_as()
+                {
+                    //reinterpret_cast<T&>(&m_storage).~T();
+                }
+
+            template<typename T, typename U>
+                constexpr base_variant(te::type_identity<T>,U&& u)
+                :m_storage{}
+            { new (&m_storage) T(std::forward<T>(u));}
+
+            template<typename T>
+                constexpr base_variant(te::type_identity<T>)
+                :m_storage{}
+            { new (&m_storage) T{};}
+
+            ~base_variant()=default;
 
 
+            template<typename ... Us>
+                constexpr inline void destroy(te::input_<Us...> unique)
+                {}
+        };
 
-	template<typename ... Ts>
-		struct variant 
-		{
-			using storage_t =typename std::aligned_union<1, Ts...>::type;
-			using unique_fct = te::eval_pipe_<te::input_<Ts...>,te::unique,te::wrap_<te::input_>>;
-			storage_t m_storage;
-			int32_t m_index_types;
+    template<typename ... Ts>
+        struct base_variant<te::ls_<Ts...>,false>{};
 
-      using dft_ctor_type = te::eval_pipe_<unique_fct,te::find_type_if_<te::trait_<std::is_default_constructible>>>;
-			
-      TE_VARIANT_CTOR_CONSTEXPR 
-          variant() 
-				: m_index_types{te::eval_pipe_<unique_fct,find_index_if_<te::trait_<std::is_default_constructible>>>::value}
-			{
-				variant_assign_mem<dft_ctor_type>(m_storage);
-			}
-			template<typename U>
+    template<typename T, typename S, typename U>
+        constexpr static inline void mem_variant(S& s,U&& u)
+        { new (&s) T(std::forward<T>(u));}
 
-      TE_VARIANT_CTOR_CONSTEXPR 
-				variant(U&& u) 
-				: m_index_types{te::eval_pipe_<unique_fct,te::find_index_if_<te::same_as_<U>>>::value}
-			{
-				using overload = te::eval_pipe_<unique_fct,te::find_overload<U>>;
-				variant_assign_mem<overload>(m_storage,std::forward<U>(u));
-			}
+    template<typename T, typename S>
+        constexpr static inline void mem_variant(S& s)
+        { new (&s) T{};}
+
+
+    template<typename ... Ts> using var_istrivial = te::eval_pipe_<te::ts_<Ts...>,all_of_<trait_<std::is_trivially_destructible>>>;
+
+    template<typename ... Ts>
+        struct variant : base_variant<te::ls_<Ts...>,var_istrivial<Ts...>::value>
+    {
+        using base = base_variant<te::ls_<Ts...>,var_istrivial<Ts...>::value>;
+        using storage_t =typename std::aligned_union<1, Ts...>::type;
+        constexpr static bool istrivial = var_istrivial<Ts...>::value;
+        using unique_fct = te::eval_pipe_<te::input_<Ts...>,te::unique,te::wrap_<te::input_>>;
+        template<typename T> using overload_type = te::eval_pipe_<ts_<Ts...>,find_overload<T>>;
+        int32_t m_index_types;
+
+        constexpr
+            variant() 
+            : base{te::eval_pipe_<te::ts_<Ts...>,te::at_c<0>,wrap_<te::type_identity>>{}}
+            , m_index_types{0}
+        {}
+        template<typename U>
+            constexpr
+            variant(U&& u) 
+            : base{te::eval_pipe_<unique_fct,find_overload<U>,wrap_<type_identity>>{},std::forward<U>(u)}
+            , m_index_types{te::eval_pipe_<te::ts_<Ts...>,find_index_if_<te::same_as_<overload_type<U>>>>::value}
+        {}
 
 #if __cplusplus > 201703
-			constexpr
+        constexpr
 #endif
-			~variant()
-			{
-				destroy(unique_fct{});
-			}
+            ~variant() =default;
+        template<typename ... Us>
+            constexpr void destroy(te::input_<Us...> unique)
+            {
+                const bool fold_trick[] = {
+                    (holds_alternative<Us>() ? base::template destroy_as<Us>() , true : false)...
+                };
+            }
+        template<typename T>
+            constexpr inline bool holds_alternative()const noexcept
+            {
+                return m_index_types == te::eval_pipe_<te::input_<Ts...>,find_index_if_<same_as_<T>>>::value;
+            }
 
-        using notconst_storage = typename std::remove_const<storage_t>::type;
-			template<typename ... Us>
-				constexpr void destroy(te::input_<Us...> unique)
-				{
-					const bool fold_trick[] = {
-            (is<Us>() ? reinterpret_cast<Us&>(const_cast<notconst_storage&>(m_storage)).~Us(), true : false)...
-          };
-				}
-			template<typename T>
-				constexpr inline bool is()const noexcept
-				{
-					return m_index_types == te::eval_pipe_<te::input_<Ts...>,find_index_if_<same_as_<T>>>::value;
-				}
-
-			template<typename T>
-				constexpr 
-				T* get_if()  noexcept
-				{
-					return is<T>() ? 
-						  reinterpret_cast<T*>(&const_cast<notconst_storage&>(m_storage))
-					: nullptr;
-				}
-		};
+    };
 }; // Namespace te
 
 #undef TE_VARIANT_CTOR_CONSTEXPR  

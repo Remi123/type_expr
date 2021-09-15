@@ -15,21 +15,18 @@ int main()
 {
 	{// Default
 	  te::variant<int,float> a {};
-	  assert(a.is<int>());
+	  assert(a.holds_alternative<int>());
 		std::cout << reinterpret_cast<int&>(a.m_storage) << std::endl;
 	}
 	{// Simple Assignment
 	te::variant<int,float> v{4};
-	assert(v.is<int>());
+	assert(v.holds_alternative<int>());
 	std::cout << reinterpret_cast<int&>(v.m_storage) << std::endl;
 	assert(reinterpret_cast<int&>(v.m_storage) == 4 );
 	}
-#if __cplusplus >= 201402L
 	{
-	te::variant<int,float> v{42};
-  assert(v.is<int>());
-  assert(*v.get_if<int>() == 42);
+  te::variant<int,float> v{};
+  assert(v.holds_alternative<int>());
 	}
-#endif
   return 0;
 }
