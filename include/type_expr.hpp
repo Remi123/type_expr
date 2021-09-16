@@ -182,6 +182,30 @@ struct ts_prepend_
 	struct f : ts_<ts_<P...>,Ts...>{};
 };
 
+// PUSH_FRONT_ : Add anything you want to the front of the inputs.
+template <typename... Ts>
+struct push_front_ {
+  template <typename... Inputs>
+  struct f {
+    typedef ts_<Ts..., Inputs...> type;
+  };
+};
+
+// DROP_FRONT : Remove the first element
+struct drop_front {
+    template<typename T, typename ... Ts>
+    struct f : te::ts_<Ts...>{};
+};
+
+// PUSH_BACK_ : Add anything you want to the back of the inputs
+template <typename... Ts>
+struct push_back_ {
+  template <typename... Inputs>
+  struct f {
+    typedef ts_<Inputs..., Ts...> type;
+  };
+};
+
 // TRAIT_ : Universal customization point using template template. Get the ::type
 // The Farming field of our library
 template <template <typename...> class F>
@@ -636,24 +660,20 @@ struct unzip {
 template<typename ... Ts>
 struct zip_input_ : pipe_<ts_<Ts...>,zip_index>{};
 
-// PUSH_FRONT_ : Add anything you want to the front of the inputs.
-template <typename... Ts>
-struct push_front_ {
-  template <typename... Inputs>
-  struct f {
-    typedef ts_<Ts..., Inputs...> type;
-  };
-};
 
-// PUSH_BACK_ : Add anything you want to the back of the inputs
-template <typename... Ts>
-struct push_back_ {
-  template <typename... Inputs>
-  struct f {
-    typedef ts_<Inputs..., Ts...> type;
-  };
-};
+// Fct : Fibonacci
+template<typename Type>
+constexpr Type _fibonacci(Type n, bool t, Type a, Type b)
+{
+	return n? fibonacci(n-1,!t,a+(!t?b:0),(t?a:0)+b):(t?a:b);
+}
+template<typename Type>
+constexpr Type fibonacci(Type n)
+{
+	return _fibonacci(n,false,Type(0),Type(1));
+}
 
+// Fct : Circular modulo.
 constexpr int circular_modulo(int i, int N) {
   return     (i>= 0 ) ? i % N
             : (i+(-i*N ))%N;
@@ -874,22 +894,40 @@ template<typename ...Up>
 struct find_type_if_ : pipe_<keep_if_<Up...>,first>{};
 
 // CARTESIAN : Given two lists, continue with every possible lists of two types.
-struct cartesian
+namespace te_impl{
+struct impl_cartesian
 {
-	template<typename ... Ts> struct g{using type = input_append_<ts_<Ts...>>;};
-	template<typename A,typename B> struct g<A,B>{using type = input_append_<ts_<A,B>>;};
-	template<typename A,typename ... Ts > struct g<A,ts_<Ts...>>{using type = input_append_<ts_<A,Ts>...>;};
-	template<typename B,typename ... Ts > struct g<ts_<Ts...>,B>{using type = input_append_<ts_<Ts,B>...>;};
-	template<typename ... A,typename ...B>
-		struct g<ts_<A...>,ts_<B...>>
-		{
-			using type = pipe_<typename g<A,ts_<B...>>::type...>;
-		};
+    template<typename T, typename U>
+    struct f;
+    template<typename T, typename U>
+    struct f<ts_<T>,ts_<U>>
+    {
+        using type = ts_<ts_<T,U>>;
+    };
+    template<typename T, typename ... Us>
+    struct f<ts_<T>,ts_<Us...>>
+    {
+        using type = eval_pipe_<ts_<T>,fork_<push_back_<Us>...>>;
+    };
+    template<typename ... Ts, typename ... Us>
+    struct f<ts_<Ts...>,ts_<Us...>>
+    {
+        using type = eval_pipe_<ts_<Ts...>,transform_<fork_<push_back_<Us>...>>,flatten>;
+    };
+};
 
-template<typename F,typename G>
-	struct f {
-		using type = eval_pipe_<typename g<F,G>::type>;
-	};
+template<typename T>
+struct as_list{using type = ts_<T>;};
+template<typename ... Ts>
+struct as_list<ts_<Ts...>>{using type = ts_<Ts...>;};
+};
+
+struct cartesian 
+{
+template<typename ... Ts>
+struct f{
+    using type = eval_pipe_<input_<typename te_impl::as_list<Ts>::type ...>,fold_left_<te_impl::impl_cartesian>>;
+};
 };
 
 // ROTATE : rotate
@@ -1269,6 +1307,45 @@ struct find_overload{
         overload(std::declval<T>())
         );
     };
+};
+
+namespace te_impl{
+template<typename ... Ts>
+struct power_set_impl;
+template<typename T>
+struct power_set_impl<T> : ts_<ts_<>,ts_<T>>{};
+template<typename T,typename ...Ts>
+struct power_set_impl<T,Ts...>
+{
+	using r1 = eval_pipe_<ts_<Ts...>,wraptype_<te_impl::power_set_impl>,wrap_<input_>>;
+	using type = eval_pipe_<r1,fork_<identity,transform_<push_front_<T>>>,flatten>;
+};
+template<typename T,typename U>
+struct power_set_impl<T,U> : ts_<ts_<>,ts_<T>,ts_<U>,ts_<T,U>>{};
+
+}
+
+// POWER_SET : Same as mp11, but the order is different
+struct power_set : wraptype_<te_impl::power_set_impl>{};
+
+// FOLD_RIGHT : Fold right instead of left.
+template<typename ... BF> using fold_right_ = te::pipe_<te::reverse,te::fold_left_<BF...>>;
+
+// FOLD_LEFT_LIST_ : Same as fold_left, but accumulate the result into a list 
+template<typename ... BF>
+struct fold_left_list_
+{
+private :
+    template<typename T,typename B> struct _f;
+    template<typename T,typename ... Ts, typename B> struct _f<ts_<T,Ts...>,B>
+    {
+        using result = eval_pipe_<input_<T,B>,BF...>;
+        using type = ts_<result,Ts...,result>;
+    };
+        
+public :
+    template<typename T,typename ... Ts> 
+    struct f : pipe_<fold_left_<wraptype_<_f>>,drop_front>::template f<ts_<T>,Ts...>{};
 };
 
 };  // namespace te
