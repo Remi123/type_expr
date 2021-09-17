@@ -118,6 +118,13 @@ namespace te{
             friend constexpr bool operator>=(const array& lhs,const array& rhs){return !(lhs<rhs);}
 
             // Operator []
+            
+            template <bool Pred = sizeof...(Is) == 1>
+                constexpr auto operator[](std::size_t n) noexcept
+                -> std::enable_if_t<Pred, reference>
+                {
+                    return buffer[n];
+                }
             template <bool Pred = sizeof...(Is) == 1>
                 constexpr auto operator[](std::size_t n) const noexcept
                 -> std::enable_if_t<Pred, const_reference>
