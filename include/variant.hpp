@@ -29,7 +29,7 @@ namespace te{
             template<typename T>
                 constexpr void destroy_as()
                 {
-                    //reinterpret_cast<T&>(&m_storage).~T();
+                    reinterpret_cast<T&>(&m_storage).~T();
                 }
 
             template<typename T, typename U>
@@ -74,14 +74,12 @@ namespace te{
         template<typename T> using overload_type = te::eval_pipe_<ts_<Ts...>,find_overload<T>>;
         int32_t m_index_types;
 
-        constexpr
-            variant() 
+        constexpr variant() 
             : base{te::eval_pipe_<te::ts_<Ts...>,te::at_c<0>,wrap_<te::type_identity>>{}}
             , m_index_types{0}
         {}
         template<typename U>
-            constexpr
-            variant(U&& u) 
+            constexpr variant(U&& u) 
             : base{te::eval_pipe_<unique_fct,find_overload<U>,wrap_<type_identity>>{},std::forward<U>(u)}
             , m_index_types{te::eval_pipe_<te::ts_<Ts...>,find_index_if_<te::same_as_<overload_type<U>>>>::value}
         {}
