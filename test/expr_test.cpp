@@ -278,8 +278,8 @@ int main() {
                            input_<std::false_type>>>::value,
       "");
   static_assert(
-      te::eval_pipe_<input_<float, int, float, int>, find_if_<same_as_<int>>,
-                     same_as_<i<1>, int>>::value,
+      te::eval_pipe_<input_<float, int, float, int>, find_type_if_<same_as_<int>>,
+                     same_as_<int>>::value,
       "");
   static_assert(
       te::eval_pipe_<input_<int, float>, zip_index,
@@ -382,8 +382,8 @@ static_assert(eval_pipe_<input_<ts_<int, int>, ts_<float, char>>, zip,
                          same_as_<ts_<int, float>, ts_<int, char>>>::value,
               "Zipping is relatively easy");
 static_assert(
-    eval_pipe_<input_<float, int, float, int>, find_if_<same_as_<int>>,
-               same_as_<i<1>, int>>::value,
+    eval_pipe_<input_<float, int, float, int>, find_index_if_<same_as_<int>>,
+               same_as_<i<1>>>::value,
     "Find_if returns both the index and the type that answer to the pred");
 
 static_assert(

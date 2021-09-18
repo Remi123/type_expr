@@ -10,18 +10,72 @@
 #include "type_expr.hpp"
 
 namespace te {
+        template<typename ... Us>
+    union trivial_union_storage;
+    template<typename U, typename ... Us>
+    union trivial_union_storage<U,Us...>{
+        U head; trivial_union_storage<Us...> tail;
+        template<typename ... Args>
+        constexpr explicit trivial_union_storage(const te::type_identity<U>&,const Args&... u)noexcept
+            :head{u...}{}
+        template<typename Other,typename ... Args>
+        constexpr explicit trivial_union_storage(const te::type_identity<Other>& type,const Args&... u)noexcept
+            :tail{type,u...}{}
+        constexpr explicit trivial_union_storage()
+            :tail{}{}
+};
+    template<>
+    union trivial_union_storage<> {
+        template<typename ... Args>
+        constexpr trivial_union_storage()noexcept{}
+    };
+    template<typename ... Us>
+    union non_trivial_union_storage;
+    template<typename U, typename ... Us>
+    union non_trivial_union_storage<U,Us...>{
+        U head; non_trivial_union_storage<Us...> tail;
+        template<typename ... Args>
+        constexpr explicit non_trivial_union_storage(const te::type_identity<U>&,const Args&... u)noexcept
+            :head{u...}{}
+        template<typename Other,typename ... Args>
+        constexpr explicit non_trivial_union_storage(const te::type_identity<Other>& type,const Args&... u)noexcept
+            :tail{type,u...}{}
+        constexpr explicit non_trivial_union_storage()
+            :tail{}{}
+        ~non_trivial_union_storage(){}
+        constexpr U& get_ref(const te::type_identity<U>&)noexcept{return head;}
+        constexpr const U& get_ref(const te::type_identity<U>&)const noexcept{return head;}
+        template<typename Other>constexpr U& get_ref(const te::type_identity<Other>& o)noexcept{return tail.get_ref(o);}
+        template<typename Other>constexpr const U& get_ref(const te::type_identity<Other>& o)const noexcept{return tail.get_ref(o);}
+ 
+    };
+    template<>
+    union non_trivial_union_storage<> {
+        ~non_trivial_union_storage(){}
+        constexpr non_trivial_union_storage()noexcept{}
+    };
+
+
 
 // VAR_IMPL
 template <typename... Ts>
 class var_impl {
   int32_t m_index = -1;
-  using storage_t = typename std::aligned_union<1, Ts...>::type;
-  storage_t m_storage;
+      template<typename ... Us> using union_storage = typename std::conditional<std::is_destructible<trivial_union_storage<Us...>>::value,trivial_union_storage<Us...>,non_trivial_union_storage<Us...>>::type;
+    using storage_t = te::eval_pipe_<te::input_<Ts...>,te::unique,te::wrap_<union_storage>>;
+    storage_t m_storage;
+  //using storage_t = typename std::aligned_union<1, Ts...>::type;
+  //storage_t m_storage;
+template<typename T>
+using find_ctor = te::eval_pipe_<te::input_<Ts...>,te::find_if_<te::push_back_<T>,te::wraptype_<std::is_constructible>>,te::second>;
+
+template<typename T>
+using find_index = te::eval_pipe_<te::input_<Ts...>,te::find_if_<te::push_back_<T>,te::wraptype_<std::is_constructible>>,te::first>;
 
  public:
   // -------------------------------------------------------------------------
   // Rule Of Five
-  ~var_impl() { destroy(); }  // Dtor
+  //~var_impl() { destroy(); }  // Dtor
   var_impl() = default;       // Default Ctor
   // -------------------------------------------------------------------------
   // Rules of 5 for var_impl<Ts...> type
@@ -62,16 +116,17 @@ class var_impl {
   // simple helper to retrive the index from the type list
   template <typename T>
   using index_helper = te::eval_pipe_<
-      te::ts_<Ts...>, find_if_<same_as_<T>>, first>
-      ;
+      te::ts_<Ts...>, find_index_if_<same_as_<T>>>;
   //
   template <typename T>
-  var_impl(T&& value) : m_index(index_helper<T>::value), m_storage{} {
-    new (&m_storage) T(std::forward<T>(value));
+  constexpr var_impl(T&& value) : m_index(index_helper<T>::value) 
+  ,m_storage{te::type_identity<T>{},value}{
+    //new (&m_storage) T(std::forward<T>(value));
   }
   template <typename T>
-  constexpr var_impl(T& value) : m_index(index_helper<T>::value) {
-    new (&m_storage) T(value);
+  constexpr var_impl(T& value) : m_index(index_helper<T>::value)
+  ,m_storage{te::type_identity<T>{},value}{
+    //new (&m_storage) T(value);
   }
   template <typename T>
   constexpr var_impl& operator=(T&& value) {
@@ -102,7 +157,15 @@ class var_impl {
   operator T() = delete;
 
   template <typename T>
-  constexpr T* get_if() noexcept {
+  T* get_if() noexcept {
+    if (m_index == -1 || not is<T>())
+      return nullptr;
+    else
+      return reinterpret_cast<T*>(&m_storage);
+  }
+
+  template <typename T>
+  const T* get_if()const noexcept {
     if (m_index == -1 || not is<T>())
       return nullptr;
     else
@@ -114,8 +177,7 @@ class var_impl {
   template <typename T>
   constexpr inline bool is() const noexcept {
     return m_index ==
-           te::eval_pipe_<te::ts_<Ts...>, te::find_if_<te::same_as_<T>>,
-                          first>::value;
+           te::eval_pipe_<te::ts_<Ts...>, te::find_index_if_<te::same_as_<T>>>::value;
   }
 
   // STATIC ASSERTION

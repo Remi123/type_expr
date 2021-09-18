@@ -67,6 +67,8 @@ struct ts_<T> {
 
 template<typename T>
 struct type_identity {using type = T;};
+template<typename T, T ... N>
+struct sequence {};
 
 // Recursive ts_. Very powerful feature but make some algo not very intuitive.
 //template <typename... Ts>
@@ -251,6 +253,11 @@ struct wrap_std_integer_sequence_ {
   struct f {
     typedef std::integer_sequence<T, (T)Is::value...> type;
   };
+};
+template<typename T>
+struct wrap_sequence_ {
+    template<typename ... Is>
+    struct f { using type = te::sequence<T,Is::value...>;};
 };
 
 // QUOTE_STD_ARRAY
@@ -877,9 +884,14 @@ struct count_if_ : pipe_<filter_<F...>, length> {};
 
 // FIND_IF_ : Return the first index that respond to the predicate, along with
 // the type.
+template<typename T,typename ...> using detail_first_type = T;
 template <typename... F>
-struct find_if_ : pipe_<zip_index, transform_<listify>,
-                        filter_<unwrap, second, F...>, first, unwrap> {};
+struct find_if_ : pipe_<zip_index,
+                        filter_<second, F...>,wrap_<detail_first_type> > {};
+template<typename ... Up>
+struct find_index_if_ : pipe_<zip_index,keep_if_<second,Up...>,first,first>{};
+template<typename ...Up>
+struct find_type_if_ : pipe_<keep_if_<Up...>,first>{};
 
 // CARTESIAN : Given two lists, continue with every possible lists of two types.
 namespace te_impl{
@@ -1274,6 +1286,29 @@ struct erase_c : write_null_<
 
 template<typename V> using erase_ = erase_c<V::value>;
 
+template<typename ... Ts> struct Overload_ctor;
+template <typename T, typename... Ts>
+struct Overload_ctor<T,Ts...> : Overload_ctor<Ts...>
+{
+    T overload(T);
+    using Overload_ctor<Ts...>::overload;
+};
+template <typename T> struct Overload_ctor<T> {
+    T overload(T);
+};
+
+template<typename T>
+struct find_overload{
+    template<typename ...  Ts>
+    struct f {
+        using type =
+    decltype(
+        Overload_ctor<Ts...>{}.
+        overload(std::declval<T>())
+        );
+    };
+};
+
 namespace te_impl{
 template<typename ... Ts>
 struct power_set_impl;
@@ -1288,7 +1323,7 @@ struct power_set_impl<T,Ts...>
 template<typename T,typename U>
 struct power_set_impl<T,U> : ts_<ts_<>,ts_<T>,ts_<U>,ts_<T,U>>{};
 
-};
+}
 
 // POWER_SET : Same as mp11, but the order is different
 struct power_set : wraptype_<te_impl::power_set_impl>{};

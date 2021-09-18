@@ -174,7 +174,8 @@ namespace te {
 		}
 
 	template<typename ... Ts, int ... Is>
-		constexpr te::eval_pipe_<te::input_<Ts...>,te::fork_<te::at_c<Is>...>,te::wrap_<tup>> tup_get(std::integer_sequence<int,Is...>,te::tup<Ts...>& tup)  
+		constexpr te::eval_pipe_<te::input_<Ts...>,te::fork_<te::at_c<Is>...>,te::wrap_<tup>> 
+    tup_get(std::integer_sequence<int,Is...>,te::tup<Ts...>& tup)  
 		{
 			return te::make_tup(std::move(std::get<Is>(tup))...);
 		}
@@ -189,9 +190,10 @@ namespace te {
 	//
 	namespace detail {
 		template <int... Is, int... Ks, typename... Ts, typename Tup_of_Tups>
-			constexpr auto tup_cat_impl(std::integer_sequence<int, Is...>, 
-					std::integer_sequence<int, Ks...>,
-					Tup_of_Tups &&tpls) 
+			constexpr auto tup_cat_impl(
+            te::sequence<int, Is...>, 
+					  te::sequence<int, Ks...>,
+					  Tup_of_Tups &&tpls) 
 			-> decltype(te::make_tup(tpls.template get<Is>().template get<Ks>()...))
 			{
 				return te::make_tup(
@@ -213,9 +215,9 @@ template<typename ... Ts>
 					, te::unzip>;
 
 			using tup_index =
-				te::eval_pipe_<zip_indexes, te::first, te::wrap_std_integer_sequence_<int>>;
+				te::eval_pipe_<zip_indexes, te::first, te::wrap_sequence_<int>>;
 			using types_index =
-				te::eval_pipe_<zip_indexes, te::second, te::wrap_std_integer_sequence_<int>>;
+				te::eval_pipe_<zip_indexes, te::second, te::wrap_sequence_<int>>;
 			return detail::tup_cat_impl(
 					tup_index{},    // int_seq
 					types_index{},  // int_seq

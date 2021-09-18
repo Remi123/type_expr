@@ -9,7 +9,7 @@ cwd=<root>
 errorformat=%f:%l:%m
 
 [project-test]
-command= ctest
+command= ctest --output-on-failure
 cwd=<root>/build/
 output=terminal
 

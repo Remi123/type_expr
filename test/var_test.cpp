@@ -8,16 +8,16 @@
 #include <string>
 #include <type_traits>
 
-#include "type_var.hpp"
+#include "experimental/type_var.hpp"
 
 // TYPE_TUP Test
 int main() {
   {
-    te::var<int, float> vnull{};
-    assert(vnull.is_empty() && vnull.get_if<int>() == nullptr);
-    te::var<int, float, short> va{1}, vb{0.9f};
-    assert(not va.is_empty() && va.is<int>() && *va.get_if<int>() == 1 && va.get_if<float>() == nullptr);
-    assert(not vb.is_empty() && vb.is<float>() && *vb.get_if<float>() == 0.9f);
+    //te::var<int, float> vnull{};
+    //assert(vnull.is_empty() && vnull.get_if<int>() == nullptr);
+    constexpr te::var<int, float, short> va{1}, vb{0.9f};
+    static_assert(not va.is_empty() && va.is<int>());
+    static_assert(not vb.is_empty() && vb.is<float>() );
     te::var<std::string, int> vsi{std::string("Hello World")};
     assert(vsi.is<std::string>() &&
            *vsi.get_if<std::string>() == "Hello World");
