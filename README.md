@@ -12,11 +12,18 @@ and it should be fine under a C++11 compiler
 This library can be considered a fork of kvasir::mpl, but the core of the parsing is completly different.
 >The major difference is "range-like" meta-expression requiring much fewer nesting than most other libraries.
 
+# Additional features
+1. type_array.hpp : te::array<T,std::size_t ...> is a C++14 multidimensional array structure.
+2. type_tup.hpp : te::tup is a C++11 tuple, with fast compilation.
+
 ## BEFORE YOU DOWNLOAD THIS LIBRARY !!
 kvasir.mpl is faster, no question. The only advantage my library have is an nicer syntax, an easier continuation implementation of meta-function, automatic unpacking of the type te::ts_<Ts...> and the wild-card meta-expression write_<Es...>.
 
-If you want a taste of my features in terms of kvasir.mpl, you can write this in compiler explorer after importing kvasir.mpl:
-```
+<details>
+<summary><b> If you want a taste of my features in terms of kvasir.mpl </b></summary>
+ 
+You can write this in compiler explorer after importing kvasir.mpl:
+```C++
 namespace kv = kvasir::mpl;
 
 template<typename T,typename C>
@@ -62,7 +69,8 @@ static_assert(
 // to create this library, so that I can write code that support this kind of interface without worrying about 
 // kvasir::mpl interface and implementation. 
 ```
-
+ 
+</details>
 
 ## Code in Actions :
 ```C++
@@ -138,7 +146,7 @@ My favorite method to debug is to write a class with no conversion operator like
   te::eval_pipe_<te::input_<int>, te::push_back_<float>, is_<int,float>> varname_not_important = B{}; 
   // conversion from 'B' to non-scalar type                    // We don't care about this
   // te::eval_pipe_<te::input_<int>, te::push_back_<float> >   // Type of the function
-  // {aka 'te::input_<int, float>'} requested                  // Type of the result
+  // {aka 'te::ts_<int, float>'} requested                  // Type of the result
 ```
 ___
 
