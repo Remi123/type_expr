@@ -93,7 +93,7 @@ struct ls_ {};
 // IDENTITY : Continue with whatever the ts_ were.
 struct identity {
   template <typename... Ts>
-  struct f : ts_<Ts...> {};
+  struct f {using type = te::ts_<Ts...>;} ;
 };
 
 // SPECIALIZATION
