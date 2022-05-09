@@ -177,7 +177,7 @@ int main() {
 
   static_assert(
       te::eval_pipe_<input_<int, float, short>, partition_<same_as_<int>>
-					 ,same_as_<int, ts_<float, short>>
+					 ,same_as_<ts_<int>, ts_<float, short>>
                      >::value,
       "");
   // Partition , like the std counterpart, result in two
