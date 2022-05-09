@@ -821,8 +821,8 @@ struct remove_if_
 {
 	template<typename ... Ts>
 	struct f {
-		template<typename T> using Expr = typename std::conditional<eval_pipe_<ts_<T>,Up...>::value,identity,input_append_<T>>::type;
-		using type = eval_pipe_<Expr<Ts>...> ;
+		template<typename T> using Expr = typename std::conditional<te::eval_pipe_<te::ts_<T>,Up...>::value,te::input_append_<>,te::input_append_<T>>::type;
+		using type = te::eval_pipe_<Expr<Ts>...> ;
 	};
 };
 
