@@ -236,6 +236,9 @@ template<typename KvasirMetaClosure>
 using kv_ = wrap_<KvasirMetaClosure::template f>;
 
 namespace detail {
+	
+	template<typename... Ts> struct make_void { typedef void type;};
+	template<typename... Ts> using void_t = typename make_void<Ts...>::type;
         template <class Default, class AlwaysVoid,
                 template<class...> class Op, class... Args>
         struct detector {
@@ -244,7 +247,7 @@ namespace detail {
         };
         
         template <class Default, template<class...> class Op, class... Args>
-        struct detector<Default, te::void_t<Op<Args...>>, Op, Args...> {
+        struct detector<Default, te::detail::void_t<Op<Args...>>, Op, Args...> {
         using value_t = std::true_type;
         using type = Op<Args...>;
         };
