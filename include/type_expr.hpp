@@ -235,14 +235,48 @@ using quote_ = wrap_<F>;
 template<typename KvasirMetaClosure>
 using kv_ = wrap_<KvasirMetaClosure::template f>;
 
-//template <typename... Ts>
-//struct input_<metal::list<Ts...>> : ts_<Ts...> {};
+namespace detail {
+        template <class Default, class AlwaysVoid,
+                template<class...> class Op, class... Args>
+        struct detector {
+        using value_t = std::false_type;
+        using type = Default;
+        };
+        
+        template <class Default, template<class...> class Op, class... Args>
+        struct detector<Default, te::void_t<Op<Args...>>, Op, Args...> {
+        using value_t = std::true_type;
+        using type = Op<Args...>;
+        };
 
-//template <typename... Ts>
-//struct input_<boost::mp11::mp_list<Ts...>> : ts_<Ts...> {};
-
-//template <typename... Ts>
-/*struct input_<boost::fusion::list<Ts...>> : ts_<Ts...> {};*/
+        template <template<class...> class Op, class... Args>
+        using is_detected = typename detail::detector<te::ts_<>, void, Op, Args...>::value_t;
+        
+        template <template<class...> class Op, class... Args>
+        using detected_t = typename detail::detector<te::ts_<>, void, Op, Args...>::type;
+        
+        template <class Default, template<class...> class Op, class... Args>
+        using detected_or = detail::detector<Default, void, Op, Args...>;
+    
+    } // namespace detail
+    template <template<class...> class Op,typename ... Args>
+    struct is_detected_{
+        template<typename ... Ts> struct f{
+            using type = detail::is_detected<Op,Args...,Ts...>;
+        };
+    };
+    template <template<class...> class Op,typename ... Args>
+    struct detected_{
+        template<typename ... Ts> struct f{
+            using type = detail::detected_t<Op,Args...,Ts...>;
+        };
+    };
+    template <template<class...> class Op,class Default,typename ... Args>
+    struct detected_or_{
+        template<typename ... Ts> struct f{
+            using type = typename detail::detected_or<Default,Op,Args...,Ts...>::type;
+        };
+    };
 
 
 // WRAP_STD_INTEGER_SEQUENCE
