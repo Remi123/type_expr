@@ -1205,21 +1205,18 @@ struct prepend_result_ : write_<Es...,wrap_<push_front_>>{};
 template<typename ... Uf>
 struct group_range_
 {
-    template<typename ... Ts> struct ff;
-    template<typename ... Ts>  struct gs_;
-
-    template<typename T>
-    using SameAsExpr = te::eval_pipe_<te::ts_<T>,Uf...,te::wrap_<te::same_as_>>;
-    template<typename T0,typename ... Ts>
-    struct f : ff<gs_<T0,Ts...>>{};
-    template<typename T0,typename ... Ts,typename ... Rs>
-    struct ff<gs_<T0,Ts...>,Rs...>:
-        ff< te::eval_pipe_<te::input_<Ts...>,te::remove_if_<Uf...,SameAsExpr<T0>>,te::wrap_<gs_>>
-        ,   Rs...
-        ,   te::eval_pipe_<te::input_<te::ls_<T0>,te::ls_<Ts>...>,te::filter_<te::unwrap,Uf...,SameAsExpr<T0>>,te::transform_<te::unwrap>>
-        >{};
-    template<typename ... RL>
-    struct ff<gs_<>, RL...> {using type = te::ts_<RL...>;};
+    template<typename ...Ts> struct f: te::ts_<te::ts_<>> {};
+    template<typename T>struct f<T>{using type = te::ts_<te::ts_<T>>;};
+	template<typename T, typename ... Ts>
+		struct f<T,Ts...>
+		{
+            using current_result = te::eval_pipe_<te::input_<T>,Uf...,te::wrap_<te::same_as_>>;
+			using type = te::eval_pipe_<te::input_<T,Ts...>,
+                                        te::write_null_<    partition_<Uf...,current_result>,
+                                                            te::each_<te::wrap_<te::ts_append_>,te::pipe_<group_range_<Uf...>,te::wrap_<te::input_append_>>>                                                           
+                                                        >
+                                        >;
+		};
 };
 
 // UNIQUE : Keep only one of each different types
