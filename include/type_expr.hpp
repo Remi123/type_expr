@@ -1211,12 +1211,12 @@ struct group_range_
 		struct f<T,Ts...>
 		{
             using current_result = te::eval_pipe_<te::input_<T>,Uf...,te::wrap_<te::same_as_>>;
-			using type = te::eval_pipe_<te::input_<T,Ts...>,
-                                        te::write_null_<    partition_<Uf...,current_result>,
-                                                            te::each_<te::wrap_<te::ts_append_>,te::pipe_<group_range_<Uf...>,te::wrap_<te::input_append_>>>                                                           
-                                                        >
-                                        >;
-		};
+            using type = te::eval_pipe_<te::input_<T,Ts...>,
+                        te::write_null_<    partition_<Uf...,current_result>,
+                                            te::each_<te::wrap_<te::ts_append_>,te::pipe_<te::group_range_<Uf...>,te::wrap_<te::input_append_>>>                                                           
+                                        >
+                        >;
+        };
 };
 
 // UNIQUE : Keep only one of each different types
