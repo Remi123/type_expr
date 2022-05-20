@@ -221,11 +221,11 @@ using wraptype_ = trait_<F>;
 
 // WRAP && QUOTE_: Universal wrapper. Doesn't get the ::type. Use with template alias
 // The Other Farming field of our library
-template <template <typename...> class F>
+template <template <typename...> class F,typename ... Args>
 struct wrap_ {
   template <typename... Ts>
   struct f {
-    typedef F<Ts...> type;
+    typedef F<Args...,Ts...> type;
   };
 };
 
