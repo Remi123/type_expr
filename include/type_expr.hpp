@@ -1142,29 +1142,29 @@ struct lcm {
 template<typename ... BP>
 struct sort_
 {
-	template<typename ...> struct f: ts_<> {};
+	template<typename ...> struct f: te::ts_<> {};
 
 	template<typename T>
 		struct f<T>
 		{
-			using type = T;
+			using type = te::ts_<T>;
 		};
 
 	template<typename T, typename U>
-		struct f<T,U> : cond_<pipe_<BP...>,ts_<T,U>, ts_<U,T>>::template f<T,U> {};
+		struct f<T,U> : te::cond_<te::pipe_<BP...>,te::ts_<T,U>, te::ts_<U,T>>::template f<T,U> {};
 
 	template<typename T, typename ... Ts>
 		struct f<T,Ts...>
 		{
-			using left = eval_pipe_<ts_<Ts...>,
-		  		  keep_if_<fork_<identity,ts_<T>>,BP...>, // See note A below
-		  		  sort_<BP...>, // Recursive algo
-		  		  wrap_<input_append_>>; // See note B below
-			using right = eval_pipe_<ts_<Ts...>,
-		  		  remove_if_<fork_<identity,ts_<T>>,BP...>, // See note A below
-		  		  sort_<BP...>, // Recursive algo
-		  		  wrap_<input_append_>>; // See note B below
-			using type = eval_pipe_<left,input_append_<T>,right>;
+			using left = te::eval_pipe_<te::ts_<Ts...>
+		  		  ,te::keep_if_<te::fork_<te::identity,te::ts_<T>>,BP...> // See note A below
+		  		  ,sort_<BP...> // Recursive algo
+		  		  ,te::wrap_<te::ts_append_>>; // See note B below
+			using right = te::eval_pipe_<te::ts_<Ts...>,
+		  		  te::remove_if_<te::fork_<te::identity,te::ts_<T>>,BP...> // See note A below
+		  		  ,sort_<BP...> // Recursive algo
+		  		  ,te::wrap_<te::ts_append_>>; // See note B below
+			using type = te::eval_pipe_<left,te::ts_append_<T>,right,te::flatten>;
 
 		};
 	/* note A : To adapt a keep_if/remove_if to a binary predicate, the first
