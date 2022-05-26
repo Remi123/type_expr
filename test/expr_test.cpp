@@ -473,24 +473,24 @@ static_assert(
     "Array-fication");
 
 static_assert(
-    eval_pipe_<input_<int, float, char>, bind_<0, wraptype_<std::add_pointer>>,
+    eval_pipe_<input_<int, float, char>, on_nth_args_c<0, wraptype_<std::add_pointer>>,
                same_as_<int *, float, char>>::value,
-    "Binding is simple");
+    "modifying nth element is simple");
 static_assert(
-    eval_pipe_<input_<int, float, char>, bind_<-1, wraptype_<std::add_pointer>>,
+    eval_pipe_<input_<int, float, char>, on_nth_args_c<-1, wraptype_<std::add_pointer>>,
                same_as_<int, float, char *>>::value,
-    "Binding on the last is simple");
+    "Bmodifying nth element is simple");
 static_assert(
-    eval_pipe_<input_<int, float, char>, bind_<-2, wraptype_<std::add_pointer>>,
+    eval_pipe_<input_<int, float, char>, on_nth_args_c<-2, wraptype_<std::add_pointer>>,
                same_as_<int, float *, char>>::value,
     "");
 
 static_assert(
-    eval_pipe_<input_<i<1>, i<2>, i<3>>, bind_on_args_<-1, fold_left_<plus_<>>>,
+    eval_pipe_<input_<i<1>, i<2>, i<3>>, on_nth_args_c<-1, fold_left_<plus_<>>>,
                same_as_<i<1>, i<2>, i<6>>>::value,
     "Replace the last with the sum of all");
 static_assert(
-    eval_pipe_<input_<int, float, char>, bind_on_args_<-2, first, listify>,
+    eval_pipe_<input_<int, float, char>, on_nth_args_from_input_c <-2, first, listify>,
                same_as_<int, ls_<int>, char>>::value,
     "The second is replaced with the listified first");
 
