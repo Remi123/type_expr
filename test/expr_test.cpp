@@ -486,7 +486,7 @@ static_assert(
     "");
 
 static_assert(
-    eval_pipe_<input_<i<1>, i<2>, i<3>>, on_nth_args_c<-1, fold_left_<plus_<>>>,
+    eval_pipe_<input_<i<1>, i<2>, i<3>>, on_nth_args_from_input_c<-1, fold_left_<plus_<>>>,
                same_as_<i<1>, i<2>, i<6>>>::value,
     "Replace the last with the sum of all");
 static_assert(
