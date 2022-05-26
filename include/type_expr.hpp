@@ -1279,9 +1279,10 @@ struct arrayify {
                Head, Rest...> {};
 };
 
-// BIND
+// ON_NTH_ARGS_C
+// Do something on the Nth element
 template <int I, typename... Es>
-struct bind_ {
+struct on_nth_args_c {
   template <typename... Ts>
   struct f : eval_pipe_<
                  input_<i<sizeof...(Ts)>>, mkseq_<>,
@@ -1290,9 +1291,11 @@ struct bind_ {
                  quote_<each_>>::template f<Ts...> {};
 };
 
-// BIND_ON_ARGS_
+// ON_NTH_ARGS_FROM_INPUT_C
+// Do something on the Nth element, using all the current inputs.
+// A variation of ON_NTH_ARGS_C
 template <int I, typename... Es>
-struct bind_on_args_ {
+struct on_nth_args_from_input_c {
   template <typename... Ts>
   struct f
       : eval_pipe_<
@@ -1301,6 +1304,18 @@ struct bind_on_args_ {
                              ts_<pipe_<ts_<Ts...>, Es...>>, ts_<identity>>>,
             quote_<each_>>::template f<Ts...> {};
 };
+
+// BIND_
+// Similar to boost.mp11.bind
+// Create a list of types in order, but each type_expr expression is evaluated.
+template<typename T> using is_type_expr_expression = te::wrap_<T::template f>;
+template<typename ... Args>
+struct bind_ : te::write_<te::input_<Args...>
+                                ,te::transform_<te::cond_<  te::is_detected_<is_type_expr_expression>
+                                                            ,te::identity // Funciton are left as is
+                                                            ,te::wrap_<te::input_>>> // Types are 
+                                ,te::wrap_<te::fork_>,te::push_back_<te::flatten>>
+{};
 
 template<int I, typename T>
 struct insert_c : write_null_<zip_index, transform_<listify>
