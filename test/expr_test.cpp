@@ -214,7 +214,7 @@ int main() {
 				"");
   static_assert(
 	  eval_pipe_<input_<int[1], int[2], float[1]>, cartesian
-				 ,same_as_<int[1], int[2]>, float[1]>
+				 ,same_as_<int[1], int[2], float[1]>
 				 >::value,
 	  "No list give you the same things");
   static_assert(
