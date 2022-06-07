@@ -683,18 +683,6 @@ struct unzip_index {
   };
 };
 
-// UNZIP
-struct unzip {  
-  template <typename ... Ts> using binded = te::eval_pipe_<te::input_<Ts...>,te::at_c<0>,te::length,te::mkseq_<>,te::transform_<te::wrap_<te::at_>,te::wrap_<te::transform_>>,te::wrap_<te::fork_>>;
-  template <typename...Ts>
-  struct f //:te::fork_<te::transform_<te::first>,te::transform_<te::second>>::template f<Ts...>{};
-  :binded<Ts...>::template f<Ts...>{};
-  template <typename... Fs, typename... Gs>
-  struct f<te::ts_<Fs, Gs>...> : te::ts_<te::ts_<Fs...>, te::ts_<Gs...>> {};
-  template <typename... Fs, typename... Gs, typename... Hs>
-  struct f<te::ts_<Fs, Gs, Hs>...> : te::ts_<te::ts_<Fs...>, te::ts_<Gs...>, te::ts_<Hs...>> {};
-};
-
 // ZIP_INPUT : Inputs are indexed
 template<typename ... Ts>
 struct zip_input_ : pipe_<ts_<Ts...>,zip_index>{};
@@ -807,6 +795,17 @@ typedef at_c<6> _7th; using seventh = at_c<6>;
 typedef at_c<7> _8th; using eighth = at_c<7>;
 typedef at_c<8> _9th; using ninth = at_c<8>;
 
+// UNZIP
+struct unzip {  
+  template <typename ... Ts> using binded = te::eval_pipe_<te::input_<Ts...>,te::at_c<0>,te::length,te::mkseq_<>,te::transform_<te::wrap_<te::at_>,te::wrap_<te::transform_>>,te::wrap_<te::fork_>>;
+  template <typename...Ts>
+  struct f 
+  :binded<Ts...>::template f<Ts...>{};
+  template <typename... Fs, typename... Gs>
+  struct f<te::ts_<Fs, Gs>...> : te::ts_<te::ts_<Fs...>, te::ts_<Gs...>> {};
+  template <typename... Fs, typename... Gs, typename... Hs>
+  struct f<te::ts_<Fs, Gs, Hs>...> : te::ts_<te::ts_<Fs...>, te::ts_<Gs...>, te::ts_<Hs...>> {};
+};
 
 // FLATTEN : Continue with only one ts_. Sub-ts_ are removed.
 // The dirty but necessary tool of our library
