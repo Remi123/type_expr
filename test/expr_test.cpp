@@ -213,10 +213,10 @@ int main() {
 						   >::value,
 				"");
   static_assert(
-	  eval_pipe_<input_<ts_<int[1], int[2]>, float[1]>, cartesian
-				 ,same_as_<ts_<int[1], float[1]>, ts_<int[2], float[1]>>
+	  eval_pipe_<input_<int[1], int[2]>, float[1]>, cartesian
+				 ,same_as_<int[1], int[2]>, float[1]>>
 				 >::value,
-	  "");
+	  "No list give you the same things");
   static_assert(
 	  eval_pipe_<input_<ts_<int[1]>, ts_<float[1], float[2]>>, cartesian
 				 ,same_as_<ts_<int[1], float[1]>, ts_<int[1], float[2]>>
@@ -388,7 +388,7 @@ static_assert(
 
 static_assert(
 	eval_pipe_<input_<int, float>, cartesian
-	, same_as_<ts_<int, float>>
+	, same_as_<int, float>
 	>::value,
 	"");
 static_assert(eval_pipe_<input_<int, ts_<float>>, cartesian
