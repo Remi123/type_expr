@@ -683,16 +683,6 @@ struct unzip_index {
   };
 };
 
-// UNZIP
-struct unzip {
-  template <typename...>
-  struct f;
-  template <typename... Fs, typename... Gs>
-  struct f<ts_<Fs, Gs>...> : ts_<ts_<Fs...>, ts_<Gs...>> {};
-  template <typename... Fs, typename... Gs, typename... Hs>
-  struct f<ts_<Fs, Gs, Hs>...> : ts_<ts_<Fs...>, ts_<Gs...>, ts_<Hs...>> {};
-};
-
 // ZIP_INPUT : Inputs are indexed
 template<typename ... Ts>
 struct zip_input_ : pipe_<ts_<Ts...>,zip_index>{};
@@ -805,7 +795,6 @@ typedef at_c<6> _7th; using seventh = at_c<6>;
 typedef at_c<7> _8th; using eighth = at_c<7>;
 typedef at_c<8> _9th; using ninth = at_c<8>;
 
-
 // FLATTEN : Continue with only one ts_. Sub-ts_ are removed.
 // The dirty but necessary tool of our library
 struct flatten : write_null_<transform_<wrap_<input_append_>>>
@@ -838,6 +827,18 @@ struct alignment {
   struct f {
     typedef i<alignof(T)> type;
   };
+};
+	
+// UNZIP
+struct unzip {  
+  template <typename ... Ts> using binded = te::eval_pipe_<te::input_<Ts...>,te::at_c<0>,te::length,te::mkseq_<>,te::transform_<te::wrap_<te::at_>,te::wrap_<te::transform_>>,te::wrap_<te::fork_>>;
+  template <typename...Ts>
+  struct f 
+  :binded<Ts...>::template f<Ts...>{};
+  template <typename... Fs, typename... Gs>
+  struct f<te::ts_<Fs, Gs>...> : te::ts_<te::ts_<Fs...>, te::ts_<Gs...>> {};
+  template <typename... Fs, typename... Gs, typename... Hs>
+  struct f<te::ts_<Fs, Gs, Hs>...> : te::ts_<te::ts_<Fs...>, te::ts_<Gs...>, te::ts_<Hs...>> {};
 };
 
 // NOT_ : Boolean metafunction are inversed
@@ -887,11 +888,9 @@ template <typename... UnaryPredicate>
 struct all_of_ {
   template <typename... Ts>
   struct f {
-    typedef typename std::is_same<
-        ls_<b<true>,
-            typename pipe_<UnaryPredicate...>::template f<Ts>::type...>,
-        ls_<typename pipe_<UnaryPredicate...>::template f<Ts>::type...,
-            b<true>>>::type type;
+  	  	using type = eval_pipe_<input_<Ts...>,for_each_<UnaryPredicate...>
+				,fork_<push_front_<b<true>>,push_back_<b<true>>>
+				,trait_<std::is_same>>;
   };
 };
 
@@ -900,14 +899,9 @@ template <typename... UnaryPredicate>
 struct any_of_ {
   template <typename... Ts>
   struct f {
-    typedef std::integral_constant<
-        bool,
-        !std::is_same<
-            ls_<b<false>,
-                typename pipe_<UnaryPredicate...>::template f<Ts>::type...>,
-            ls_<typename pipe_<UnaryPredicate...>::template f<Ts>::type...,
-                b<false>>>::value>
-        type;
+  	using type = eval_pipe_<input_<Ts...>,for_each_<UnaryPredicate...>
+				,fork_<push_front_<b<false>>,push_back_<b<false>>>
+				,trait_<std::is_same>,not_<>>;
   };
 };
 
@@ -931,39 +925,67 @@ template<typename ...Up>
 struct find_type_if_ : pipe_<keep_if_<Up...>,first>{};
 
 // CARTESIAN : Given two lists, continue with every possible lists of two types.
+
 namespace te_impl{
 struct impl_cartesian
 {
     template<typename T, typename U>
-    struct f;
-    template<typename T, typename U>
-    struct f<ts_<T>,ts_<U>>
+    struct f
     {
-        using type = ts_<ts_<T,U>>;
+        using type = te::ts_<T,U>;
+    };
+    template<typename T, typename U>
+    struct f<te::ts_<T>,U>
+    {
+        using type = te::ts_<T,U>;
+    };
+    template<typename T, typename U>
+    struct f<T,te::ts_<U>>
+    {
+        using type = te::ts_<te::ts_<T,U>>;
+    };
+    template<typename T, typename U>
+    struct f<te::ts_<T>,te::ts_<U>>
+    {
+        using type = te::ts_<te::ts_<T,U>>;
     };
     template<typename T, typename ... Us>
-    struct f<ts_<T>,ts_<Us...>>
+    struct f<te::ts_<T>,te::ts_<Us...>>
     {
-        using type = eval_pipe_<ts_<T>,fork_<push_back_<Us>...>>;
+        using type = te::ts_<te::ts_<T,Us>...>;
+    };
+    template<typename T, typename ...Us>
+    struct f<T,te::ts_<Us...>>
+    {
+        using type = te::ts_<te::ts_<T,Us>...>;
+    };
+    template<typename ... Ts, typename U>
+    struct f<te::ts_<Ts...>,U>
+    {
+        using type = te::ts_<Ts...,U>;
+    };
+    template<typename ... Ts, typename U>
+    struct f<te::ts_<Ts...>,te::ts_<U>>
+    {
+        using type = te::ts_<te::ts_<Ts,U>...>;
     };
     template<typename ... Ts, typename ... Us>
-    struct f<ts_<Ts...>,ts_<Us...>>
+    struct f<te::ts_<Ts...>,te::ts_<Us...>>
     {
-        using type = eval_pipe_<ts_<Ts...>,transform_<fork_<push_back_<Us>...>>,flatten>;
+        //using type = typename te::fold_left_<impl_cartesian>::template f<te::ts_<Ts,Us...>...>::type;
+         using type = te::eval_pipe_<
+         te::input_<Ts...>,te::transform_<te::fork_<te::pipe_<te::push_back_<Us>>...>>,te::flatten
+        
+        >;
     };
 };
+}
 
-template<typename T>
-struct as_list{using type = ts_<T>;};
-template<typename ... Ts>
-struct as_list<ts_<Ts...>>{using type = ts_<Ts...>;};
-};
-
-struct cartesian 
+struct cartesian// :te::fold_left_<te_impl::impl_cartesian>
 {
 template<typename ... Ts>
 struct f{
-    using type = eval_pipe_<input_<typename te_impl::as_list<Ts>::type ...>,fold_left_<te_impl::impl_cartesian>>;
+    using type = te::eval_pipe_<te::input_<Ts ...>,te::fold_left_<te_impl::impl_cartesian>>;
 };
 };
 
