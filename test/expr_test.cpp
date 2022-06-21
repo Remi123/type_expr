@@ -186,7 +186,7 @@ int main() {
 
   static_assert(
       te::eval_pipe_<te::input_<int, te::ts_<float, float>, char>,
-                     te::each_<te::same_as_<int>, te::same_as_<float, float>,
+                     te::respectively_<te::same_as_<int>, te::same_as_<float, float>,
                                te::same_as_<char>>,
                      te::all_of_<te::same_as_<std::true_type>>>::value,
       "");
@@ -372,9 +372,9 @@ static_assert(
 // Usual Test
 static_assert(
     te::eval_pipe_<input_<int, float, char>,
-                   write_<transform_<ts_<identity>>, wrap_<each_>>,
+                   write_<transform_<ts_<identity>>, wrap_<respectively_>>,
                    same_as_<int, float, char>>::value,
-    "Very important that each_<identity...> is equivalent to the inputs");
+    "Very important that respectively_<identity...> is equivalent to the inputs");
 static_assert(
     eval_pipe_<input_<ls_<int>>, container, same_as_<wrap_<ls_>>>::value,
     "We reuse the wrap_ as both a container and a meta-expression");
