@@ -1237,7 +1237,7 @@ struct group_range_
             using current_result = te::eval_pipe_<te::input_<T>,Uf...,te::wrap_<te::same_as_>>;
             using type = te::eval_pipe_<te::input_<T,Ts...>,
                         te::write_null_<    partition_<Uf...,current_result>,
-                                            te::each_<te::wrap_<te::ts_append_>,te::pipe_<te::group_range_<Uf...>,te::wrap_<te::input_append_>>>                                                           
+                                            te::respectively_<te::wrap_<te::ts_append_>,te::pipe_<te::group_range_<Uf...>,te::wrap_<te::input_append_>>>                                                           
                                         >
                         >;
         };
@@ -1312,7 +1312,7 @@ struct on_nth_args_c {
                  input_<i<sizeof...(Ts)>>, mkseq_<>,
                  transform_<cond_<same_as_<circular_modulo_t<I, sizeof...(Ts)>>,
                                   ts_<pipe_<Es...>>, ts_<identity>>>,
-                 quote_<each_>>::template f<Ts...> {};
+                 quote_<respectively_>>::template f<Ts...> {};
 };
 
 // ON_NTH_ARGS_FROM_INPUT_C
@@ -1326,7 +1326,7 @@ struct on_nth_args_from_input_c {
             ts_<i<sizeof...(Ts)>>, mkseq_<>,
             transform_<cond_<same_as_<circular_modulo_t<I, sizeof...(Ts)>>,
                              ts_<pipe_<ts_<Ts...>, Es...>>, ts_<identity>>>,
-            quote_<each_>>::template f<Ts...> {};
+            quote_<respectively_>>::template f<Ts...> {};
 };
 
 // BIND_
