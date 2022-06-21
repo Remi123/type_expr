@@ -438,10 +438,10 @@ struct fork_ {
   };
 };
 
-// EACH : Badly named mix between fork and transform. Requiere the same number
+// RESPECTIVELY : Badly named mix between fork and transform. Requiere the same number
 // of expressions as arguments than inputs.
 template <typename... Es>
-struct each_ {
+struct respectively_ {
   template <typename... Ts>
   struct f {
     typedef ts_<eval_pipe_<ts_<Ts>, Es>...> type;
@@ -839,6 +839,8 @@ struct unzip {
   struct f<te::ts_<Fs, Gs>...> : te::ts_<te::ts_<Fs...>, te::ts_<Gs...>> {};
   template <typename... Fs, typename... Gs, typename... Hs>
   struct f<te::ts_<Fs, Gs, Hs>...> : te::ts_<te::ts_<Fs...>, te::ts_<Gs...>, te::ts_<Hs...>> {};
+  template <typename... Fs, typename... Gs, typename... Hs,typename... Is>
+  struct f<te::ts_<Fs, Gs, Hs, Is>...> : te::ts_<te::ts_<Fs...>, te::ts_<Gs...>, te::ts_<Hs...>,te::ts_<Is...>> {};
 };
 
 // NOT_ : Boolean metafunction are inversed
@@ -1235,7 +1237,7 @@ struct group_range_
             using current_result = te::eval_pipe_<te::input_<T>,Uf...,te::wrap_<te::same_as_>>;
             using type = te::eval_pipe_<te::input_<T,Ts...>,
                         te::write_null_<    partition_<Uf...,current_result>,
-                                            te::each_<te::wrap_<te::ts_append_>,te::pipe_<te::group_range_<Uf...>,te::wrap_<te::input_append_>>>                                                           
+                                            te::respectively_<te::wrap_<te::ts_append_>,te::pipe_<te::group_range_<Uf...>,te::wrap_<te::input_append_>>>                                                           
                                         >
                         >;
         };
@@ -1267,7 +1269,7 @@ struct swizzle_ : fork_<at_c<Is>...> {};
 template <typename... Es>
 struct on_args_ {
   template <typename... Ts>
-  struct f : ts_<error_<on_args_<Es...>, Ts...>> {};
+  struct f : ts_<Ts...> {};
   template <template <typename... Ts> class F, typename... Ts>
   struct f<F<Ts...>> {
     typedef eval_pipe_<input_<Ts...>, Es..., quote_<F>> type;
@@ -1275,7 +1277,7 @@ struct on_args_ {
   template <template <typename... Ts> class F, typename... Ts>
   struct f<F<Ts...> &> {
     typedef eval_pipe_<input_<Ts...>, Es..., quote_<F>,
-                       wraptype_<std::add_lvalue_reference>>
+                       te::trait_<std::add_lvalue_reference>>
         type;
   };
 };
@@ -1310,7 +1312,7 @@ struct on_nth_args_c {
                  input_<i<sizeof...(Ts)>>, mkseq_<>,
                  transform_<cond_<same_as_<circular_modulo_t<I, sizeof...(Ts)>>,
                                   ts_<pipe_<Es...>>, ts_<identity>>>,
-                 quote_<each_>>::template f<Ts...> {};
+                 quote_<respectively_>>::template f<Ts...> {};
 };
 
 // ON_NTH_ARGS_FROM_INPUT_C
@@ -1324,7 +1326,7 @@ struct on_nth_args_from_input_c {
             ts_<i<sizeof...(Ts)>>, mkseq_<>,
             transform_<cond_<same_as_<circular_modulo_t<I, sizeof...(Ts)>>,
                              ts_<pipe_<ts_<Ts...>, Es...>>, ts_<identity>>>,
-            quote_<each_>>::template f<Ts...> {};
+            quote_<respectively_>>::template f<Ts...> {};
 };
 
 // BIND_
@@ -1357,6 +1359,7 @@ struct erase_c : write_null_<
 
 template<typename V> using erase_ = erase_c<V::value>;
 
+namespace detail{
 template<typename ... Ts> struct Overload_ctor;
 template <typename T, typename... Ts>
 struct Overload_ctor<T,Ts...> : Overload_ctor<Ts...>
@@ -1367,6 +1370,7 @@ struct Overload_ctor<T,Ts...> : Overload_ctor<Ts...>
 template <typename T> struct Overload_ctor<T> {
     T overload(T);
 };
+}//namespace detail
 
 template<typename T>
 struct find_overload{
@@ -1374,13 +1378,13 @@ struct find_overload{
     struct f {
         using type =
     decltype(
-        Overload_ctor<Ts...>{}.
+        detail::Overload_ctor<Ts...>{}.
         overload(std::declval<T>())
         );
     };
 };
 
-namespace te_impl{
+namespace detail{
 template<typename ... Ts>
 struct power_set_impl;
 template<typename T>
@@ -1388,16 +1392,15 @@ struct power_set_impl<T> : ts_<ts_<>,ts_<T>>{};
 template<typename T,typename ...Ts>
 struct power_set_impl<T,Ts...>
 {
-	using r1 = eval_pipe_<ts_<Ts...>,wraptype_<te_impl::power_set_impl>,wrap_<input_>>;
+	using r1 = eval_pipe_<ts_<Ts...>,wraptype_<detail::power_set_impl>,wrap_<input_>>;
 	using type = eval_pipe_<r1,fork_<identity,transform_<push_front_<T>>>,flatten>;
 };
 template<typename T,typename U>
 struct power_set_impl<T,U> : ts_<ts_<>,ts_<T>,ts_<U>,ts_<T,U>>{};
-
 }
 
 // POWER_SET : Same as mp11, but the order is different
-struct power_set : wraptype_<te_impl::power_set_impl>{};
+struct power_set : wraptype_<detail::power_set_impl>{};
 
 // FOLD_RIGHT : Fold right instead of left.
 template<typename ... BF> using fold_right_ = te::pipe_<te::reverse,te::fold_left_<BF...>>;
